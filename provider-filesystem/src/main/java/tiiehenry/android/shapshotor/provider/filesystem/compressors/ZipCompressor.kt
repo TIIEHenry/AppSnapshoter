@@ -1,0 +1,147 @@
+package tiiehenry.android.shapshotor.provider.filesystem.compressors
+
+import tiiehenry.android.shapshotor.file.ICompressCallback
+import tiiehenry.android.shapshotor.fs.CompressState
+import tiiehenry.android.shapshotor.provider.filesystem.IAlgorithmCompressor
+import tiiehenry.android.shapshotor.provider.filesystem.MD5Utils
+import tiiehenry.android.shapshotor.task.ITaskHandler
+import java.io.File
+import java.io.FileInputStream
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+
+object ZipCompressor : IAlgorithmCompressor {
+    override fun compress(
+        dir: String,
+        targetFile: String,
+        excludes: List<String>,
+        callback: ICompressCallback
+    ): ITaskHandler {
+        return object : ITaskHandler.Stub() {
+            var state = CompressState.COMPRESS_STATE_NONE
+            var isCancel = AtomicBoolean(false)
+            override fun id(): String {
+                return "zip:" + dir + ">" + targetFile
+            }
+
+            override fun state(): Int {
+                return state
+            }
+
+            override fun start() {
+                state = CompressState.COMPRESS_STATE_RUNNING
+                doCompress(dir, targetFile, excludes, callback)
+            }
+
+            override fun cancel() {
+                isCancel.set(true)
+            }
+
+
+        }
+    }
+
+
+    private fun doCompress(
+        dir: String,
+        targetFile: String,
+        excludes: List<String>,
+        callback: ICompressCallback
+    ) {
+        val sourceDir = File(dir)
+        if (!sourceDir.exists()) {
+            callback.onError("source not exists")
+            return
+        }
+        val target = File(targetFile)
+        if (target.exists()) {
+            callback.onError("target exists")
+            return
+        }
+        callback.onStart()
+        target.parentFile?.mkdirs()
+        
+        try {
+            // 计算总文件大小用于进度报告
+            val filesToCompress = mutableListOf<Pair<File, String>>()
+            collectFiles(sourceDir, "", excludes, filesToCompress)
+            
+            if (filesToCompress.isEmpty()) {
+                callback.onError("no files to compress")
+                return
+            }
+            
+            val totalSize = filesToCompress.sumOf { it.first.length() }
+            var compressedSize = 0L
+            var lastProgressTime = System.currentTimeMillis()
+            var lastCompressedSize = 0L
+            
+            ZipOutputStream(target.outputStream()).use { zos ->
+                filesToCompress.forEach { (file, relativePath) ->
+                    val entry = ZipEntry(relativePath)
+                    zos.putNextEntry(entry)
+                    
+                    FileInputStream(file).use { fis ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        while (fis.read(buffer).also { bytesRead = it } != -1) {
+                            zos.write(buffer, 0, bytesRead)
+                            compressedSize += bytesRead
+                            
+                            // 每隔500ms更新一次进度
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastProgressTime >= 1000) {
+                                val progress = (compressedSize * 100 / totalSize).toInt()
+                                val kbPerS = (compressedSize - lastCompressedSize) / (currentTime - lastProgressTime)
+                                callback.onProgress(progress, kbPerS)
+                                lastProgressTime = currentTime
+                                lastCompressedSize = compressedSize
+                            }
+                        }
+                    }
+                    
+                    zos.closeEntry()
+                }
+            }
+            
+            // 计算压缩后的文件MD5
+            val md5 = MD5Utils.getFileMD5(target)
+            callback.onDone(totalSize, target.length(), md5)
+            
+        } catch (e: Exception) {
+            e.printStackTrace()
+            callback.onError(e.message ?: "compress failed")
+            // 删除失败的文件
+            if (target.exists()) {
+                target.delete()
+            }
+        }
+    }
+    
+    /**
+     * 递归收集需要压缩的文件
+     */
+    private fun collectFiles(
+        dir: File,
+        parentPath: String,
+        excludes: List<String>,
+        result: MutableList<Pair<File, String>>
+    ) {
+        dir.listFiles()?.forEach { file ->
+            val relativePath = if (parentPath.isEmpty()) file.name else "$parentPath/${file.name}"
+            
+            // 检查是否在排除列表中
+            if (excludes.contains(relativePath)) {
+                return@forEach
+            }
+            
+            if (file.isDirectory) {
+                collectFiles(file, relativePath, excludes, result)
+            } else {
+                result.add(file to relativePath)
+            }
+        }
+    }
+
+}

@@ -1,0 +1,39 @@
+{
+    "packageInfo": {
+        "label": "AppName1",
+        "packageName": "com.app.a",
+        "versionCode": 1000,
+        "versionName": "1.0",
+        "firstInstallTime": 1745924435,
+        "flags": 550026820,
+        "lastUpdateTime": 1745924435305
+    },
+    "userId": 0,
+    "dataItems":[{
+        "algorithm": "zstd",
+        "name":"apk",
+        "file":"apk.tar.zst",
+        "path":"",
+        "size":21432,
+        "compressCost": 21432
+    },{
+        "algorithm": "zstd",
+        "name":"data-0",
+        "file":"data.tar.zst",
+        "path":"",
+        "size":21432,
+        "compressCost": 21432
+    }],
+    "permissions": [
+        {
+            "isGranted": false,
+            "mode": 0,
+            "name": "android.permission.SYSTEM_ALERT_WINDOW",
+            "op": 24
+        }
+    ],
+    "time": {
+        "compressCost": 21432,
+        "makeTime":1745924435305
+    }
+}
