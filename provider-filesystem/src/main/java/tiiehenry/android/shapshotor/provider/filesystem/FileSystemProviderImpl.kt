@@ -5,6 +5,7 @@ import android.os.ParcelFileDescriptor
 import tiiehenry.android.shapshotor.file.IFileCompressor
 import tiiehenry.android.shapshotor.provider.FileSystemProvider
 import tiiehenry.android.shapshotor.file.IFileSystem
+import tiiehenry.android.shapshotor.fs.IFileType
 import java.io.File
 
 class FileSystemProviderImpl(
@@ -20,14 +21,13 @@ class FileSystemProviderImpl(
 
         val fileCompressor = FileCompressor(this)
 
-        override fun fileType(path: String?): Int {
-            if (path == null) return TYPE_NOT_EXISTS
+        override fun fileType(path: String): Int {
             val file = File(path)
             return when {
-                !file.exists() -> TYPE_NOT_EXISTS
-                file.isDirectory -> TYPE_DIRECTORY
-                file.isFile -> TYPE_FILE
-                else -> TYPE_NOT_EXISTS
+                !file.exists() -> IFileType.TYPE_NONE
+                file.isDirectory -> IFileType.TYPE_DIR
+                file.isFile -> IFileType.TYPE_FILE
+                else -> IFileType.TYPE_OTHER
             }
         }
 
@@ -43,9 +43,12 @@ class FileSystemProviderImpl(
             return File(path).walkTopDown().filter { it.isFile }.map { it.length() }.sum()
         }
 
-        override fun mkdirs(path: String?): Boolean {
-            if (path == null) return false
+        override fun mkdirs(path: String): Boolean {
             return File(path).mkdirs()
+        }
+
+        override fun delete(path: String): Boolean {
+            return File(path).deleteRecursively()
         }
 
         override fun getLastModifiedTime(path: String?): Long {
@@ -92,25 +95,29 @@ class FileSystemProviderImpl(
             return false
         }
 
-        override fun openFile(path: String?, mode: Int): ParcelFileDescriptor? {
-            if (path == null) return null
+        override fun openFile(path: String, mode: Int): ParcelFileDescriptor? {
             return try {
-                ParcelFileDescriptor.open(File(path), mode)
+                // 检查是否需要创建文件
+                val file = File(path)
+                if (mode and ParcelFileDescriptor.MODE_CREATE != 0 && !file.exists()) {
+                    file.parentFile?.mkdirs()
+                    file.createNewFile()
+                }
+                ParcelFileDescriptor.open(file, mode)
             } catch (e: Exception) {
+                e.printStackTrace()
                 null
             }
         }
 
         override fun diff(
-            oldDir: String?,
-            newDir: String?,
+            oldDir: String,
+            newDir: String,
             addedList: MutableList<String>?,
             removedList: MutableList<String>?,
             changedList: MutableList<String>?,
             keepedList: MutableList<String>?
         ) {
-            if (oldDir == null || newDir == null) return
-
             val oldFiles = File(oldDir).walkTopDown()
                 .filter { it.isFile }
                 .map { it.relativeTo(File(oldDir)).path }
@@ -144,12 +151,6 @@ class FileSystemProviderImpl(
 
         override fun getCompressor(): IFileCompressor {
             return fileCompressor
-        }
-
-        companion object {
-            const val TYPE_NOT_EXISTS = 0
-            const val TYPE_FILE = 1
-            const val TYPE_DIRECTORY = 2
         }
     }
 }

@@ -3,7 +3,7 @@ package tiieherny.android.app.snapshotor.data
 import android.os.ParcelFileDescriptor
 import com.alibaba.fastjson2.JSON
 import com.tencent.mmkv.MMKV
-import tiiehenry.android.shapshotor.fs.FileSystemFile
+import tiiehenry.android.shapshotor.fs.IFileType
 import tiiehenry.android.shapshotor.app.IAppManager
 import tiiehenry.android.shapshotor.file.ICompressCallback
 import tiiehenry.android.shapshotor.file.IFileSystem
@@ -11,7 +11,6 @@ import tiiehenry.android.shapshotor.fs.CompressState
 import tiiehenry.android.shapshotor.task.ITaskHandler
 import tiieherny.android.app.snapshotor.app.AppInfo
 import tiieherny.android.app.snapshotor.config.AppConfig
-import tiieherny.android.app.snapshotor.config.GlobalConfig
 import tiieherny.android.app.snapshotor.config.GroupConfig
 import java.io.File
 import java.io.FileWriter
@@ -31,15 +30,15 @@ class SnapShotMaker {
             appInfo: AppInfo,
             callback: ICompressCallback,
             mmkv: MMKV,
-            groupConfig: GroupConfig? = null,
+            groupConfig: GroupConfig,
             appConfig: AppConfig? = null,
             archiveName: String? = null
         ): java.util.LinkedHashMap<String, ITaskHandler>? {
             try {
-                val rootPath = groupConfig?.rootPath ?: GlobalConfig.rootPath
+                val rootPath = groupConfig.rootPath
                 val packageDir = Paths.get(rootPath, appInfo.packageName).absolutePathString()
 
-                if (fileSystem.fileType(packageDir) == FileSystemFile.FILE_TYPE_NOTHING) {
+                if (fileSystem.fileType(packageDir) == IFileType.TYPE_NONE) {
                     fileSystem.mkdirs(packageDir)
                 }
 
@@ -47,16 +46,15 @@ class SnapShotMaker {
                 val name = archiveName ?: generateArchieveName()
                 val archiveDir = Paths.get(packageDir, name).absolutePathString()
 
-                if (fileSystem.fileType(packageDir) == FileSystemFile.FILE_TYPE_DIR) {
+                if (fileSystem.fileType(packageDir) == IFileType.TYPE_DIR) {
                     throw IllegalStateException("Package directory already exists: $packageDir")
                 }
 
                 fileSystem.mkdirs(archiveDir)
 
                 // 获取要压缩的项目
-                val compressItems = appConfig?.compressItems
-                    ?: groupConfig?.compressItems
-                    ?: setOf("apk", "data", "user", "user_de", "obb")
+                val compressItems = appConfig?.shotConfig?.compressItems
+                    ?: groupConfig.shotConfig.compressItems
                 val tasks = LinkedHashMap<String, ITaskHandler>()
                 val applicationInfo =
                     appInfo.getApplicationInfo(appManager) ?: throw IllegalStateException(
@@ -200,7 +198,7 @@ class SnapShotMaker {
             return dateFormat.format(Date())
         }
 
-        fun deleteArchieve(archivePath: String): Boolean {
+        fun deleteArchive(archivePath: String): Boolean {
             return try {
                 val archiveDir = File(archivePath)
                 if (archiveDir.exists()) {
@@ -215,7 +213,7 @@ class SnapShotMaker {
             }
         }
 
-        fun restoreArchieve(archivePath: String): Boolean {
+        fun restoreArchive(archivePath: String): Boolean {
             // TODO: 实现恢复逻辑，需要调用IFileSystem接口
             return false
         }

@@ -1,7 +1,13 @@
 package tiieherny.android.app.snapshotor.data
 
+import android.os.ParcelFileDescriptor
+import com.alibaba.fastjson2.JSON
+import tiiehenry.android.shapshotor.file.IFileSystem
 import tiieherny.android.app.snapshotor.utils.JsonUtils
 import java.io.File
+import java.io.FileReader
+import java.nio.file.Paths
+import kotlin.io.path.absolutePathString
 
 /**
  * MetaInfo 操作辅助类
@@ -9,26 +15,15 @@ import java.io.File
  */
 object MetaInfoHelper {
 
-    private const val META_INFO_FILE_NAME = "meta-info.json"
+     const val META_INFO_FILE_NAME = "meta-info.json"
 
-    /**
-     * 从存档目录读取 MetaInfo
-     * @param archiveDir 存档目录
-     * @return MetaInfo 对象，失败返回 null
-     */
-    fun readFromArchive(archiveDir: File): MetaInfo? {
-        val metaFile = File(archiveDir, META_INFO_FILE_NAME)
-        return JsonUtils.parseFromFile(metaFile, MetaInfo::class.java)
+    fun read(fs: IFileSystem,jsonFile: String): MetaInfo {
+        fs.openFile(jsonFile, ParcelFileDescriptor.MODE_READ_ONLY).use {
+            val jsonStr = FileReader(it.fileDescriptor).readText()
+            return JSON.parseObject(jsonStr, MetaInfo::class.java)
+        }
     }
 
-    /**
-     * 从存档目录路径读取 MetaInfo
-     * @param archivePath 存档目录路径
-     * @return MetaInfo 对象，失败返回 null
-     */
-    fun readFromArchive(archivePath: String): MetaInfo? {
-        return readFromArchive(File(archivePath))
-    }
 
     /**
      * 将 MetaInfo 写入存档目录

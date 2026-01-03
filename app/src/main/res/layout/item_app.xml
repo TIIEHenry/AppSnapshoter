@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:background="?attr/selectableItemBackgroundBorderless"
     android:padding="8dp"
     android:gravity="center">
 
@@ -14,13 +15,23 @@
 
     <TextView
         android:id="@+id/app_name"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="App"
-        android:textSize="12sp"
+        android:textSize="11sp"
+        android:lines="2"
         android:maxLines="2"
         android:ellipsize="end"
         android:gravity="center" />
+
+    <ImageView
+        android:id="@+id/app_status_indicator"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_marginTop="2dp"
+        android:src="@drawable/circle"
+        android:contentDescription="App Status"
+        android:visibility="gone" />
 
 </LinearLayout>

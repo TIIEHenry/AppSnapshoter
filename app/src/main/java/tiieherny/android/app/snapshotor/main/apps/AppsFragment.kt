@@ -1,25 +1,22 @@
 package tiieherny.android.app.snapshotor.main.apps
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import tiieherny.android.app.snapshotor.R
 import tiieherny.android.app.snapshotor.SnapShotApp
-import tiieherny.android.app.snapshotor.app.AppConfigActivity
+import tiieherny.android.app.snapshotor.app.AppConfigFragment
+import tiieherny.android.app.snapshotor.databinding.FragmentAppsBinding
 
 class AppsFragment : Fragment() {
 
+    private var _binding: FragmentAppsBinding? = null
+    private val binding get() = _binding!!
     private val viewModel: AppsViewModel by activityViewModels()
-    private lateinit var searchView: SearchView
-    private lateinit var appsRecyclerView: RecyclerView
     private lateinit var appsAdapter: AppsAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,28 +27,25 @@ class AppsFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_apps, container, false)
+    ): View {
+        _binding = FragmentAppsBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        searchView = view.findViewById(R.id.search_view)
-        appsRecyclerView = view.findViewById(R.id.apps_recycler_view)
-
-        appsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.appsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         appsAdapter = AppsAdapter { appInfo ->
-            // 点击item进入AppConfigActivity
-            val intent = Intent(requireContext(), AppConfigActivity::class.java)
-            intent.putExtra("packageName", appInfo.packageName)
-            startActivity(intent)
+            // 显示AppConfigFragment作为BottomSheet
+            val fragment = AppConfigFragment.newInstance(appInfo.packageName)
+            fragment.show(parentFragmentManager, fragment.tag)
         }
-        appsRecyclerView.adapter = appsAdapter
+        binding.appsRecyclerView.adapter = appsAdapter
 
         // 观察全局ViewModel的appList
-        SnapShotApp.getViewModel().appList.observe(viewLifecycleOwner) { apps ->
-            viewModel.setAppList(apps.map { it.appInfo })
+        SnapShotApp.getViewModel().appsList.observe(viewLifecycleOwner) { apps ->
+            viewModel.setAppList(apps.flatMap { it.value }.distinctBy { it.packageName })
         }
 
         // 观察过滤后的列表
@@ -60,7 +54,7 @@ class AppsFragment : Fragment() {
         }
 
         // 搜索功能
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+        binding.searchView.setOnQueryTextListener(object : android.widget.SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 return false
             }
@@ -70,5 +64,10 @@ class AppsFragment : Fragment() {
                 return true
             }
         })
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

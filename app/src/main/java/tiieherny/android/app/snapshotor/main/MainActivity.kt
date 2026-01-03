@@ -2,23 +2,27 @@ package tiieherny.android.app.snapshotor.main
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import tiieherny.android.app.snapshotor.R
 import tiieherny.android.app.snapshotor.SnapShotApp
+import tiieherny.android.app.snapshotor.databinding.ActivityMainBinding
 import tiieherny.android.app.snapshotor.main.apps.AppsFragment
 import tiieherny.android.app.snapshotor.main.launch.LauncherFragment
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var bottomNav: BottomNavigationView
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        
+        // 实现沉浸式状态栏
+        setupImmersiveStatusBar()
 
-        bottomNav = findViewById(R.id.bottom_navigation)
-        bottomNav.setOnItemSelectedListener { item ->
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_launcher -> {
                     switchFragment(LauncherFragment())
@@ -37,6 +41,17 @@ class MainActivity : AppCompatActivity() {
             switchFragment(LauncherFragment())
             SnapShotApp.getViewModel().loadData()
         }
+    }
+
+    private fun setupImmersiveStatusBar() {
+        // 启用内容延伸到状态栏和导航栏下方
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // 获取系统窗口控制器
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        
+        // 设置状态栏图标为深色（在浅色背景下）
+        windowInsetsController.isAppearanceLightStatusBars = true
     }
 
     private fun switchFragment(fragment: Fragment) {

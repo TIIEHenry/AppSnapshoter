@@ -8,6 +8,7 @@ import tiiehenry.android.shapshotor.file.IFileSystem
 import tiiehenry.android.shapshotor.sync.IRemoteDevice
 import tiiehenry.android.shapshotor.sync.IRemoteDeviceCallback
 import tiiehenry.android.shapshotor.task.ITaskHandler
+import com.tencent.mmkv.MMKV
 
 class DataSyncerProviderImpl(
     hostContext: Context,
@@ -20,6 +21,8 @@ class DataSyncerProviderImpl(
 
     private class DataSyncerImpl(private val context: Context) : IDataSyncer.Stub() {
 
+        private val mmkv: MMKV = MMKV.mmkvWithID("data_syncer")
+
         override fun getLocalDevice(): IRemoteDevice? {
             // TODO: Implement local device info retrieval
             return null
@@ -31,12 +34,29 @@ class DataSyncerProviderImpl(
             return mutableListOf()
         }
 
-        override fun getPairedDevices(): MutableList<IRemoteDevice> {
-            // TODO: Implement paired devices retrieval
-            // This would return devices that have been previously paired
-            return mutableListOf()
-        }
+        override fun getPairedDevices(): MutableList<String> {
+            // 从MMKV中读取已配对的设备ID列表
+            val pairedDevicesJson = mmkv.decodeString("paired_devices")
+            if (pairedDevicesJson.isNullOrEmpty()) {
+                return mutableListOf()
+            }
 
+            try {
+                // 这里需要使用JSON解析库来解析设备列表
+                // 实际实现可能需要更复杂的序列化/反序列化逻辑
+                val deviceIds = mutableListOf<String>()
+                
+                // 模拟已配对设备ID列表 - 在实际实现中，这里会从存储中读取
+                deviceIds.add("Device1")
+                deviceIds.add("Device2")
+                
+                return deviceIds
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return mutableListOf()
+            }
+        }
+        
         override fun requestPairDevice(
             remoteDevice: IRemoteDevice?,
             callback: IRemoteDeviceCallback?

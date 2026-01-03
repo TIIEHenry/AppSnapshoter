@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("kotlin-kapt")
 }
 
 android {
@@ -46,8 +47,8 @@ dependencies {
     
     // Provider implementations
     implementation(project(":provider-appmanager"))
-    // implementation(project(":provider-filesystem"))
-    // implementation(project(":provider-datasyncer"))
+     implementation(project(":provider-filesystem"))
+    implementation(project(":provider-datasyncer"))
     
     // AndroidX
     implementation(libs.androidx.core.ktx)
@@ -55,23 +56,24 @@ dependencies {
     implementation(libs.material)
     
     // Jetpack Components
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.10.0")
-    implementation("androidx.fragment:fragment-ktx:1.8.9")
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.constraintlayout)
     
     // MMKV
-    implementation("com.tencent:mmkv:2.3.0")
+    implementation(libs.mmkv)
     
     // FastJSON2
-    implementation("com.alibaba.fastjson2:fastjson2:2.0.60")
+    implementation(libs.fastjson2)
     
     // Glide
-    implementation("com.github.bumptech.glide:glide:5.0.5")
+    implementation(libs.glide)
+    kapt(libs.glide.compiler)
     
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation(libs.kotlinx.coroutines.android)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

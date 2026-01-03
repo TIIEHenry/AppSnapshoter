@@ -13,16 +13,16 @@ import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import tiieherny.android.app.snapshotor.R
 import tiieherny.android.app.snapshotor.SnapShotApp
+import tiieherny.android.app.snapshotor.databinding.FragmentLauncherBinding
 
 class LauncherFragment : Fragment() {
 
+    private var _binding: FragmentLauncherBinding? = null
+    private val binding get() = _binding!!
     private val viewModel: LauncherViewModel by activityViewModels()
-    private lateinit var groupsRecyclerView: RecyclerView
     private lateinit var groupsAdapter: GroupsAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,18 +33,18 @@ class LauncherFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_launcher, container, false)
+    ): View {
+        _binding = FragmentLauncherBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        groupsRecyclerView = view.findViewById(R.id.groups_recycler_view)
-        groupsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.groupsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         
-        groupsAdapter = GroupsAdapter(viewModel)
-        groupsRecyclerView.adapter = groupsAdapter
+        groupsAdapter = GroupsAdapter(viewModel, childFragmentManager)
+        binding.groupsRecyclerView.adapter = groupsAdapter
 
         // 观察数据
         SnapShotApp.getViewModel().groupList.observe(viewLifecycleOwner) { groups ->
@@ -86,5 +86,10 @@ class LauncherFragment : Fragment() {
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

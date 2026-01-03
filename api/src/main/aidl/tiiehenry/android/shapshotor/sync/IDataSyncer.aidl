@@ -9,7 +9,7 @@ import tiiehenry.android.shapshotor.file.IFileSystem;
 interface IDataSyncer {
     IRemoteDevice getLocalDevice();
     List<IRemoteDevice> findRemoteDevices(boolean findOnNetwork);
-    List<IRemoteDevice> getPairedDevices();
+    List<String> getPairedDevices();
     void requestPairDevice(in IRemoteDevice remoteDevice, in IRemoteDeviceCallback callback);
     boolean connectDevice(in IRemoteDevice remoteDevice);
     ITaskHandler sendFile(in IFileSystem fileSystem, String file, String path, in ISyncCallback callback);

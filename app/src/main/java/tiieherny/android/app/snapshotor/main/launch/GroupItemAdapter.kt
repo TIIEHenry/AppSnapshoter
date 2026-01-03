@@ -1,26 +1,40 @@
 package tiieherny.android.app.snapshotor.main.launch
 
+import android.app.AlertDialog
+import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
-import android.view.View
+import android.view.MotionEvent
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
+import android.widget.PopupWindow
+import android.widget.Toast
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import tiieherny.android.app.snapshotor.R
-import tiieherny.android.app.snapshotor.archive.ArchieveItem
+import com.bumptech.glide.Glide
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import tiieherny.android.app.snapshotor.SnapShotApp
+import tiieherny.android.app.snapshotor.app.AppConfigFragment
 import tiieherny.android.app.snapshotor.group.SnapGroup
+import tiieherny.android.app.snapshotor.group.SnapedApp
+import tiieherny.android.app.snapshotor.databinding.ItemAppBinding
+import tiieherny.android.app.snapshotor.databinding.LayoutPopupMenuBinding
+import androidx.core.graphics.drawable.toDrawable
 
 class GroupItemAdapter(
+    private val groupsHolder: GroupsAdapter.GroupViewHolder,
+    private val groupsAdapter: GroupsAdapter,
     private val viewModel: LauncherViewModel,
-    private val group: SnapGroup
-) : ListAdapter<ArchieveItem, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
+    private val group: SnapGroup,
+    private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit = { a, s -> } // 添加更新回调){}){}
+) : ListAdapter<SnapedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_app, parent, false)
-        return ViewHolder(view, viewModel, group)
+        val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return ViewHolder(binding,  groupsHolder, viewModel, group, onItemUpdated)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -28,43 +42,220 @@ class GroupItemAdapter(
     }
 
     class ViewHolder(
-        itemView: View,
+        private val binding: ItemAppBinding,
+        private val groupsHolder: GroupsAdapter.GroupViewHolder,
         private val viewModel: LauncherViewModel,
-        private val group: SnapGroup
-    ) : RecyclerView.ViewHolder(itemView) {
-        
-        private val iconImageView: ImageView = itemView.findViewById(R.id.app_icon)
-        private val nameTextView: TextView = itemView.findViewById(R.id.app_name)
+        private val group: SnapGroup,
+        private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit
+    ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: ArchieveItem) {
-            nameTextView.text = item.appInfo.label
-            
+        fun bind(item: SnapedApp) {
+            val appInfo = item.appInfo
+            binding.appName.text = appInfo.label
+
             // 使用Glide加载图标
-            if (item.appInfo.icon != null) {
-                com.bumptech.glide.Glide.with(itemView.context)
-                    .load(item.appInfo.icon)
-                    .into(iconImageView)
+            Glide.with(binding.root.context)
+                .load(appInfo)
+                .into(binding.appIcon)
+
+            // 根据应用状态设置状态指示器
+            updateStatusIndicator(item)
+
+            binding.root.setOnClickListener {
+                viewModel.onGroupItemClicked(group.id, group.mmkv, appInfo.packageName, item)
+            }
+
+            binding.root.setOnLongClickListener {
+                // 只有在非排序模式下才显示弹出菜单
+                if (!groupsHolder.isSortMode) {
+                    showPopupMenu(item)
+                }
+                !groupsHolder.isSortMode // 如果是排序模式，不消费长按事件
+            }
+        }
+
+        private fun updateStatusIndicator(item: SnapedApp) {
+            // 根据应用状态设置状态指示器
+            // 编辑中: 隐藏指示器, 使用中: 显示绿色指示器, 已存档: 隐藏指示器
+            val context = binding.root.context
+            val status = when {
+                // 检查是否有正在运行的备份/恢复任务
+                item.archives.isEmpty() -> {
+                    "EDITING" // 编辑中
+                }
+                hasActiveOperations(item) -> {
+                    "ACTIVE" // 使用中
+                }
+                else -> {
+                    "ARCHIVED" // 已存档
+                }
+            }
+            
+            when (status) {
+                "ACTIVE" -> {
+                    // 使用中：显示绿色指示器
+                    val colorDrawable = android.graphics.drawable.ColorDrawable(android.graphics.Color.GREEN)
+                    binding.appStatusIndicator.background = colorDrawable
+                    binding.appStatusIndicator.visibility = android.view.View.VISIBLE
+                }
+                else -> {
+                    // 编辑中或已存档：隐藏指示器
+                    binding.appStatusIndicator.visibility = android.view.View.GONE
+                }
+            }
+        }
+        
+        private fun hasActiveOperations(item: SnapedApp): Boolean {
+            // 检查是否有活跃的备份/恢复操作
+            // 这里可以根据实际的存档状态来判断
+            // 例如：检查是否有正在运行的任务，或最近的任务状态
+            // 暂时返回false，实际实现需要根据存档状态判断
+            // 在实际应用中，这可能需要检查存档的最新操作状态
+           return false
+        }
+
+        // 添加一个方法来处理拖拽事件
+        fun setOnStartDragListener(startDragListener: (() -> Unit)?) {
+            if (startDragListener != null) {
+                binding.root.setOnTouchListener { _, event ->
+                    if (event.action == MotionEvent.ACTION_DOWN) {
+                        startDragListener.invoke()
+                    }
+                    false
+                }
             } else {
-                iconImageView.setImageResource(android.R.drawable.sym_def_app_icon)
+                binding.root.setOnTouchListener(null)
+            }
+        }
+
+        private fun showPopupMenu(item: SnapedApp) {
+            val popupBinding =
+                LayoutPopupMenuBinding.inflate(LayoutInflater.from(binding.root.context))
+            val popupWindow = PopupWindow(
+                popupBinding.root,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+
+            // 设置背景和点击外部消失
+            popupWindow.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            popupWindow.isOutsideTouchable = true
+            popupWindow.isFocusable = true
+
+            // 上半部分按钮功能
+            popupBinding.btnEdit.setOnClickListener {
+                // 编辑存档名称 - 显示对话框让用户输入新名称
+                showEditNameDialog(item)
+                popupWindow.dismiss()
             }
 
-            itemView.setOnClickListener {
+            popupBinding.btnSettings.setOnClickListener {
+                // 显示AppConfigFragment作为BottomSheet
+                val fragment = AppConfigFragment.newInstance(item.appInfo.packageName)
+                fragment.show(groupsHolder.fragmentManager, fragment.tag)
+                popupWindow.dismiss()
+            }
+
+            popupBinding.btnDelete.setOnClickListener {
+                // 删除存档 - 显示确认对话框
+                showDeleteConfirmationDialog(item) {
+                    popupWindow.dismiss()
+                }
+            }
+
+            // 下半部分存档列表
+            val archiveAdapter = ArchiveItemAdapter { archiveItem ->
+                // 点击存档列表项时调用viewModel.onGroupItemClicked
                 viewModel.onGroupItemClicked(group.id, group.mmkv, item.appInfo.packageName, item)
+                popupWindow.dismiss()
             }
 
-            itemView.setOnLongClickListener {
-                // TODO: 显示悬浮菜单
-                true
-            }
+            popupBinding.archiveList.layoutManager = LinearLayoutManager(binding.root.context)
+            popupBinding.archiveList.adapter = archiveAdapter
+
+            // 设置存档列表数据
+            val archives = item.archives.values.toList()
+            archiveAdapter.submitList(archives)
+
+            // 显示弹窗
+            popupWindow.showAsDropDown(binding.root)
+        }
+
+        private fun showEditNameDialog(item: SnapedApp) {
+            val context = binding.root.context
+            val input = android.widget.EditText(context)
+            // 使用应用名称作为默认值
+            input.setText(item.appInfo.label)
+
+            AlertDialog.Builder(context)
+                .setTitle("编辑存档名称")
+                .setView(input)
+                .setPositiveButton("确定") { _, _ ->
+                    val newName = input.text.toString().trim()
+                    if (newName.isNotEmpty()) {
+                        // 对于存档，我们可能需要更新SnapGroup或SnapedApp中的名称
+                        // 但目前这个功能可能是编辑存档的别名，而不是文件夹名
+                        // 这里暂时只更新应用显示名称
+                        // 在实际应用中，这可能需要更新MMKV配置
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+
+        private fun showDeleteConfirmationDialog(item: SnapedApp, onDismiss: () -> Unit) {
+            val context = binding.root.context
+            AlertDialog.Builder(context)
+                .setTitle("删除所有存档？")
+                .setMessage("确定要删除应用所有存档吗？此操作不可恢复。")
+                .setPositiveButton("删除") { _, _ ->
+                    group.apps.remove(item)
+                    groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                    viewModel.viewModelScope.launch {
+                        val fs = SnapShotApp.getInstance().fileSystem
+                        val success = try {
+                            fs.delete(item.packageDir)
+                            fs.delete(item.iconFile)
+                            true
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            false
+                        }
+                        withContext(Dispatchers.Main) {
+                            if (success) {
+                                Toast.makeText(context, "删除应用成功", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "删除失败: ${'$'}{e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                        group.loadApps(
+                            SnapShotApp.getInstance().fileSystem,
+                            SnapShotApp.getInstance().appManager,
+                            true
+                        )
+                        withContext(Dispatchers.Main) {
+                            groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                            // 通知全局ViewModel更新数据，以触发RecyclerView的更新
+                            SnapShotApp.getViewModel().loadGroups()
+                        }
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .setOnDismissListener { onDismiss() }
+                .show()
         }
     }
 
-    private class ItemDiffCallback : DiffUtil.ItemCallback<ArchieveItem>() {
-        override fun areItemsTheSame(oldItem: ArchieveItem, newItem: ArchieveItem): Boolean {
-            return oldItem.path == newItem.path
+    private class ItemDiffCallback : DiffUtil.ItemCallback<SnapedApp>() {
+        override fun areItemsTheSame(oldItem: SnapedApp, newItem: SnapedApp): Boolean {
+            return oldItem === newItem
         }
 
-        override fun areContentsTheSame(oldItem: ArchieveItem, newItem: ArchieveItem): Boolean {
+        override fun areContentsTheSame(oldItem: SnapedApp, newItem: SnapedApp): Boolean {
             return oldItem == newItem
         }
     }
