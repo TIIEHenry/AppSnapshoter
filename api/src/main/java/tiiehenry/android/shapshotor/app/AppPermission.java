@@ -3,6 +3,8 @@ package tiiehenry.android.shapshotor.app;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
+
 /**
  * 应用权限信息
  */
@@ -78,6 +80,7 @@ public class AppPermission implements Parcelable {
         return 0;
     }
 
+
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeByte((byte) (isGranted ? 1 : 0));
@@ -85,4 +88,14 @@ public class AppPermission implements Parcelable {
         dest.writeString(name);
         dest.writeInt(op);
     }
+
+    /**
+     * 深度拷贝方法，创建当前对象的副本
+     *
+     * @return 当前对象的深拷贝副本
+     */
+    public AppPermission clone() {
+        return new AppPermission(this.isGranted, this.mode, this.name, this.op);
+    }
+
 }

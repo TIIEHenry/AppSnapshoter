@@ -13,6 +13,8 @@ interface IAppManager {
     Bitmap loadIcon(String packageName, int userId);
     String getDir(String packageName, int userId, int type);
     List<AppPermission> getPermissions(String packageName, int userId);
+    void setAppPermission(String packageName, int userId, in AppPermission permission);
+    void setAppPermissions(String packageName, int userId, in List<AppPermission> permissions);
     boolean isInstalled(String packageName, int userId);
     boolean installApk(String file, int userId);
     boolean uninstallApk(String packageName, int userId);
