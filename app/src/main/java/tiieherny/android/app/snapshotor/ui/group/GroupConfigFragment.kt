@@ -17,9 +17,11 @@ import kotlinx.coroutines.withContext
 import tiieherny.android.app.snapshotor.SnapShotApp
 import tiieherny.android.app.snapshotor.config.GroupConfig
 import tiieherny.android.app.snapshotor.databinding.FragmentGroupConfigBinding
+import tiieherny.android.app.snapshotor.databinding.IncludeShotOptionsBinding
 import tiieherny.android.app.snapshotor.group.SnapGroup
 import tiieherny.android.app.snapshotor.model.PairedDevice
 import tiieherny.android.app.snapshotor.ui.common.PairedDeviceAdapter
+import tiieherny.android.app.snapshotor.ui.common.ShotOptionsManager
 import tiieherny.android.app.snapshotor.ui.common.SyncOptionsManager
 
 class GroupConfigFragment : BottomSheetDialogFragment() {
@@ -29,6 +31,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
     private lateinit var groupId: String
     private lateinit var groupConfig: GroupConfig
     private lateinit var syncOptionsManager: SyncOptionsManager
+    private lateinit var shotOptionsManager: ShotOptionsManager
     private lateinit var pairedDeviceAdapter: PairedDeviceAdapter
     private lateinit var sortTypeSpinner: Spinner
 
@@ -104,11 +107,14 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         sortTypeSpinner.adapter = adapter
 
+        // 初始化截图选项管理器
+        shotOptionsManager = ShotOptionsManager(
+            binding.includeShotOptions, groupConfig.shotConfig
+        )
+        
         // 设置压缩算法下拉框
         val algorithms = SnapShotApp.getInstance().fileSystem.compressor.supportedAlgorithms()
-        val algorithmAdapter =
-            ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, algorithms)
-        binding.autoCompleteCompressAlgorithm.setAdapter(algorithmAdapter)
+        shotOptionsManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
 
         // 初始化同步选项管理器
         syncOptionsManager = SyncOptionsManager(
@@ -128,8 +134,9 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
     private fun loadConfig() {
         binding.etRootPath.setText(groupConfig.rootPath)
-        binding.swAutoSnapshot.isChecked = groupConfig.shotConfig.autoSnapshot
-        binding.swPermission.isChecked = groupConfig.shotConfig.permission
+        
+        // 使用截图选项管理器加载配置
+        shotOptionsManager.loadConfig()
         
         // 设置排序类型Spinner的选中项
         val sortType = groupConfig.sortConfig.sortType
@@ -137,20 +144,6 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             sortTypeSpinner.setSelection(sortType)
         }
         
-        binding.autoCompleteCompressAlgorithm.setText(
-            groupConfig.shotConfig.compressAlgorithm,
-            false
-        )
-
-        // 加载压缩选项
-        val compressItems = groupConfig.shotConfig.compressItems
-        binding.chipApk.isChecked = "apk" in compressItems
-        binding.chipData.isChecked = "data" in compressItems
-        binding.chipUser.isChecked = "user" in compressItems
-        binding.chipUserDe.isChecked = "user_de" in compressItems
-        binding.chipObb.isChecked = "obb" in compressItems
-        binding.chipExternalData.isChecked = "external_data" in compressItems
-
         syncOptionsManager.loadConfig()
         // 加载配对设备列表
         loadPairedDevices()
@@ -158,27 +151,20 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
     private fun saveConfig() {
         groupConfig.rootPath = binding.etRootPath.text.toString()
-        groupConfig.shotConfig.autoSnapshot = binding.swAutoSnapshot.isChecked
-        groupConfig.shotConfig.permission = binding.swPermission.isChecked
+        
+        // 使用截图选项管理器保存配置
+        groupConfig.shotConfig.autoSnapshot = shotOptionsManager.getAutoSnapshot()
+        groupConfig.shotConfig.permission = shotOptionsManager.getPermission()
+        groupConfig.shotConfig.uninstallArchived = shotOptionsManager.getUninstallArchived()
+        groupConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
+        groupConfig.shotConfig.compressAlgorithm = shotOptionsManager.getCompressAlgorithm()
+        
         groupConfig.syncConfig.enableSyncToTarget = syncOptionsManager.getEnableSyncToTarget()
         groupConfig.syncConfig.enableSyncToSystem = syncOptionsManager.getEnableSyncToSystem()
         
         // 保存排序类型
         groupConfig.sortConfig.sortType = sortTypeSpinner.selectedItemPosition
         
-        groupConfig.shotConfig.compressAlgorithm =
-            binding.autoCompleteCompressAlgorithm.text.toString()
-
-        // 保存压缩选项
-        val compressItems = mutableSetOf<String>()
-        if (binding.chipApk.isChecked) compressItems.add("apk")
-        if (binding.chipData.isChecked) compressItems.add("data")
-        if (binding.chipUser.isChecked) compressItems.add("user")
-        if (binding.chipUserDe.isChecked) compressItems.add("user_de")
-        if (binding.chipObb.isChecked) compressItems.add("obb")
-        if (binding.chipExternalData.isChecked) compressItems.add("external_data")
-        groupConfig.shotConfig.compressItems = compressItems
-
         // 保存同步目标和系统
         groupConfig.syncConfig.syncTargets = syncOptionsManager.getSyncTargets()
         groupConfig.syncConfig.syncSystems = syncOptionsManager.getSyncSystems()

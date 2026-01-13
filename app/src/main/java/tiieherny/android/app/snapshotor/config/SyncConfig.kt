@@ -9,6 +9,7 @@ class SyncConfig(private val mmkv: MMKV) {
         const val KEY_ENABLE_SYNC_TO_SYSTEM = "enableSyncToSystem"
         const val KEY_SYNC_SYSTEMS = "syncSystems"
         const val KEY_SYNC_TYPE = "syncType"
+        const val KEY_UNINSTALL_ARCHIVED = "uninstallArchived"
     }
 
     var enableSyncToTarget: Boolean

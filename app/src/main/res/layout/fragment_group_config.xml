@@ -32,19 +32,9 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/sw_auto_snapshot"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="自动快照" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/sw_permission"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="保留权限" />
+        <include
+            android:id="@+id/include_shot_options"
+            layout="@layout/include_shot_options" />
 
         <!-- 排序类型选择 -->
         <TextView
@@ -65,83 +55,6 @@
         <include
             android:id="@+id/includeSyncOptions"
             layout="@layout/include_group_sync_options" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="4dp"
-            android:text="压缩算法"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-            android:id="@+id/auto_complete_compress_algorithm"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:hint="选择压缩算法" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="4dp"
-            android:text="压缩项目"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_compress_items"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            app:selectionRequired="true"
-            app:singleSelection="false">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_apk"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="APK" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_data"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="DATA" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_user"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="USER" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_user_de"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="USER_DE" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_obb"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="OBB" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_external_data"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="MEDIA" />
-
-        </com.google.android.material.chip.ChipGroup>
 
         <LinearLayout
             android:layout_width="match_parent"

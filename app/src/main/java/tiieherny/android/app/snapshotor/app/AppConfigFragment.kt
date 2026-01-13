@@ -21,8 +21,10 @@ import kotlinx.coroutines.withContext
 import tiieherny.android.app.snapshotor.SnapShotApp
 import tiieherny.android.app.snapshotor.config.AppConfig
 import tiieherny.android.app.snapshotor.databinding.FragmentAppConfigBinding
+import tiieherny.android.app.snapshotor.databinding.IncludeShotOptionsBinding
 import tiieherny.android.app.snapshotor.model.PairedDevice
 import tiieherny.android.app.snapshotor.ui.common.PairedDeviceAdapter
+import tiieherny.android.app.snapshotor.ui.common.ShotOptionsManager
 import tiieherny.android.app.snapshotor.ui.common.SyncOptionsManager
 
 class AppConfigFragment : BottomSheetDialogFragment() {
@@ -34,6 +36,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     
     private var dismissListener: (() -> Unit)? = null
     private lateinit var syncOptionsManager: SyncOptionsManager
+    private lateinit var shotOptionsManager: ShotOptionsManager
     private lateinit var pairedDeviceAdapter: PairedDeviceAdapter
 
 
@@ -100,11 +103,14 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             resetConfig()
         }
 
+        // 初始化截图选项管理器
+        shotOptionsManager = ShotOptionsManager(
+            binding.includeShotOptions, appConfig.shotConfig
+        )
+        
         // 设置压缩算法下拉框
         val algorithms = SnapShotApp.getInstance().fileSystem.compressor.supportedAlgorithms()
-        val adapter =
-            ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, algorithms)
-        binding.autoCompleteCompressAlgorithm.setAdapter(adapter)
+        shotOptionsManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
 
         // 初始化同步选项管理器
         syncOptionsManager = SyncOptionsManager(
@@ -121,15 +127,9 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     }
 
     private fun loadConfig() {
-        // 加载压缩项
-        val compressItems = appConfig.shotConfig.compressItems
-        binding.chipApk.isChecked = compressItems.contains("apk")
-        binding.chipData.isChecked = compressItems.contains("data")
-        binding.chipUser.isChecked = compressItems.contains("user")
-        binding.chipUserDe.isChecked = compressItems.contains("user_de")
-        binding.chipObb.isChecked = compressItems.contains("obb")
-        binding.chipExternalData.isChecked = compressItems.contains("external_data")
-
+        // 使用截图选项管理器加载配置
+        shotOptionsManager.loadConfig()
+        
         // 设置同步目标和系统
         syncOptionsManager.setSyncTargets(appConfig.syncConfig.syncTargets)
         syncOptionsManager.setSyncSystems(appConfig.syncConfig.syncSystems)
@@ -141,15 +141,12 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     }
 
     private fun saveConfig() {
-        // 保存压缩项
-        val compressItems = mutableSetOf<String>()
-        if (binding.chipApk.isChecked) compressItems.add("apk")
-        if (binding.chipData.isChecked) compressItems.add("data")
-        if (binding.chipUser.isChecked) compressItems.add("user")
-        if (binding.chipUserDe.isChecked) compressItems.add("user_de")
-        if (binding.chipObb.isChecked) compressItems.add("obb")
-        if (binding.chipExternalData.isChecked) compressItems.add("external_data")
-        appConfig.shotConfig.compressItems = compressItems
+        // 使用截图选项管理器保存配置
+        appConfig.shotConfig.autoSnapshot = shotOptionsManager.getAutoSnapshot()
+        appConfig.shotConfig.permission = shotOptionsManager.getPermission()
+        appConfig.shotConfig.uninstallArchived = shotOptionsManager.getUninstallArchived()
+        appConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
+        appConfig.shotConfig.compressAlgorithm = shotOptionsManager.getCompressAlgorithm()
 
         // 保存同步配置
         appConfig.syncConfig.syncTargets = syncOptionsManager.getSyncTargets()

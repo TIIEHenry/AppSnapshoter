@@ -28,10 +28,10 @@ data class SnapGroup(
 
     var path: String
         get() {
-            return mmkv.decodeString("path", GlobalConfig.rootPath) ?: GlobalConfig.rootPath
+            return config.rootPath
         }
         set(value) {
-            mmkv.encode("path", value)
+            config.rootPath = value
         }
 
     val apps: MutableList<SnapedApp> = mutableListOf()
