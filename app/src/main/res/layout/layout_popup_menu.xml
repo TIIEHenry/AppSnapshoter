@@ -14,31 +14,49 @@
         android:padding="4dp">
 
         <ImageButton
-            android:id="@+id/btn_edit"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:id="@+id/btn_shot"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/text_box_edit_outline"
-            android:contentDescription="编辑" />
+            android:contentDescription="快照"
+            android:src="@drawable/archive_arrow_down_outline" />
+
+        <ImageButton
+            android:id="@+id/btn_edit"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
+            android:layout_margin="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="编辑"
+            android:src="@drawable/text_box_edit_outline" />
+
+        <ImageButton
+            android:id="@+id/btn_info"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
+            android:layout_margin="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="信息"
+            android:src="@drawable/information_slab_circle_outline" />
 
         <ImageButton
             android:id="@+id/btn_settings"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/cog_transfer"
-            android:contentDescription="设置" />
+            android:contentDescription="设置"
+            android:src="@drawable/cog_transfer" />
 
         <ImageButton
             android:id="@+id/btn_delete"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/delete_forever_outline"
-            android:contentDescription="删除" />
+            android:contentDescription="删除"
+            android:src="@drawable/delete_forever_outline" />
 
     </LinearLayout>
 

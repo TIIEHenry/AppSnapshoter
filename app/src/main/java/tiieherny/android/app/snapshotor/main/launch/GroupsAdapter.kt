@@ -38,7 +38,7 @@ class GroupsAdapter(
     }
 
     class GroupViewHolder(
-         val binding: ItemGroupBinding,
+        val binding: ItemGroupBinding,
         private val viewModel: LauncherViewModel,
         val fragmentManager: FragmentManager
     ) : RecyclerView.ViewHolder(binding.root) {
@@ -66,10 +66,35 @@ class GroupsAdapter(
                 .show()
         }
 
+        fun addNewApp(group: SnapGroup) {
+            // 显示SelectAppFragment选择应用
+            SelectAppFragment.newInstance(group.id) { appInfos ->
+                SnapShotApp.getViewModel().addAppsToGroup(group.id, appInfos) {
+                    refresh(group, binding.groupRecyclerView)
+                }
+            }.show(fragmentManager, "SelectAppFragment")
+        }
+
         fun bind(groupsAdapter: GroupsAdapter, group: SnapGroup) {
             binding.groupTitle.text = group.name
+
+            // 初始化折叠状态
+            updateCollapseState(group.isCollapsed)
+
             binding.groupTitle.setOnClickListener {
+                // 点击标题切换折叠状态
+                group.isCollapsed = !group.isCollapsed
+                updateCollapseState(group.isCollapsed)
+            }
+            binding.groupTitle.setOnLongClickListener {
                 showEditGroupDialog(group)
+                true
+            }
+
+            binding.expandGroup.setOnClickListener {
+                // 点击展开区域展开分组
+                group.isCollapsed = false
+                updateCollapseState(group.isCollapsed)
             }
 
             // 设置GridLayout，4列
@@ -93,7 +118,7 @@ class GroupsAdapter(
                         SnapShotApp.getInstance().appManager,
                         true
                     )
-                    withContext(Dispatchers.Main){
+                    withContext(Dispatchers.Main) {
                         // 控制加载状态
                         refresh(group, binding.groupRecyclerView)
                     }
@@ -102,12 +127,11 @@ class GroupsAdapter(
             refresh(group, binding.groupRecyclerView)
 
             binding.btnAdd.setOnClickListener {
-                // 显示SelectAppFragment选择应用
-                SelectAppFragment.newInstance(group.id) { appInfos ->
-                    SnapShotApp.getViewModel().addAppsToGroup(group.id, appInfos){
-                        refresh(group, binding.groupRecyclerView)
-                    }
-                }.show(fragmentManager, "SelectAppFragment")
+                addNewApp(group)
+            }
+
+            binding.emptyLayout.setOnClickListener {
+                addNewApp(group)
             }
 
             // 根据排序类型决定是否显示btnMove按钮
@@ -121,18 +145,15 @@ class GroupsAdapter(
             } else {
                 binding.btnMove.visibility = View.GONE
             }
-            
+
             binding.btnTune.setOnClickListener {
                 // 显示GroupConfigFragment
                 GroupConfigFragment.newInstance(group).show(fragmentManager, "GroupConfigFragment")
             }
-            binding.btnDelete.setOnClickListener {
-                showDeleteConfirmDialog(group)
-            }
-            
+
             updateButtonVisibility(!isSortMode)
         }
-        
+
         private fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {
             isSortMode = !isSortMode
             if (isSortMode) {
@@ -152,63 +173,66 @@ class GroupsAdapter(
                 updateButtonVisibility(true)
             }
         }
-        
+
         private fun updateButtonVisibility(show: Boolean) {
             binding.btnAdd.visibility = if (show) View.VISIBLE else View.GONE
             binding.btnTune.visibility = if (show) View.VISIBLE else View.GONE
             binding.btnRefresh.visibility = if (show) View.VISIBLE else View.GONE
-            binding.btnDelete.visibility = if (show) View.VISIBLE else View.GONE
         }
-        
-        private fun showDeleteConfirmDialog(group: SnapGroup) {
-            val context = binding.root.context
-            AlertDialog.Builder(context)
-                .setTitle("删除组")
-                .setMessage(group.name+"["+group.id+"]")
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    SnapShotApp.getViewModel().deleteGroup(group.id)
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-        }
-        
+
+
         private fun startDragSortMode(adapter: GroupItemAdapter, group: SnapGroup) {
-            val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT, 0) {
-                override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+            val callback = object : ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
+                0
+            ) {
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean {
                     val fromPosition = viewHolder.adapterPosition
                     val toPosition = target.adapterPosition
-                    
+
                     // 交换数据
                     val currentList = adapter.currentList.toMutableList()
                     val item = currentList[fromPosition]
                     currentList.removeAt(fromPosition)
                     currentList.add(toPosition, item)
-                    
+
                     // 更新适配器
                     adapter.submitList(currentList)
-                    
+
                     return true
                 }
 
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                     // 不处理滑动删除
                 }
-                
+
                 override fun isLongPressDragEnabled(): Boolean {
                     return false // 禁用长按拖拽，我们使用按钮控制
                 }
-                
+
                 override fun isItemViewSwipeEnabled(): Boolean {
                     return false // 禁用滑动
                 }
-                
-                override fun onMoved(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, fromPos: Int, target: RecyclerView.ViewHolder, toPos: Int, x: Int, y: Int) {
+
+                override fun onMoved(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    fromPos: Int,
+                    target: RecyclerView.ViewHolder,
+                    toPos: Int,
+                    x: Int,
+                    y: Int
+                ) {
                     super.onMoved(recyclerView, viewHolder, fromPos, target, toPos, x, y)
                     // 当拖拽完成时，保存排序到SortConfig
                     saveSortOrderToConfig(adapter.currentList, group)
                 }
             }
-            
+
             itemTouchHelper = ItemTouchHelper(callback)
             itemTouchHelper?.attachToRecyclerView(binding.groupRecyclerView)
         }
@@ -217,46 +241,67 @@ class GroupsAdapter(
             itemTouchHelper?.attachToRecyclerView(null)
             itemTouchHelper = null
         }
-        
+
         private fun saveSortOrderToConfig(sortedList: List<SnapedApp>, group: SnapGroup) {
             // 获取排序后的包名列表
             val sortedPackageNames = sortedList.map { it.appInfo.packageName }
-            
+
             // 保存到SortConfig
             val sortConfig = group.config.sortConfig
             sortConfig.sortOrder = sortedPackageNames.toSet()
-            
+
             // 也可以设置排序类型为自定义
             sortConfig.sortType = 3 // 假设3代表自定义排序
         }
-        
+
         fun refresh(
             group: SnapGroup,
             recyclerView: RecyclerView
         ) {
             if (group.apps.isEmpty()) {
-                binding.progressBar.visibility = View.VISIBLE
+                binding.progressBar.visibility = View.GONE
                 binding.groupRecyclerView.visibility = View.GONE
+                binding.emptyLayout.visibility = View.VISIBLE
             } else {
                 binding.progressBar.visibility = View.GONE
                 binding.groupRecyclerView.visibility = View.VISIBLE
+                binding.emptyLayout.visibility = View.GONE
             }
-            
+
             // 应用排序
             val sortedApps = applySorting(group.apps, group.config.sortConfig)
-            
+
             Log.i("refresh", "refresh " + group.apps.size)
             (recyclerView.adapter as GroupItemAdapter).submitList(sortedApps)
             recyclerView.invalidate()
             recyclerView.requestLayout()
+
+            // 更新折叠状态（保留当前折叠状态）
+            updateCollapseState(group.isCollapsed)
         }
-        
-        private fun applySorting(apps: List<SnapedApp>, sortConfig: tiieherny.android.app.snapshotor.config.SortConfig): List<SnapedApp> {
+
+        private fun updateCollapseState(isCollapsed: Boolean) {
+            if (isCollapsed) {
+                // 折叠状态下：隐藏app_layout，显示expand_group
+                binding.appLayout.visibility = View.GONE
+                binding.expandGroup.visibility = View.VISIBLE
+            } else {
+                // 展开状态下：显示app_layout，隐藏expand_group
+                binding.appLayout.visibility = View.VISIBLE
+                binding.expandGroup.visibility = View.GONE
+            }
+        }
+
+        private fun applySorting(
+            apps: List<SnapedApp>,
+            sortConfig: tiieherny.android.app.snapshotor.config.SortConfig
+        ): List<SnapedApp> {
             return when (sortConfig.sortType) {
                 3 -> { // 自定义排序
                     val sortOrder = sortConfig.sortOrder.toList()
                     apps.sortedBy { sortOrder.indexOf(it.appInfo.packageName) }
                 }
+
                 2 -> { // 按名称排序（降序）
                     if (sortConfig.sortReverse) {
                         apps.sortedByDescending { it.appInfo.label }
@@ -264,6 +309,7 @@ class GroupsAdapter(
                         apps.sortedBy { it.appInfo.label }
                     }
                 }
+
                 1 -> { // 按名称排序（升序）
                     if (sortConfig.sortReverse) {
                         apps.sortedByDescending { it.appInfo.label }
@@ -271,6 +317,7 @@ class GroupsAdapter(
                         apps.sortedBy { it.appInfo.label }
                     }
                 }
+
                 else -> { // 默认排序
                     apps
                 }

@@ -81,5 +81,14 @@
 
         </LinearLayout>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_delete_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="@color/design_default_color_error"
+            android:text="删除分组"
+            android:textColor="@android:color/white" />
+
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

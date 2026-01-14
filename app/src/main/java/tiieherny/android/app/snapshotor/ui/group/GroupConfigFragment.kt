@@ -1,5 +1,6 @@
 package tiieherny.android.app.snapshotor.ui.group
 
+import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,6 +16,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiieherny.android.app.snapshotor.SnapShotApp
+import tiieherny.android.app.snapshotor.config.CompressItems
+import tiieherny.android.app.snapshotor.config.CompressItems.COMPRESS_ITEM_APK
 import tiieherny.android.app.snapshotor.config.GroupConfig
 import tiieherny.android.app.snapshotor.databinding.FragmentGroupConfigBinding
 import tiieherny.android.app.snapshotor.databinding.IncludeShotOptionsBinding
@@ -42,6 +45,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             val fragment = GroupConfigFragment()
             val args = Bundle()
             args.putString(ARG_GROUP_ID, group.id)
+            fragment.arguments = args
             fragment.groupConfig = group.config
             return fragment
         }
@@ -100,6 +104,10 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             loadConfig() // 重新加载配置，相当于重置
         }
 
+        binding.btnDeleteGroup.setOnClickListener {
+            showDeleteConfirmDialog()
+        }
+
         // 设置排序类型Spinner
         sortTypeSpinner = binding.spinnerSortType
         val sortTypes = arrayOf("默认排序", "按名称升序", "按名称降序", "自定义排序")
@@ -111,7 +119,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         shotOptionsManager = ShotOptionsManager(
             binding.includeShotOptions, groupConfig.shotConfig
         )
-        
+
         // 设置压缩算法下拉框
         val algorithms = SnapShotApp.getInstance().fileSystem.compressor.supportedAlgorithms()
         shotOptionsManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
@@ -134,7 +142,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
     private fun loadConfig() {
         binding.etRootPath.setText(groupConfig.rootPath)
-        
+
         // 使用截图选项管理器加载配置
         shotOptionsManager.loadConfig()
         
@@ -143,7 +151,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         if (sortType in 0..3) {
             sortTypeSpinner.setSelection(sortType)
         }
-        
+
         syncOptionsManager.loadConfig()
         // 加载配对设备列表
         loadPairedDevices()
@@ -151,20 +159,33 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
     private fun saveConfig() {
         groupConfig.rootPath = binding.etRootPath.text.toString()
-        
+
         // 使用截图选项管理器保存配置
         groupConfig.shotConfig.autoSnapshot = shotOptionsManager.getAutoSnapshot()
         groupConfig.shotConfig.permission = shotOptionsManager.getPermission()
         groupConfig.shotConfig.uninstallArchived = shotOptionsManager.getUninstallArchived()
         groupConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
         groupConfig.shotConfig.compressAlgorithm = shotOptionsManager.getCompressAlgorithm()
-        
+
         groupConfig.syncConfig.enableSyncToTarget = syncOptionsManager.getEnableSyncToTarget()
         groupConfig.syncConfig.enableSyncToSystem = syncOptionsManager.getEnableSyncToSystem()
         
         // 保存排序类型
         groupConfig.sortConfig.sortType = sortTypeSpinner.selectedItemPosition
         
+        groupConfig.shotConfig.compressAlgorithm =
+            binding.autoCompleteCompressAlgorithm.text.toString()
+
+        // 保存压缩选项
+        val compressItems = mutableSetOf<String>()
+        if (binding.chipApk.isChecked) compressItems.add("apk")
+        if (binding.chipData.isChecked) compressItems.add("data")
+        if (binding.chipUser.isChecked) compressItems.add("user")
+        if (binding.chipUserDe.isChecked) compressItems.add("user_de")
+        if (binding.chipObb.isChecked) compressItems.add("obb")
+        if (binding.chipExternalData.isChecked) compressItems.add("external_data")
+        groupConfig.shotConfig.compressItems = compressItems
+
         // 保存同步目标和系统
         groupConfig.syncConfig.syncTargets = syncOptionsManager.getSyncTargets()
         groupConfig.syncConfig.syncSystems = syncOptionsManager.getSyncSystems()
@@ -213,6 +234,23 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
         // 同时更新ChipGroup中的同步目标列表
         syncOptionsManager.setSyncTargets(selectedDevices)
+    }
+
+    private fun showDeleteConfirmDialog() {
+        val context = requireContext()
+        val group = SnapShotApp.getViewModel().groupList.value?.find { it.id == groupId }
+
+        if (group != null) {
+            AlertDialog.Builder(context)
+                .setTitle("删除组")
+                .setMessage("确定要删除组 ${group.name}[${groupId}] 吗？\n此操作不可恢复。")
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    SnapShotApp.getViewModel().deleteGroup(groupId)
+                    dismiss() // 关闭对话框
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
     }
 
     override fun onDestroyView() {

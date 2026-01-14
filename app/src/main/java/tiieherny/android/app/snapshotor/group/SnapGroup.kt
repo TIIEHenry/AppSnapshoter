@@ -34,6 +34,14 @@ data class SnapGroup(
             config.rootPath = value
         }
 
+    var isCollapsed: Boolean
+        get() {
+            return mmkv.decodeBool("isCollapsed", false)
+        }
+        set(value) {
+            mmkv.encode("isCollapsed", value)
+        }
+
     val apps: MutableList<SnapedApp> = mutableListOf()
 
     fun loadApps(

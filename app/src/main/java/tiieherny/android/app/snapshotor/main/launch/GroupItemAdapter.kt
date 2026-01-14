@@ -1,6 +1,9 @@
 package tiieherny.android.app.snapshotor.main.launch
 
 import android.app.AlertDialog
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -153,6 +156,37 @@ class GroupItemAdapter(
                 // 显示AppConfigFragment作为BottomSheet
                 val fragment = AppConfigFragment.newInstance(item.appInfo.packageName)
                 fragment.show(groupsHolder.fragmentManager, fragment.tag)
+                popupWindow.dismiss()
+            }
+
+            // 检查应用是否已安装
+            val isAppInstalled = item.appInfo.appManager.isInstalled(item.appInfo.packageName, item.appInfo.userId)
+            
+            // 根据应用安装状态控制信息按钮的可见性
+            popupBinding.btnInfo.visibility = if (isAppInstalled) {
+                android.view.View.VISIBLE
+            } else {
+                android.view.View.GONE
+            }
+            
+            // 为信息按钮设置点击事件，跳转到应用详情页面
+            popupBinding.btnInfo.setOnClickListener {
+                if (isAppInstalled) {
+                    try {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        val uri = Uri.fromParts("package", item.appInfo.packageName, null)
+                        intent.data = uri
+                        binding.root.context.startActivity(intent)
+                    } catch (e: Exception) {
+                        // 如果无法打开应用详情页面，尝试其他方法
+                        try {
+                            val fallbackIntent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+                            binding.root.context.startActivity(fallbackIntent)
+                        } catch (ex: Exception) {
+                            Toast.makeText(binding.root.context, "无法打开应用详情", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
                 popupWindow.dismiss()
             }
 
