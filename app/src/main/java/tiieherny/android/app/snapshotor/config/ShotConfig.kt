@@ -12,7 +12,6 @@ class ShotConfig(private val mmkv: MMKV) {
         const val KEY_EXTRA_ITEMS = "extraItems"
         const val KEY_AUTO_SNAPSHOT = "autoSnapshot"
         const val KEY_UNINSTALL_ARCHIVED = "uninstallArchived"
-        val COMPRESS_ITEMS_DEFAULT = listOf("APK", "DATA", "USER", "USER_DE", "OBB", "MEDIA")
     }
 
     var autoSnapshot: Boolean
@@ -28,7 +27,7 @@ class ShotConfig(private val mmkv: MMKV) {
         }
 
     var compressItems: Set<String>
-        get() = mmkv.decodeStringSet(KEY_COMPRESS_ITEMS) ?: COMPRESS_ITEMS_DEFAULT.toSet()
+        get() = mmkv.decodeStringSet(KEY_COMPRESS_ITEMS) ?: CompressItems.all
         set(value) {
             mmkv.encode(KEY_COMPRESS_ITEMS, value)
         }

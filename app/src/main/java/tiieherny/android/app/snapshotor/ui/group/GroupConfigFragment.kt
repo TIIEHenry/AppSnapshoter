@@ -111,7 +111,8 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         // 设置排序类型Spinner
         sortTypeSpinner = binding.spinnerSortType
         val sortTypes = arrayOf("默认排序", "按名称升序", "按名称降序", "自定义排序")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, sortTypes)
+        val adapter =
+            ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, sortTypes)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         sortTypeSpinner.adapter = adapter
 
@@ -145,7 +146,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
         // 使用截图选项管理器加载配置
         shotOptionsManager.loadConfig()
-        
+
         // 设置排序类型Spinner的选中项
         val sortType = groupConfig.sortConfig.sortType
         if (sortType in 0..3) {
@@ -169,23 +170,9 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
         groupConfig.syncConfig.enableSyncToTarget = syncOptionsManager.getEnableSyncToTarget()
         groupConfig.syncConfig.enableSyncToSystem = syncOptionsManager.getEnableSyncToSystem()
-        
+
         // 保存排序类型
         groupConfig.sortConfig.sortType = sortTypeSpinner.selectedItemPosition
-        
-        groupConfig.shotConfig.compressAlgorithm =
-            binding.autoCompleteCompressAlgorithm.text.toString()
-
-        // 保存压缩选项
-        val compressItems = mutableSetOf<String>()
-        if (binding.chipApk.isChecked) compressItems.add("apk")
-        if (binding.chipData.isChecked) compressItems.add("data")
-        if (binding.chipUser.isChecked) compressItems.add("user")
-        if (binding.chipUserDe.isChecked) compressItems.add("user_de")
-        if (binding.chipObb.isChecked) compressItems.add("obb")
-        if (binding.chipExternalData.isChecked) compressItems.add("external_data")
-        groupConfig.shotConfig.compressItems = compressItems
-
         // 保存同步目标和系统
         groupConfig.syncConfig.syncTargets = syncOptionsManager.getSyncTargets()
         groupConfig.syncConfig.syncSystems = syncOptionsManager.getSyncSystems()

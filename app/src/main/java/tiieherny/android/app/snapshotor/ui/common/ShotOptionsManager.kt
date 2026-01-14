@@ -6,6 +6,7 @@ import android.widget.TextView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import tiieherny.android.app.snapshotor.config.CompressItems
 import tiieherny.android.app.snapshotor.databinding.IncludeShotOptionsBinding
 import tiieherny.android.app.snapshotor.config.ShotConfig
 
@@ -87,12 +88,12 @@ class ShotOptionsManager(
     }
 
     fun setCompressItems(items: Set<String>) {
-        binding.chipApk.isChecked = items.contains("apk")
-        binding.chipData.isChecked = items.contains("data")
-        binding.chipUser.isChecked = items.contains("user")
-        binding.chipUserDe.isChecked = items.contains("user_de")
-        binding.chipObb.isChecked = items.contains("obb")
-        binding.chipExternalData.isChecked = items.contains("external_data")
+        binding.chipApk.isChecked = CompressItems.COMPRESS_ITEM_APK in items
+        binding.chipData.isChecked = CompressItems.COMPRESS_ITEM_DATA in items
+        binding.chipUser.isChecked = CompressItems.COMPRESS_ITEM_USER in items
+        binding.chipUserDe.isChecked = CompressItems.COMPRESS_ITEM_USER_DE in items
+        binding.chipObb.isChecked = CompressItems.COMPRESS_ITEM_OBB in items
+        binding.chipExternalData.isChecked = CompressItems.COMPRESS_ITEM_EXTERNAL_DATA in items
     }
 
     fun setCompressAlgorithm(algorithm: String) {

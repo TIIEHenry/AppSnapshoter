@@ -25,6 +25,7 @@ import tiieherny.android.app.snapshotor.group.SnapGroup
 import tiieherny.android.app.snapshotor.group.SnapedApp
 import tiieherny.android.app.snapshotor.databinding.ItemAppBinding
 import tiieherny.android.app.snapshotor.databinding.LayoutPopupMenuBinding
+import tiieherny.android.app.snapshotor.utils.ArchiveRenameHelper
 import androidx.core.graphics.drawable.toDrawable
 
 class GroupItemAdapter(
@@ -216,25 +217,64 @@ class GroupItemAdapter(
         }
 
         private fun showEditNameDialog(item: SnapedApp) {
-            val context = binding.root.context
-            val input = android.widget.EditText(context)
-            // 使用应用名称作为默认值
-            input.setText(item.appInfo.label)
-
-            AlertDialog.Builder(context)
-                .setTitle("编辑存档名称")
-                .setView(input)
-                .setPositiveButton("确定") { _, _ ->
-                    val newName = input.text.toString().trim()
-                    if (newName.isNotEmpty()) {
-                        // 对于存档，我们可能需要更新SnapGroup或SnapedApp中的名称
-                        // 但目前这个功能可能是编辑存档的别名，而不是文件夹名
-                        // 这里暂时只更新应用显示名称
-                        // 在实际应用中，这可能需要更新MMKV配置
+            // 显示一个对话框让用户选择要重命名哪个存档
+            val archiveNames = item.archives.keys.toTypedArray()
+            
+            if (archiveNames.isEmpty()) {
+                Toast.makeText(binding.root.context, "没有可重命名的存档", Toast.LENGTH_SHORT).show()
+                return
+            }
+            
+            val builder = AlertDialog.Builder(binding.root.context)
+            builder.setTitle("选择要重命名的存档")
+            
+            builder.setItems(archiveNames) { _, which ->
+                val selectedArchiveName = archiveNames[which]
+                val archivePath = item.archives[selectedArchiveName]?.path ?: return@setItems
+                
+                // 弹出输入框让用户输入新的存档名称
+                val input = android.widget.EditText(binding.root.context)
+                input.setText(selectedArchiveName)
+                
+                AlertDialog.Builder(binding.root.context)
+                    .setTitle("重命名存档: $selectedArchiveName")
+                    .setView(input)
+                    .setPositiveButton("确定") { _, _ ->
+                        val newName = input.text.toString().trim()
+                        if (newName.isNotEmpty() && newName != selectedArchiveName) {
+                            // 重命名存档
+                            viewModel.viewModelScope.launch {
+                                val fs = SnapShotApp.getInstance().fileSystem
+                                val success = ArchiveRenameHelper.renameArchive(
+                                    fs,
+                                    archivePath,
+                                    selectedArchiveName,
+                                    newName
+                                )
+                                
+                                withContext(Dispatchers.Main) {
+                                    if (success) {
+                                        Toast.makeText(binding.root.context, "存档 '$selectedArchiveName' 已重命名为 '$newName'", Toast.LENGTH_SHORT).show()
+                                        // 刷新UI
+                                        item.loadArchives(fs, SnapShotApp.getInstance().appManager, true) // 重新加载存档
+                                        groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                                        // 通知全局ViewModel更新数据，以触发RecyclerView的更新
+                                        SnapShotApp.getViewModel().loadGroups()
+                                    } else {
+                                        Toast.makeText(binding.root.context, "重命名失败", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        } else if (newName == selectedArchiveName) {
+                            Toast.makeText(binding.root.context, "新名称与原名称相同", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                }
-                .setNegativeButton("取消", null)
-                .show()
+                    .setNegativeButton("取消", null)
+                    .show()
+            }
+            
+            builder.setNegativeButton("取消", null)
+            builder.show()
         }
 
         private fun showDeleteConfirmationDialog(item: SnapedApp, onDismiss: () -> Unit) {
