@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "tiiehenry.android.shapshotor.provider.datasyncer"
+    namespace = "snapshotor.provider.datasyncer"
     compileSdk = 36
 
     defaultConfig {
@@ -24,12 +24,12 @@ android {
     }
     
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 }
 

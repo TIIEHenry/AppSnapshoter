@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "tiiehenry.android.shapshotor.provider.filesystem"
+    namespace = "snapshotor.provider.filesystem"
     compileSdk = 36
 
     defaultConfig {
@@ -23,13 +23,17 @@ android {
         }
     }
     
+    buildFeatures {
+        aidl = true
+    }
+    
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 }
 
@@ -37,4 +41,18 @@ dependencies {
     implementation(project(":api"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Hidden api
+    implementation(project(":hiddenapi"))
+
+    // Native
+    implementation(project(":native"))
+    
+    // Root service libraries
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.service)
+    
+    // Compression
+    implementation(libs.zstd.jni)
 }
