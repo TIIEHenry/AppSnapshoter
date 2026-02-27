@@ -14,10 +14,11 @@ import android.os.Parcel
 import android.os.ParcelFileDescriptor
 import android.os.StatFs
 import android.os.UserManagerHidden
+import android.system.Os
 import com.github.luben.zstd.ZstdOutputStream
 import com.topjohnwu.superuser.ipc.RootService
 import com.xayah.libnative.TarWrapper
-import tiiehenry.android.snapshotor.provider.filesystem.App
+import tiiehenry.android.snapshotor.fs.IFileType
 import tiiehenry.android.snapshotor.util.PathHelper.TMP_PARCEL_PREFIX
 import tiiehenry.android.snapshotor.util.PathHelper.TMP_SUFFIX
 import tiiehenry.hiddenapi.castTo
@@ -26,49 +27,18 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
-object FileSystemRootService {
-    private const val TAG = "FileSystemRootService"
-    private const val TIMEOUT_10S = 10000L
-    private const val TIMEOUT_30S = 30000L
-
-    // New client for service communication
-    private val client = FileSystemRootServiceClient.getInstance()
-
-    private fun writeToParcel(context: Context, block: (Parcel) -> Unit): ParcelFileDescriptor {
-        val parcel = Parcel.obtain()
-        parcel.setDataPosition(0)
-        block(parcel)
-        val tmpFile = File.createTempFile(TMP_PARCEL_PREFIX, TMP_SUFFIX, context.cacheDir)
-        tmpFile.delete()
-        tmpFile.createNewFile()
-        tmpFile.writeBytes(parcel.marshall())
-        val pfd = ParcelFileDescriptor.open(tmpFile, ParcelFileDescriptor.MODE_READ_WRITE)
-        tmpFile.delete()
-        parcel.recycle()
-        return pfd
+class FileSystemRootService : RootService() {
+    init {
+        System.loadLibrary("nativelib")
+        System.loadLibrary("tar-wrapper")
     }
 
-    private fun readFromParcel(pfd: ParcelFileDescriptor, block: (Parcel) -> Unit) = run {
-        val stream = ParcelFileDescriptor.AutoCloseInputStream(pfd)
-        val bytes = stream.readBytes()
-        val parcel = Parcel.obtain()
-        parcel.unmarshall(bytes, 0, bytes.size)
-        parcel.setDataPosition(0)
-        block(parcel)
-        parcel.recycle()
-    }
+    override fun onBind(intent: Intent): IBinder = Impl(applicationContext).apply { onBind() }
+    private val TAG = "FileSystemRootService"
+
 
     private var mOnErrorEvent: (() -> Unit)? = null
     private var mOnNoSpaceLeftEvent: (() -> Unit)? = null
-
-    class Service : RootService() {
-        init {
-            System.loadLibrary("nativelib")
-            System.loadLibrary("tar-wrapper")
-        }
-
-        override fun onBind(intent: Intent): IBinder = Impl(applicationContext).apply { onBind() }
-    }
 
     private class Impl(private val context: Context) : IFileSystemRootService.Stub() {
         private lateinit var mSystemContext: Context
@@ -76,6 +46,30 @@ object FileSystemRootService {
         private lateinit var mPackageManagerHidden: PackageManagerHidden
         private lateinit var mUserManager: UserManagerHidden
         private lateinit var mWifiManager: WifiManagerHidden
+
+        private fun writeToParcel(context: Context, block: (Parcel) -> Unit): ParcelFileDescriptor {
+            val parcel = Parcel.obtain()
+            parcel.setDataPosition(0)
+            block(parcel)
+            val tmpFile = File.createTempFile(TMP_PARCEL_PREFIX, TMP_SUFFIX, context.cacheDir)
+            tmpFile.delete()
+            tmpFile.createNewFile()
+            tmpFile.writeBytes(parcel.marshall())
+            val pfd = ParcelFileDescriptor.open(tmpFile, ParcelFileDescriptor.MODE_READ_WRITE)
+            tmpFile.delete()
+            parcel.recycle()
+            return pfd
+        }
+
+        private fun readFromParcel(pfd: ParcelFileDescriptor, block: (Parcel) -> Unit) = run {
+            val stream = ParcelFileDescriptor.AutoCloseInputStream(pfd)
+            val bytes = stream.readBytes()
+            val parcel = Parcel.obtain()
+            parcel.unmarshall(bytes, 0, bytes.size)
+            parcel.setDataPosition(0)
+            block(parcel)
+            parcel.recycle()
+        }
 
         fun onBind() {
             mSystemContext = ActivityThread.systemMain().systemContext
@@ -125,6 +119,8 @@ object FileSystemRootService {
         }
 
         override fun callTarCli(stdOut: String, stdErr: String, argv: Array<String>): Int {
+            Os.mkfifo(stdErr, 420)
+            Os.mkfifo(stdOut, 420)
             return TarWrapper.callCli(stdOut, stdErr, argv)
         }
 
@@ -177,6 +173,16 @@ object FileSystemRootService {
 
         override fun exists(path: String): Boolean {
             return runCatching { File(path).exists() }.getOrNull() ?: false
+        }
+
+        override fun fileType(path: String): Int {
+            val file = File(path)
+            return when {
+                !file.exists() -> IFileType.TYPE_NONE
+                file.isDirectory -> IFileType.TYPE_DIR
+                file.isFile -> IFileType.TYPE_FILE
+                else -> IFileType.TYPE_OTHER
+            }
         }
 
         override fun deleteRecursively(path: String): Boolean {
@@ -253,12 +259,6 @@ object FileSystemRootService {
         }
     }
 
-    private suspend fun ensureService(): Boolean {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service != null
-    }
-
     fun setOnErrorEvent(block: () -> Unit) {
         mOnErrorEvent = block
     }
@@ -277,109 +277,4 @@ object FileSystemRootService {
         }
     }
 
-    suspend fun checkService(): Boolean {
-        return ensureService()
-    }
-
-
-    suspend fun readStatFs(path: String): StatFsParcelable? {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.readStatFs(path)
-    }
-
-    suspend fun listFilePaths(
-        path: String,
-        listFiles: Boolean,
-        listDirs: Boolean
-    ): List<FilePathParcelable> {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.listFilePaths(path, listFiles, listDirs) ?: listOf()
-    }
-
-    suspend fun readText(path: String): String {
-        var text = ""
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        service?.readText(path)?.also { pfd ->
-            readFromParcel(pfd) { parcel ->
-                parcel.readString()?.also { text = it }
-            }
-        }
-        return text
-    }
-
-    suspend fun writeText(path: String, text: String) {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        service?.writeText(
-            path,
-            writeToParcel(App.application) { parcel ->
-                parcel.writeString(text)
-            }
-        )
-    }
-
-    suspend fun calculateTreeSize(path: String): Long {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.calculateTreeSize(path) ?: 0
-    }
-
-    suspend fun callTarCli(stdOut: String, stdErr: String, argv: Array<String>): Int {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.callTarCli(stdOut, stdErr, argv) ?: -1
-    }
-
-    suspend fun getPackageSourceDir(packageName: String, userId: Int): List<String> {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.getPackageSourceDir(packageName, userId) ?: listOf()
-    }
-
-    suspend fun compress(
-        level: Int,
-        inputPath: String,
-        outputPath: String,
-        callback: IBinaryCallback?
-    ): String? {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.compress(level, inputPath, outputPath, callback)
-    }
-
-    suspend fun mkdirs(path: String): Boolean {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.mkdirs(path) ?: false
-    }
-
-    suspend fun exists(path: String): Boolean {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.exists(path) ?: false
-    }
-
-    suspend fun deleteRecursively(path: String): Boolean {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.deleteRecursively(path) ?: false
-    }
-
-    suspend fun copyRecursively(
-        source: String,
-        target: String,
-        overwrite: Boolean = false
-    ): Boolean {
-        val context = App.application.applicationContext
-        val service = client.fetchRemote(context)
-        return service?.copyRecursively(source, target, overwrite) ?: false
-    }
-
-    fun release() {
-        val context = App.application.applicationContext
-        client.releaseClient(context)
-    }
 }

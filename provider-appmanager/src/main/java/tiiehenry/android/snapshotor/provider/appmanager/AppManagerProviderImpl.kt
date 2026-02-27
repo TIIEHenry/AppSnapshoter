@@ -9,58 +9,85 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.os.*
-import kotlinx.coroutines.*
-import tiiehenry.android.snapshotor.app.AppPermission
-import tiiehenry.android.snapshotor.provider.AppManagerProvider
-import tiiehenry.android.snapshotor.app.IAppManager
+import android.os.Parcel
+import android.os.ParcelFileDescriptor
 import androidx.core.graphics.createBitmap
-import tiiehenry.android.snapshotor.provider.appmanager.model.*
-import tiiehenry.android.snapshotor.provider.appmanager.parcelables.*
-import tiiehenry.android.snapshotor.provider.appmanager.service.*
+import kotlinx.coroutines.runBlocking
+import tiiehenry.android.snapshotor.app.AppPermission
+import tiiehenry.android.snapshotor.app.IAppManager
+import tiiehenry.android.snapshotor.provider.AppManagerProvider
+import tiiehenry.android.snapshotor.provider.appmanager.model.AppInfo
+import tiiehenry.android.snapshotor.provider.appmanager.model.AppStorage
 import tiiehenry.android.snapshotor.provider.appmanager.service.AppManageRootServiceClient
-import tiiehenry.android.snapshotor.provider.appmanager.util.*
+import tiiehenry.android.snapshotor.provider.appmanager.service.IAppManageRootService
+import tiiehenry.android.snapshotor.provider.appmanager.util.LogHelper
+import tiiehenry.android.snapshotor.provider.appmanager.util.PathHelper
 
 class AppManagerProviderImpl(
     hostContext: Context,
     pluginContext: Context
 ) : AppManagerProvider(hostContext, pluginContext) {
 
+    val serviceClient = AppManageRootServiceClient.getInstance()
+
+    override fun onInstall() {
+        serviceClient.fetchRemote(pluginContext)
+    }
+
     override fun provide(): IAppManager {
-        return AppManagerImpl(hostContext, pluginContext)
+        if (serviceClient.waitFetch(pluginContext) == null) {
+            throw Exception("AppManageRootService is not available")
+        }
+        return AppManagerImpl(hostContext, pluginContext, serviceClient)
     }
 
     private class AppManagerImpl(
         private val hostContext: Context,
-        private val pluginContext: Context
+        private val pluginContext: Context,
+        private val rootServiceClient: AppManageRootServiceClient
     ) : IAppManager.Stub() {
 
         private val packageManager: PackageManager = hostContext.packageManager
-        private val rootServiceClient = RootServiceClient(hostContext)
-        
-        // RootService客户端类
-        private class RootServiceClient(private val context: Context) {
-            
-        private suspend fun getRootService(): IAppManageRootService {
-            return try {
-                AppManageRootServiceClient.getInstance().fetchRemote(context)!!
-            } catch (e: Exception) {
-                LogHelper.e("RootServiceClient", "getService", "Failed to get root service", e)
-                throw e
+        private val proxy = AppManageRootServiceProxy(hostContext, rootServiceClient)
+
+        // RootService 客户端类
+        private class AppManageRootServiceProxy(
+            private val context: Context,
+            private val rootServiceClient: AppManageRootServiceClient
+        ) {
+            val appInfos = mutableListOf<AppInfo>()
+
+            private fun getRootService(): IAppManageRootService {
+                return try {
+                    rootServiceClient.client!!
+                } catch (e: Exception) {
+                    LogHelper.e("RootServiceClient", "getService", "Failed to get root service", e)
+                    throw e
+                }
             }
-        }
-            
-            suspend fun getInstalledAppInfos(): List<AppInfo> {
+
+            fun fetchInstalledAppInfos(): List<AppInfo> {
                 val service = getRootService()
                 return service.getInstalledAppInfos().let { pfd ->
                     val infos = mutableListOf<AppInfo>()
                     readFromParcel(pfd) { parcel ->
                         parcel.readTypedList(infos, AppInfo.CREATOR)
                     }
+                    synchronized(appInfos) {
+                        appInfos.clear()
+                        appInfos.addAll(infos)
+                    }
                     infos
                 }
             }
-            
+
+            suspend fun getInstalledAppInfos(): List<AppInfo> {
+                if (appInfos.isEmpty()) {
+                    fetchInstalledAppInfos()
+                }
+                return appInfos
+            }
+
             suspend fun getInstalledAppStorages(): List<AppStorage> {
                 val service = getRootService()
                 return service.getInstalledAppStorages().let { pfd ->
@@ -71,73 +98,176 @@ class AppManagerProviderImpl(
                     storages
                 }
             }
-            
+
             suspend fun getUsers(): List<android.content.pm.UserInfo> {
                 val service = getRootService()
                 return service.getUsers()
             }
-            
-            suspend fun readStatFs(path: String): StatFsParcelable? {
+
+            // 新增的应用信息获取方法
+            suspend fun getPackageInfo(packageName: String, flags: Int, userId: Int): PackageInfo? {
                 val service = getRootService()
-                return service.readStatFs(path)
-            }
-            
-            suspend fun listFilePaths(path: String, listFiles: Boolean, listDirs: Boolean): List<FilePathParcelable> {
-                val service = getRootService()
-                return service.listFilePaths(path, listFiles, listDirs)
-            }
-            
-            suspend fun readText(path: String): String {
-                val service = getRootService()
-                var text = ""
-                service.readText(path).let { pfd ->
-                    readFromParcel(pfd) { parcel ->
-                        parcel.readString()?.also { text = it }
-                    }
+                return try {
+                    service.getPackageInfo(packageName, flags, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "getPackageInfo",
+                        "Failed to get package info",
+                        e
+                    )
+                    null
                 }
-                return text
             }
-            
-            suspend fun writeText(path: String, text: String) {
+
+            suspend fun getApplicationInfo(
+                packageName: String,
+                flags: Int,
+                userId: Int
+            ): ApplicationInfo? {
                 val service = getRootService()
-                service.writeText(
-                    path,
-                    writeToParcel(context) { parcel ->
-                        parcel.writeString(text)
-                    }
-                )
+                return try {
+                    service.getApplicationInfo(packageName, flags, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "getApplicationInfo",
+                        "Failed to get application info",
+                        e
+                    )
+                    null
+                }
             }
-            
-            suspend fun calculateTreeSize(path: String): Long {
+
+            suspend fun loadLabel(packageName: String, userId: Int): String? {
                 val service = getRootService()
-                return service.calculateTreeSize(path)
+                return try {
+                    service.loadLabel(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e("AppManageRootServiceProxy", "loadLabel", "Failed to load label", e)
+                    null
+                }
             }
-            
-            suspend fun mkdirs(path: String): Boolean {
+
+            suspend fun loadIcon(packageName: String, userId: Int): Bitmap? {
                 val service = getRootService()
-                return service.mkdirs(path)
+                return try {
+                    service.loadIcon(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e("AppManageRootServiceProxy", "loadIcon", "Failed to load icon", e)
+                    null
+                }
             }
-            
-            suspend fun exists(path: String): Boolean {
+
+            suspend fun getPermissions(packageName: String, userId: Int): List<AppPermission> {
                 val service = getRootService()
-                return service.exists(path)
+                return try {
+                    service.getPermissions(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "getPermissions",
+                        "Failed to get permissions",
+                        e
+                    )
+                    emptyList()
+                }
             }
-            
-            suspend fun deleteRecursively(path: String): Boolean {
+
+            suspend fun setAppPermission(
+                packageName: String,
+                userId: Int,
+                permission: AppPermission
+            ) {
                 val service = getRootService()
-                return service.deleteRecursively(path)
+                try {
+                    service.setAppPermission(packageName, userId, permission)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "setAppPermission",
+                        "Failed to set permission",
+                        e
+                    )
+                }
             }
-            
-            suspend fun copyRecursively(source: String, target: String, overwrite: Boolean = false): Boolean {
+
+            suspend fun setAppPermissions(
+                packageName: String,
+                userId: Int,
+                permissions: List<AppPermission>
+            ) {
                 val service = getRootService()
-                return service.copyRecursively(source, target, overwrite)
+                try {
+                    service.setAppPermissions(packageName, userId, permissions)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "setAppPermissions",
+                        "Failed to set permissions",
+                        e
+                    )
+                }
             }
-            
-            private fun writeToParcel(context: Context, block: (Parcel) -> Unit): ParcelFileDescriptor {
+
+            suspend fun isInstalled(packageName: String, userId: Int): Boolean {
+                val service = getRootService()
+                return try {
+                    service.isInstalled(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "isInstalled",
+                        "Failed to check installation",
+                        e
+                    )
+                    false
+                }
+            }
+
+            suspend fun installApk(file: String, userId: Int): Boolean {
+                val service = getRootService()
+                return try {
+                    service.installApk(file, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "installApk",
+                        "Failed to install APK",
+                        e
+                    )
+                    false
+                }
+            }
+
+            suspend fun uninstallApk(packageName: String, userId: Int): Boolean {
+                val service = getRootService()
+                return try {
+                    service.uninstallApk(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "uninstallApk",
+                        "Failed to uninstall APK",
+                        e
+                    )
+                    false
+                }
+            }
+
+
+            private fun writeToParcel(
+                context: Context,
+                block: (Parcel) -> Unit
+            ): ParcelFileDescriptor {
                 val parcel = Parcel.obtain()
                 parcel.setDataPosition(0)
                 block(parcel)
-                val tmpFile = java.io.File.createTempFile(PathHelper.TMP_PARCEL_PREFIX, PathHelper.TMP_SUFFIX, context.cacheDir)
+                val tmpFile = java.io.File.createTempFile(
+                    PathHelper.TMP_PARCEL_PREFIX,
+                    PathHelper.TMP_SUFFIX,
+                    context.cacheDir
+                )
                 tmpFile.delete()
                 tmpFile.createNewFile()
                 tmpFile.writeBytes(parcel.marshall())
@@ -146,7 +276,7 @@ class AppManagerProviderImpl(
                 parcel.recycle()
                 return pfd
             }
-            
+
             private fun readFromParcel(pfd: ParcelFileDescriptor, block: (Parcel) -> Unit) {
                 val stream = ParcelFileDescriptor.AutoCloseInputStream(pfd)
                 val bytes = stream.readBytes()
@@ -157,18 +287,24 @@ class AppManagerProviderImpl(
                 parcel.recycle()
             }
         }
-        
+
         //原方法实现...
 
         override fun getInstalledPackages(flags: Int, userId: Int): List<String> {
             return try {
                 // 使用RootService获取系统级应用信息
                 runBlocking {
-                    rootServiceClient.getInstalledAppInfos().map { it.packageName }
+                    proxy.fetchInstalledAppInfos()
+                    proxy.getInstalledAppInfos().map { it.packageName }
                 }
             } catch (e: Exception) {
                 // 降级到普通PackageManager
-                LogHelper.w("AppManagerImpl", "getInstalledPackages", "Failed to use root service, falling back to PackageManager", e)
+                LogHelper.w(
+                    "AppManagerImpl",
+                    "getInstalledPackages",
+                    "Failed to use root service, falling back to PackageManager",
+                    e
+                )
                 packageManager.getInstalledPackages(flags).map { it.packageName }
             }
         }
@@ -180,33 +316,18 @@ class AppManagerProviderImpl(
         ): PackageInfo? {
             if (packageName == null) return null
             return try {
-                // 使用RootService获取系统级包信息
+                // 使用 RootService 获取系统级包信息
                 runBlocking {
-                    val appInfos = rootServiceClient.getInstalledAppInfos()
-                    val appInfo = appInfos.find { it.packageName == packageName && it.userId == userId }
-                    if (appInfo != null) {
-                        //构造PackageInfo对象（简化实现）
-                        PackageInfo().apply {
-                            this.packageName = appInfo.packageName
-                            this.applicationInfo = ApplicationInfo().apply {
-                                this.uid = appInfo.info.uid
-                                this.flags = appInfo.info.flags
-                            }
-                            this.versionName = appInfo.info.versionName
-                            this.versionCode = appInfo.info.versionCode.toInt()
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                this.longVersionCode = appInfo.info.versionCode
-                            }
-                            this.firstInstallTime = appInfo.info.firstInstallTime
-                            this.lastUpdateTime = appInfo.info.lastUpdateTime
-                        }
-                    } else {
-                        null
-                    }
+                    proxy.getPackageInfo(packageName, flags, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通PackageManager
-                LogHelper.w("AppManagerImpl", "getPackageInfo", "Failed to use root service, falling back to PackageManager", e)
+                // 降级到普通 PackageManager
+                LogHelper.w(
+                    "AppManagerImpl",
+                    "getPackageInfo",
+                    "Failed to use root service, falling back to PackageManager",
+                    e
+                )
                 packageManager.getPackageInfo(packageName, flags)
             }
         }
@@ -218,26 +339,18 @@ class AppManagerProviderImpl(
         ): ApplicationInfo? {
             if (packageName == null) return null
             return try {
-                // 使用RootService获取系统级应用信息
+                // 使用 RootService 获取系统级应用信息
                 runBlocking {
-                    val appInfos = rootServiceClient.getInstalledAppInfos()
-                    val appInfo = appInfos.find { it.packageName == packageName && it.userId == userId }
-                    if (appInfo != null) {
-                        ApplicationInfo().apply {
-                            this.uid = appInfo.info.uid
-                            this.flags = appInfo.info.flags
-                            // 设置基本路径信息
-                            this.packageName = appInfo.packageName
-                            this.sourceDir = PathHelper.getAppUserDir(userId, packageName)
-                            this.dataDir = PathHelper.getAppDataDir(userId, packageName)
-                        }
-                    } else {
-                        null
-                    }
+                    proxy.getApplicationInfo(packageName, flags, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通PackageManager
-                LogHelper.w("AppManagerImpl", "getApplicationInfo", "Failed to use root service, falling back to PackageManager", e)
+                // 降级到普通 PackageManager
+                LogHelper.w(
+                    "AppManagerImpl",
+                    "getApplicationInfo",
+                    "Failed to use root service, falling back to PackageManager",
+                    e
+                )
                 packageManager.getApplicationInfo(packageName, flags)
             }
         }
@@ -245,15 +358,18 @@ class AppManagerProviderImpl(
         override fun loadLabel(packageName: String?, userId: Int): String? {
             if (packageName == null) return null
             return try {
-                // 使用RootService获取应用标签
+                // 使用 RootService 获取应用标签
                 runBlocking {
-                    val appInfos = rootServiceClient.getInstalledAppInfos()
-                    val appInfo = appInfos.find { it.packageName == packageName && it.userId == userId }
-                    appInfo?.info?.label ?: packageName
+                    proxy.loadLabel(packageName, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通PackageManager
-                LogHelper.w("AppManagerImpl", "loadLabel", "Failed to use root service, falling back to PackageManager", e)
+                // 降级到普通 PackageManager
+                LogHelper.w(
+                    "AppManagerImpl",
+                    "loadLabel",
+                    "Failed to use root service, falling back to PackageManager",
+                    e
+                )
                 try {
                     val appInfo = packageManager.getApplicationInfo(packageName, 0)
                     packageManager.getApplicationLabel(appInfo).toString()
@@ -263,15 +379,36 @@ class AppManagerProviderImpl(
             }
         }
 
-        override fun loadIcon(packageName: String?, userId: Int): Bitmap? {
-            if (packageName == null) return null
+        override fun loadIcon(packageName: String, userId: Int): Bitmap? {
             return try {
                 val appInfo = packageManager.getApplicationInfo(packageName, 0)
                 val drawable = packageManager.getApplicationIcon(appInfo)
                 drawableToBitmap(drawable)
-            } catch (e: Exception) {
+            } catch (ex: Exception) {
+                ex.printStackTrace()
                 null
             }
+//            return try {
+//                // 使用 RootService 获取应用图标
+//                runBlocking {
+//                    proxy.loadIcon(packageName, userId)
+//                }
+//            } catch (e: Throwable) {
+//                LogHelper.w(
+//                    "AppManagerImpl",
+//                    "loadIcon",
+//                    "Failed to use root service, falling back to PackageManager",
+//                    e
+//                )
+//                try {
+//                    val appInfo = packageManager.getApplicationInfo(packageName, 0)
+//                    val drawable = packageManager.getApplicationIcon(appInfo)
+//                    drawableToBitmap(drawable)
+//                } catch (ex: Exception) {
+//                    ex.printStackTrace()
+//                    null
+//                }
+//            }
         }
 
         override fun getDir(packageName: String?, userId: Int, type: Int): String? {
@@ -293,7 +430,16 @@ class AppManagerProviderImpl(
             packageName: String?,
             userId: Int
         ): List<AppPermission?>? {
-            TODO("Not yet implemented")
+            if (packageName == null) return null
+            return try {
+                // 使用 RootService 获取权限信息
+                runBlocking {
+                    proxy.getPermissions(packageName, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "getPermissions", "Failed to get permissions", e)
+                null
+            }
         }
 
         override fun setAppPermission(
@@ -302,52 +448,13 @@ class AppManagerProviderImpl(
             permission: AppPermission?
         ) {
             if (packageName == null || permission == null) return
-
             try {
-                val dpm =
-                    hostContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager?
-
-
-                // Check if we have device admin rights
-                if (dpm != null && isDeviceOwnerOrProfileOwner(dpm)) {
-                    // Use DevicePolicyManager to set permission grant state
-                    val grantState = if (permission.isGranted) {
-                        DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
-                    } else {
-                        DevicePolicyManager.PERMISSION_GRANT_STATE_DENIED
-                    }
-
-                    // Set permission grant state for the specified package
-                    dpm.setPermissionGrantState(
-                        null,
-                        packageName,
-                        permission.name,
-                        grantState
-                    )
-                } else {
-                    // For non-device-owner apps, we can only request permissions for our own app
-                    // This is a limitation of Android's security model
-                    // We log the intended action but cannot actually set permissions for other apps
-                    android.util.Log.w(
-                        "AppManagerImpl",
-                        "Cannot set permissions for other apps without device admin rights. " +
-                                "PackageName: $packageName, Permission: ${permission.name}"
-                    )
+                // 使用 RootService 设置权限
+                runBlocking {
+                    proxy.setAppPermission(packageName, userId, permission)
                 }
-            } catch (e: SecurityException) {
-                // Catch security exceptions when lacking required permissions
-                android.util.Log.e(
-                    "AppManagerImpl",
-                    "Security exception when setting permission: ${e.message}",
-                    e
-                )
             } catch (e: Exception) {
-                // Log error but don't crash the service
-                android.util.Log.e(
-                    "AppManagerImpl",
-                    "Error setting permission: ${e.message}",
-                    e
-                )
+                LogHelper.e("AppManagerImpl", "setAppPermission", "Failed to set permission", e)
             }
         }
 
@@ -357,10 +464,9 @@ class AppManagerProviderImpl(
             permissions: MutableList<AppPermission>?
         ) {
             if (packageName == null || permissions == null) return
-
-            // Apply each permission individually
-            for (permission in permissions) {
-                setAppPermission(packageName, userId, permission)
+            // 使用 RootService 批量设置权限
+            runBlocking {
+                proxy.setAppPermissions(packageName, userId, permissions)
             }
         }
 
@@ -375,14 +481,18 @@ class AppManagerProviderImpl(
         override fun isInstalled(packageName: String?, userId: Int): Boolean {
             if (packageName == null) return false
             return try {
-                // 使用RootService检查应用是否安装
+                // 使用 RootService 检查应用是否安装
                 runBlocking {
-                    val appInfos = rootServiceClient.getInstalledAppInfos()
-                    appInfos.any { it.packageName == packageName && it.userId == userId }
+                    proxy.isInstalled(packageName, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通PackageManager
-                LogHelper.w("AppManagerImpl", "isInstalled", "Failed to use root service, falling back to PackageManager", e)
+                // 降级到普通 PackageManager
+                LogHelper.w(
+                    "AppManagerImpl",
+                    "isInstalled",
+                    "Failed to use root service, falling back to PackageManager",
+                    e
+                )
                 try {
                     packageManager.getPackageInfo(packageName, 0)
                     true
@@ -394,16 +504,28 @@ class AppManagerProviderImpl(
 
         override fun installApk(file: String?, userId: Int): Boolean {
             if (file == null) return false
-            // TODO: Implement APK installation logic
-            // This typically requires system permissions or PackageInstaller API
-            return false
+            return try {
+                // 使用 RootService 安装 APK
+                runBlocking {
+                    proxy.installApk(file, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "installApk", "Failed to install APK", e)
+                false
+            }
         }
 
         override fun uninstallApk(packageName: String?, userId: Int): Boolean {
             if (packageName == null) return false
-            // TODO: Implement APK uninstallation logic
-            // This typically requires system permissions or PackageInstaller API
-            return false
+            return try {
+                // 使用 RootService 卸载 APK
+                runBlocking {
+                    proxy.uninstallApk(packageName, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "uninstallApk", "Failed to uninstall APK", e)
+                false
+            }
         }
 
         private fun drawableToBitmap(drawable: Drawable): Bitmap {

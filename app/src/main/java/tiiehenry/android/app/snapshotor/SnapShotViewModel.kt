@@ -114,9 +114,10 @@ class SnapShotViewModel : ViewModel() {
                 val group = groupList.value?.find { it.id == groupId } ?: return@launch
                 for (appInfo in appInfos) {
                     val packageName = appInfo.packageName
+                    android.util.Log.d("addAppsToGroup", "Adding app: $packageName to group: ${group.id}")
                     // 创建应用目录
                     val packageDir = Paths.get(group.path, packageName).absolutePathString()
-                    if (SnapShotApp.getInstance().fileSystem.fileType(packageDir) == IFileType.TYPE_NONE) {
+                    if (!SnapShotApp.getInstance().fileSystem.exists(packageDir)) {
                         SnapShotApp.getInstance().fileSystem.mkdirs(packageDir)
                     }
 
@@ -126,6 +127,9 @@ class SnapShotViewModel : ViewModel() {
                     val icon = SnapShotApp.getInstance().appManager.loadIcon(packageName, 0)
                     if (icon != null) {
                         saveIconToFile(icon, iconFile)
+                        android.util.Log.d("addAppsToGroup", "Saved icon to: $iconFile")
+                    } else {
+                        android.util.Log.w("addAppsToGroup", "Failed to load icon for $packageName")
                     }
                 }
                 // 重新加载分组的应用列表
@@ -134,12 +138,16 @@ class SnapShotViewModel : ViewModel() {
                     SnapShotApp.getInstance().appManager,
                     true
                 )
+                android.util.Log.d("addAppsToGroup", "Loaded ${group.apps.size} apps")
 
-                // 通知UI更新
+                // 通知 UI 更新
 //                loadGroups()
-                callback()
+                withContext(Dispatchers.Main){
+                    callback()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
+                android.util.Log.e("addAppsToGroup", "Error: ${e.message}", e)
             }
         }
     }

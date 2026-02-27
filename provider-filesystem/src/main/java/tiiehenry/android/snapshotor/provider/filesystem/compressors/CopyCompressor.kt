@@ -1,5 +1,6 @@
 package tiiehenry.android.snapshotor.provider.filesystem.compressors
 
+import android.content.Context
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.CompressState
@@ -11,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object CopyCompressor : IAlgorithmCompressor {
     override fun compress(
+        context: Context,
         fileSystem: IFileSystem,
         dir: String,
         targetFile: String,

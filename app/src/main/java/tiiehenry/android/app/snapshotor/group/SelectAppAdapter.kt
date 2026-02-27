@@ -88,13 +88,9 @@ class SelectAppAdapter(
             binding.appVersion.text = "${appInfo.versionName} (${appInfo.versionCode})"
 
             // 使用Glide加载图标
-            if (appInfo.icon != null) {
-                Glide.with(binding.root.context)
-                    .load(appInfo.icon)
-                    .into(binding.appIcon)
-            } else {
-                binding.appIcon.setImageResource(android.R.drawable.sym_def_app_icon)
-            }
+            Glide.with(binding.root.context)
+                .load(appInfo.icon)
+                .into(binding.appIcon)
 
             // 设置多选模式下的UI状态
             if (isMultiSelectMode) {

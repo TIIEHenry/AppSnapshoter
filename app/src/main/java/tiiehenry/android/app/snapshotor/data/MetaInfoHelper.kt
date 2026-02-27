@@ -2,8 +2,8 @@ package tiiehenry.android.app.snapshotor.data
 
 import android.os.ParcelFileDescriptor
 import com.alibaba.fastjson2.JSON
-import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.app.snapshotor.utils.JsonUtils
+import tiiehenry.android.snapshotor.file.IFileSystem
 import java.io.File
 import java.io.FileReader
 
@@ -13,9 +13,9 @@ import java.io.FileReader
  */
 object MetaInfoHelper {
 
-     const val META_INFO_FILE_NAME = "meta-info.json"
+    const val META_INFO_FILE_NAME = "meta-info.json"
 
-    fun read(fs: IFileSystem,jsonFile: String): MetaInfo {
+    fun read(fs: IFileSystem, jsonFile: String): MetaInfo {
         fs.openFile(jsonFile, ParcelFileDescriptor.MODE_READ_ONLY).use {
             val jsonStr = FileReader(it.fileDescriptor).readText()
             return JSON.parseObject(jsonStr, MetaInfo::class.java)
@@ -71,13 +71,13 @@ object MetaInfoHelper {
         compressCost: Long = 0
     ): MetaInfo {
         return MetaInfo(
-            packageInfo = packageInfo,
-            userId = userId,
-            dataItems = dataItems,
-            permissions = permissions,
-            time = TimeInfo(
-                compressCost = compressCost,
-                makeTime = System.currentTimeMillis()
+            packageInfo,
+            userId,
+            dataItems,
+            permissions,
+            TimeInfo(
+                compressCost,
+                System.currentTimeMillis()
             )
         )
     }

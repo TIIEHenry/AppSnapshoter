@@ -2,6 +2,7 @@ package tiiehenry.android.app.snapshotor.main.launch
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -48,6 +49,7 @@ class LauncherFragment : Fragment() {
 
         // 观察数据
         SnapShotApp.getViewModel().groupList.observe(viewLifecycleOwner) { groups ->
+            Log.d("LauncherFragment", "groupList changed")
             groupsAdapter.submitList(groups)
         }
 

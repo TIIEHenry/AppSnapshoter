@@ -17,6 +17,7 @@ interface IFileSystemRootService {
     String compress(int level, String inputPath, String outputPath, IBinaryCallback callback);
     boolean mkdirs(String path);
     boolean exists(String path);
+    int fileType(String path);
     boolean deleteRecursively(String path);
     boolean copyRecursively(String source, String target, boolean overwrite);
     long getLastModifiedTime(String path);

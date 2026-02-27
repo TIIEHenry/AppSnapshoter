@@ -14,11 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import tiiehenry.android.snapshotor.app.IServiceClient;
 
-public class FileSystemRootServiceClient extends IServiceClient<IFileSystemRootService> {
+public class FileSystemManagerRootServiceClient extends IServiceClient<IFileSystemRootService> {
 
     public String packageName;
 
-    public FileSystemRootServiceClient(String providerPkg) {
+    public FileSystemManagerRootServiceClient(String providerPkg) {
         super();
         this.packageName = providerPkg;
     }
@@ -37,14 +37,14 @@ public class FileSystemRootServiceClient extends IServiceClient<IFileSystemRootS
     }
 
     @Override
-    public Intent getIntent(Context context) {
+    public Intent getIntent(@NonNull Context context) {
         return new Intent(context, FileSystemRootService.class);
     }
 
     @Nullable
     @Override
     public ServiceConnection doBind(@NonNull Context context, Intent intent, ServiceConnection conn) {
-        RootService.bind(intent, executor, conn);
+        RootService.bind(intent,/* executor,*/ conn);
         return conn;
     }
 
@@ -53,7 +53,7 @@ public class FileSystemRootServiceClient extends IServiceClient<IFileSystemRootS
         RootService.unbind(connection);
     }
 
-    public static final ConcurrentHashMap<String, FileSystemRootServiceClient> instancesMap = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, FileSystemManagerRootServiceClient> instancesMap = new ConcurrentHashMap<>();
 
 
     /**
@@ -61,12 +61,12 @@ public class FileSystemRootServiceClient extends IServiceClient<IFileSystemRootS
      *
      * @return
      */
-    public static FileSystemRootServiceClient getInstance() {
+    public static FileSystemManagerRootServiceClient getInstance() {
         return getInstance("tiiehenry.android.app.snapshotor");
     }
 
-    public static FileSystemRootServiceClient getInstance(String providerPkg) {
-        return instancesMap.computeIfAbsent(providerPkg, FileSystemRootServiceClient::new);
+    public static FileSystemManagerRootServiceClient getInstance(String providerPkg) {
+        return instancesMap.computeIfAbsent(providerPkg, FileSystemManagerRootServiceClient::new);
     }
 
     public static boolean freeInstance(String providerPkg) {

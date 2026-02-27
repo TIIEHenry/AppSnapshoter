@@ -35,6 +35,11 @@ public class PackageManagerHidden {
     public PackageInfo getPackageInfoAsUser(String packageName, int flags, int userId) {
         throw new RuntimeException("Stub!");
     }
+
+    public ApplicationInfo getApplicationInfoAsUser(String packageName, int flags, int userId) {
+        throw new RuntimeException("Stub!");
+    }
+
 }
 
 // https://cs.android.com/android/platform/superproject/+/android-7.0.0_r36:frameworks/base/core/java/android/content/pm/PackageManager.java

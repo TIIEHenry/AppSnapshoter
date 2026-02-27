@@ -1,233 +1,194 @@
 package tiiehenry.android.snapshotor.provider.filesystem
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
 import android.os.ParcelFileDescriptor
+import android.util.Log
+import com.topjohnwu.superuser.ipc.RootService
+import com.topjohnwu.superuser.nio.FileSystemManager
+import kotlinx.coroutines.runBlocking
+import tiiehenry.android.snapshotor.file.FileSystemManagerRootService
 import tiiehenry.android.snapshotor.file.FileSystemRootServiceClient
-import tiiehenry.android.snapshotor.file.IBinaryCallback
 import tiiehenry.android.snapshotor.file.IFileCompressor
-import tiiehenry.android.snapshotor.provider.FileSystemProvider
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.IFileType
+import tiiehenry.android.snapshotor.provider.FileSystemProvider
 import java.io.File
-import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CompletableFuture
 
 class FileSystemProviderImpl(
     hostContext: Context,
     pluginContext: Context
 ) : FileSystemProvider(hostContext, pluginContext) {
 
-    override fun provide(): IFileSystem {
-        return FileSystemImpl()
+    private lateinit var fsmFuture: CompletableFuture<IBinder>
+    val serviceClient = FileSystemRootServiceClient.getInstance()
+
+    override fun onInstall() {
+        fsmFuture = CompletableFuture<IBinder>()
+        RootService.bind(
+            Intent(pluginContext, FileSystemManagerRootService::class.java),
+            object : ServiceConnection {
+                override fun onServiceConnected(
+                    name: ComponentName,
+                    service: IBinder
+                ) {
+                    fsmFuture.complete(service)
+                }
+
+                override fun onServiceDisconnected(name: ComponentName?) {
+                    fsmFuture.completeExceptionally(Exception("Service disconnected"))
+                }
+            })
+        serviceClient.fetchRemote(pluginContext)
     }
 
-    private inner class FileSystemImpl : IFileSystem.Stub() {
+    override fun provide(): IFileSystem {
+        if (serviceClient.waitFetch(pluginContext) == null) {
+            throw Exception("FileSystemRootService is not available")
+        }
+        val fileSystemManager = FileSystemManager.getRemote(fsmFuture.get())
+        return FileSystemImpl(serviceClient, fileSystemManager, pluginContext)
+    }
 
-        val fileCompressor = FileCompressor(this)
-        
-        private fun getRootService() = FileSystemRootServiceClient.getInstance().fetchRemote(hostContext)!!
+    private inner class FileSystemImpl(
+        val rootServiceClient: FileSystemRootServiceClient,
+        val fileSystemManager: FileSystemManager,
+        val context: Context
+    ) :
+        IFileSystem.Stub() {
+
+        val fileCompressor = FileCompressor(this, context)
+
+        private fun getRootService() = rootServiceClient.client!!
 
         override fun fileType(path: String): Int {
-            return try {
-                val rootService = getRootService()
-                val exists = runBlocking { rootService.exists(path) }
-                if (!exists) {
-                    IFileType.TYPE_NONE
-                } else {
-                    val paths = runBlocking { rootService.listFilePaths(path, true, true) }
-                    if (paths.isEmpty()) {
-                        // Path exists but is empty, check if it's a file or directory
-                        // For now, assume it's a directory if we can list it, otherwise file
-                        // More accurate approach would require more detailed filesystem info
-                        if (path.endsWith("/")) IFileType.TYPE_DIR else IFileType.TYPE_FILE
-                    } else {
-                        val pathInfo = paths.firstOrNull { it.path == path }
-                        when (pathInfo?.type) {
-                            0 -> IFileType.TYPE_FILE
-                            1 -> IFileType.TYPE_DIR
-                            else -> IFileType.TYPE_OTHER
-                        }
-                    }
+            try {
+                val file = fileSystemManager.getFile(path)
+                if (!file.exists()) {
+                    return IFileType.TYPE_NONE
                 }
+                if (file.isFile) {
+                    return IFileType.TYPE_FILE
+                } else if (file.isDirectory) {
+                    return IFileType.TYPE_DIR
+                }
+                return IFileType.TYPE_OTHER
             } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                val file = File(path)
-                when {
-                    !file.exists() -> IFileType.TYPE_NONE
-                    file.isDirectory -> IFileType.TYPE_DIR
-                    file.isFile -> IFileType.TYPE_FILE
-                    else -> IFileType.TYPE_OTHER
-                }
+                e.printStackTrace()
+                return IFileType.TYPE_OTHER
             }
         }
 
         override fun listDir(path: String?): MutableList<String> {
             if (path == null) return mutableListOf()
-            return try {
-                val rootService = getRootService()
-                val paths = runBlocking { rootService.listFilePaths(path, true, true) }
-                val result = mutableListOf<String>()
-                paths.forEach { pathInfo ->
-                    val fileName = File(pathInfo.path).name
-                    result.add(fileName)
-                }
-                result
-            } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                val file = File(path)
-                if (!file.exists() || !file.isDirectory) return mutableListOf()
-                file.list()?.toMutableList() ?: mutableListOf()
-            }
+            val file = fileSystemManager.getFile(path)
+            return file.list()?.toMutableList() ?: mutableListOf()
         }
 
         override fun calculateSize(path: String?): Long {
             if (path == null) return 0L
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.calculateTreeSize(path) }
-            } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                File(path).walkTopDown().filter { it.isFile }.map { it.length() }.sum()
-            }
+            val rootService = getRootService()
+            return runBlocking { rootService.calculateTreeSize(path) }
         }
 
         override fun mkdirs(path: String): Boolean {
             return try {
-                val rootService = getRootService()
-                runBlocking { rootService.mkdirs(path) }
+                fileSystemManager.getFile(path).mkdirs()
             } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                File(path).mkdirs()
+                e.printStackTrace()
+                false
             }
         }
 
         override fun delete(path: String): Boolean {
             return try {
-                val rootService = getRootService()
-                runBlocking { rootService.deleteRecursively(path) }
+                fileSystemManager.getFile(path).delete()
             } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                File(path).deleteRecursively()
+                e.printStackTrace()
+                false
             }
         }
 
         override fun exists(path: String): Boolean {
             return try {
-                val rootService = getRootService()
-                runBlocking { rootService.exists(path) }
+                fileSystemManager.getFile(path).exists()
             } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                File(path).exists()
+                e.printStackTrace()
+                false
             }
         }
 
         override fun getParent(path: String): String? {
-            return try {
-                File(path).parent
-            } catch (e: Exception) {
-                null
-            }
+            val file = fileSystemManager.getFile(path)
+            return file.parent
         }
 
         override fun length(path: String): Long {
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.calculateTreeSize(path) }
-            } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                File(path).length()
-            }
+            val file = fileSystemManager.getFile(path)
+            return file.length()
         }
 
         override fun getLastModifiedTime(path: String?): Long {
             if (path == null) return 0L
             return try {
-                val rootService = getRootService()
-                runBlocking { rootService.getLastModifiedTime(path) }
+                fileSystemManager.getFile(path).lastModified()
             } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                File(path).lastModified()
+                e.printStackTrace()
+                0L
             }
         }
 
         override fun setLastModifiedTime(path: String?, time: Long): Boolean {
             if (path == null) return false
             return try {
-                val rootService = getRootService()
-                runBlocking { rootService.setLastModifiedTime(path, time) }
+                fileSystemManager.getFile(path).setLastModified(time)
             } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                File(path).setLastModified(time)
+                e.printStackTrace()
+                false
             }
         }
 
         override fun md5(file: String): String? {
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.md5(file) }
-            } catch (e: Exception) {
-                // Fallback to local MD5 calculation if root service fails
-                MD5Utils.getFileMD5(file)
-            }
+            val rootService = getRootService()
+            return runBlocking { rootService.md5(file) }
         }
 
         override fun getUid(path: String?): Int {
             if (path == null) return -1
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.getUid(path) }
-            } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                -1
-            }
+            val rootService = getRootService()
+            return runBlocking { rootService.getUid(path) }
         }
 
         override fun setUid(path: String?, uid: Int): Boolean {
             if (path == null) return false
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.setUid(path, uid) }
-            } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                false
-            }
+            val rootService = getRootService()
+            return runBlocking { rootService.setUid(path, uid) }
         }
 
         override fun getGid(path: String?): Int {
             if (path == null) return -1
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.getGid(path) }
-            } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                -1
-            }
+            val rootService = getRootService()
+            return runBlocking { rootService.getGid(path) }
         }
 
         override fun setGid(path: String?, gid: Int): Boolean {
             if (path == null) return false
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.setGid(path, gid) }
-            } catch (e: Exception) {
-                // Fallback to local file access if root service fails
-                false
-            }
+            val rootService = getRootService()
+            return runBlocking { rootService.setGid(path, gid) }
         }
 
         override fun openFile(path: String, mode: Int): ParcelFileDescriptor? {
-            return try {
-                val rootService = getRootService()
-                runBlocking { rootService.openFile(path, mode) }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                // Fallback to local file access if root service fails
-                val file = File(path)
-                if (mode and ParcelFileDescriptor.MODE_CREATE != 0 && !file.exists()) {
-                    file.parentFile?.mkdirs()
-                    file.createNewFile()
-                }
-                ParcelFileDescriptor.open(file, mode)
+            val file = fileSystemManager.getFile(path)
+            if (mode and ParcelFileDescriptor.MODE_CREATE != 0 && !file.exists()) {
+                file.parentFile?.mkdirs()
+                file.createNewFile()
             }
+            Log.i("FileSystemProvider", "openFile $path with mode $mode")
+            return ParcelFileDescriptor.open(file, mode)
         }
 
         override fun openInputStream(path: String): ParcelFileDescriptor? {
@@ -235,7 +196,10 @@ class FileSystemProviderImpl(
         }
 
         override fun openOutputStream(path: String): ParcelFileDescriptor? {
-            return openFile(path, ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_CREATE)
+            return openFile(
+                path,
+                ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_CREATE
+            )
         }
 
         override fun createTempFile(prefix: String, suffix: String): String {
@@ -248,34 +212,63 @@ class FileSystemProviderImpl(
             }
         }
 
-        override fun createTarArchive(sourceDir: String, targetFile: String, excludes: List<String>, excludeFiles: List<String>) {
+        override fun createTarArchive(
+            sourceDir: String,
+            targetFile: String,
+            excludes: List<String>,
+            excludeFiles: List<String>,
+            stdErr: String,
+            stdOut: String
+        ) {
             try {
                 val rootService = getRootService()
-                // 构建tar命令参数
-                val args = mutableListOf("tar", "-cpf", targetFile, "-C", File(sourceDir).parent ?: ".")
-                
+                val sourceFile = File(sourceDir)
+                val parentDir = sourceFile.parent ?: "."
+                val dirName = sourceFile.name
+
+                // 构建正确的tar命令参数
+                val args = mutableListOf("tar", "-cpf", targetFile, "-C", parentDir)
+
                 // 添加排除选项
                 excludes.forEach { exclude ->
                     args.add("--exclude=$exclude")
                 }
 
-                // 添加排除选项
-                excludeFiles.forEach { exclude ->
-                    args.add("-X=$exclude")
+                // 添加排除文件选项
+                excludeFiles.forEach { excludeFile ->
+                    args.add("-X")
+                    args.add(excludeFile)
                 }
 
-                // 添加要打包的目录
-                args.add(File(sourceDir).name)
-                
+                // 添加要打包的目录（相对路径）
+                args.add(dirName)
+
+                Log.i("FileSystemProvider", "Executing tar command: ${args.joinToString(" ")}")
                 // 调用root服务执行tar命令
-                runBlocking { rootService.callTarCli("", "", args.toTypedArray()) }
+                val resultCode = rootService.callTarCli(stdOut, stdErr, args.toTypedArray())
+
+                // 检查tar命令执行结果
+                if (resultCode != 0) {
+                    val errorMsg = "Tar command failed with exit code: $resultCode"
+                    Log.e("FileSystemProvider", errorMsg)
+                    throw RuntimeException(errorMsg)
+                }
+
+                // 验证生成的tar文件是否存在且不为空
+                val tarFile = fileSystemManager.getFile(targetFile)
+                if (!tarFile.exists() || tarFile.length() == 0L) {
+                    val errorMsg = "Tar file was not created or is empty: $targetFile"
+                    Log.e("FileSystemProvider", errorMsg)
+                    throw RuntimeException(errorMsg)
+                }
+
+                Log.i(
+                    "FileSystemProvider",
+                    "Successfully created tar file: ${tarFile.absolutePath}, size: ${tarFile.length()} bytes"
+                )
             } catch (e: Exception) {
-                e.printStackTrace()
-                // Fallback到本地tar命令执行
-                val process = ProcessBuilder("tar", "-cpf", targetFile, "-C", File(sourceDir).parent ?: ".", File(sourceDir).name)
-                    .redirectError(ProcessBuilder.Redirect.INHERIT)
-                    .start()
-                process.waitFor()
+                Log.e("FileSystemProvider", "Failed to create tar archive", e)
+                throw e
             }
         }
 
@@ -324,18 +317,18 @@ class FileSystemProviderImpl(
             commonFiles.forEach { relativePath ->
                 val oldFilePath = "$oldDir/$relativePath"
                 val newFilePath = "$newDir/$relativePath"
-                
+
                 val sizesMatch = try {
-                    runBlocking { rootService.calculateTreeSize(oldFilePath) } == 
-                    runBlocking { rootService.calculateTreeSize(newFilePath) }
+                    runBlocking { rootService.calculateTreeSize(oldFilePath) } ==
+                            runBlocking { rootService.calculateTreeSize(newFilePath) }
                 } catch (e: Exception) {
                     // Fallback to local comparison
                     File(oldFilePath).length() == File(newFilePath).length()
                 }
-                
+
                 val hashesMatch = try {
-                    runBlocking { rootService.md5(oldFilePath) } == 
-                    runBlocking { rootService.md5(newFilePath) }
+                    runBlocking { rootService.md5(oldFilePath) } ==
+                            runBlocking { rootService.md5(newFilePath) }
                 } catch (e: Exception) {
                     // Fallback to local comparison
                     md5(oldFilePath) == md5(newFilePath)

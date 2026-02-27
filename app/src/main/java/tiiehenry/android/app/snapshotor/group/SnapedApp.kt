@@ -55,7 +55,7 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
                 appInfo.archiveIconFile = iconFile
                 val archiveItem = ArchiveItem(metaInfo, appInfo, archiveName, archiveDir)
                 synchronized(archives) {
-                    archives[archiveName] = (archiveItem)
+                    archives[archiveName] = archiveItem
                 }
             }
         }

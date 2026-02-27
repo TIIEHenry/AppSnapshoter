@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-kapt")
+    alias(libs.plugins.refine)
 }
 
 android {
@@ -75,6 +76,10 @@ dependencies {
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // Root service libraries
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.service)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

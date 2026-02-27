@@ -38,12 +38,8 @@ public class AppManageRootServiceClient extends IServiceClient<IAppManageRootSer
     }
 
     @Override
-    public Intent getIntent(Context context) {
-        ComponentName component = new ComponentName(
-                context.getPackageName(),
-                AppManageRootService.Service.class.getName()
-        );
-        return new Intent().setComponent(component);
+    public Intent getIntent(@NonNull Context context) {
+        return new Intent(context, AppManageRootService.class);
     }
 
     @Nullable

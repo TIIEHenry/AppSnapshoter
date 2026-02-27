@@ -26,11 +26,15 @@ class ShotConfig(private val mmkv: MMKV) {
             mmkv.encode(KEY_COMPRESS_ALGORITHM, value)
         }
 
+    val hasCompressAlgorithm get() = mmkv.containsKey(KEY_COMPRESS_ALGORITHM)
+
     var compressItems: Set<String>
         get() = mmkv.decodeStringSet(KEY_COMPRESS_ITEMS) ?: CompressItems.all
         set(value) {
             mmkv.encode(KEY_COMPRESS_ITEMS, value)
         }
+
+    val hasCompressItems get() = mmkv.containsKey(KEY_COMPRESS_ITEMS)
 
     var permission: Boolean
         get() = mmkv.decodeBool(KEY_PERMISSION, true)

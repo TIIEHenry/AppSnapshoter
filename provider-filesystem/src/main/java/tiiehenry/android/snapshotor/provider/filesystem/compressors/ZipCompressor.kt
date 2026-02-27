@@ -1,5 +1,6 @@
 package tiiehenry.android.snapshotor.provider.filesystem.compressors
 
+import android.content.Context
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.CompressState
@@ -14,6 +15,7 @@ import java.util.zip.ZipOutputStream
 
 object ZipCompressor : IAlgorithmCompressor {
     override fun compress(
+        context: Context,
         fileSystem: IFileSystem,
         dir: String,
         targetFile: String,
@@ -95,9 +97,8 @@ object ZipCompressor : IAlgorithmCompressor {
                             // 每隔500ms更新一次进度
                             val currentTime = System.currentTimeMillis()
                             if (currentTime - lastProgressTime >= 1000) {
-                                val progress = (compressedSize * 100 / totalSize).toInt()
                                 val kbPerS = (compressedSize - lastCompressedSize) / (currentTime - lastProgressTime)
-                                callback.onProgress(progress, kbPerS)
+                                callback.onProgress(compressedSize, kbPerS)
                                 lastProgressTime = currentTime
                                 lastCompressedSize = compressedSize
                             }

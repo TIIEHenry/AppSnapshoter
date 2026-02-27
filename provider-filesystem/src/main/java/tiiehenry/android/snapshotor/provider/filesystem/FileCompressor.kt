@@ -1,5 +1,6 @@
 package tiiehenry.android.snapshotor.provider.filesystem
 
+import android.content.Context
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.file.IFileCompressor
 import tiiehenry.android.snapshotor.file.IFileSystem
@@ -10,12 +11,12 @@ import tiiehenry.android.snapshotor.provider.filesystem.compressors.ZstdCompress
 import tiiehenry.android.snapshotor.task.ITaskHandler
 import java.io.File
 
-class FileCompressor(val fs: IFileSystem) : IFileCompressor.Stub() {
+class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompressor.Stub() {
     override fun supportedAlgorithms(): List<String?> {
         return mutableListOf(
+            CompressorAlgorithms.ALGORITHM_ZSTD,
             CompressorAlgorithms.ALGORITHM_COPY,
-            CompressorAlgorithms.ALGORITHM_ZIP,
-            CompressorAlgorithms.ALGORITHM_ZSTD
+            CompressorAlgorithms.ALGORITHM_ZIP
         )
     }
 
@@ -23,14 +24,14 @@ class FileCompressor(val fs: IFileSystem) : IFileCompressor.Stub() {
         when (algorithm) {
             CompressorAlgorithms.ALGORITHM_COPY -> {
                 return when (type) {
-                    "apk" -> ".apk"
+                    "apk" -> "apk"
                     else -> File(file).extension
                 }
             }
 
-            CompressorAlgorithms.ALGORITHM_ZIP -> return ".zip"
-            CompressorAlgorithms.ALGORITHM_ZSTD -> return ".zst"
-            else -> return ".unknown"
+            CompressorAlgorithms.ALGORITHM_ZIP -> return "zip"
+            CompressorAlgorithms.ALGORITHM_ZSTD -> return "zst"
+            else -> return "unknown"
         }
     }
 
@@ -58,6 +59,7 @@ class FileCompressor(val fs: IFileSystem) : IFileCompressor.Stub() {
         when (algorithm) {
             CompressorAlgorithms.ALGORITHM_COPY -> {
                 return CopyCompressor.compress(
+                    context,
                     fs,
                     dir,
                     targetFile,
@@ -68,11 +70,20 @@ class FileCompressor(val fs: IFileSystem) : IFileCompressor.Stub() {
             }
 
             CompressorAlgorithms.ALGORITHM_ZIP -> {
-                return ZipCompressor.compress(fs, dir, targetFile, excludes, excludeFiles, callback)
+                return ZipCompressor.compress(
+                    context,
+                    fs,
+                    dir,
+                    targetFile,
+                    excludes,
+                    excludeFiles,
+                    callback
+                )
             }
 
             CompressorAlgorithms.ALGORITHM_ZSTD -> {
                 return ZstdCompressor.compress(
+                    context,
                     fs,
                     dir,
                     targetFile,
@@ -83,6 +94,7 @@ class FileCompressor(val fs: IFileSystem) : IFileCompressor.Stub() {
             }
 
             else -> return ZipCompressor.compress(
+                context,
                 fs,
                 dir,
                 targetFile,

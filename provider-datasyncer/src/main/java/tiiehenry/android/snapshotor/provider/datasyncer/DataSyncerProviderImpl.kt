@@ -14,7 +14,9 @@ class DataSyncerProviderImpl(
     hostContext: Context,
     pluginContext: Context
 ) : DataSyncerProvider(hostContext, pluginContext) {
+    override fun onInstall() {
 
+    }
     override fun provide(): IDataSyncer {
         return DataSyncerImpl(hostContext)
     }

@@ -11,6 +11,7 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.util.Log;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 
@@ -199,30 +200,16 @@ public abstract class IServiceClient<I extends IInterface> {
      * @param context
      * @return 绑定失败会返回null 可重新尝试
      */
-    @WorkerThread
-    @Nullable
-    public synchronized I fetchRemote(@NonNull Context context) {
-        return fetchRemote(context, BIND_TIMEOUT);
-    }
-
-    /**
-     * 获取Service
-     * 如果已有直接返回
-     * 没有绑定则绑定并阻塞等待service，缓存binder对象为client
-     *
-     * @param context
-     * @param timeout 超时时间，单位秒
-     * @return 绑定失败会返回null 可重新尝试
-     */
-    @WorkerThread
-    @Nullable
-    public synchronized I fetchRemote(@NonNull Context context, int timeout) {
-        if (isMainThread()) {
-            throw new IllegalStateException("fetchRemote can not be called in main thread");
+    @MainThread
+    @NonNull
+    public synchronized CompletableFuture<I> fetchRemote(@NonNull Context context) {
+        if (!isMainThread()) {
+            throw new IllegalStateException("fetchRemote can only be called in main thread");
         }
         synchronized (clientLock) {
             if (isConnected()) {
-                return client;
+                clientFuture = CompletableFuture.completedFuture(client);
+                return clientFuture;
             }
             if (client != null) {
                 client = null;
@@ -236,24 +223,32 @@ public abstract class IServiceClient<I extends IInterface> {
 //        if (latch.getCount() == 0) {
 //            latch = new CountDownLatch(1);
 //        }
-        long startTime = System.currentTimeMillis();
         Log.d(getLogTag(), "bindService start");
         Context applicationContext = context.getApplicationContext();
 //        unbindService(applicationContext);
         ServiceConnection bound = bindRemote(applicationContext, connection);
         if (bound == null) {
-            Log.w(getLogTag(), "bindService failed");
-            return client;
+            throw new IllegalStateException("bindService failed");
+//            Log.w(getLogTag(), "bindService failed");
+//            return CompletableFuture.completedFuture(client);
         }
+        return clientFuture;
+    }
 
+    @WorkerThread
+    public synchronized I waitFetch(@NonNull Context context) {
+        if (isMainThread()) {
+            throw new IllegalStateException("waitFetch can not be called in main thread");
+        }
+        long startTime = System.currentTimeMillis();
         try {
-            I i = clientFuture.get(timeout, TimeUnit.SECONDS);
+            I i = clientFuture.get(BIND_TIMEOUT, TimeUnit.SECONDS);
             onFetched(context, i);
             return i;
         } catch (TimeoutException e) {
             Log.e(getLogTag(), "Timeout waiting for service binding: " + this);
             if (!isConnected()) {
-                unbindService(applicationContext);
+//                unbindService(context);
             }
         } catch (CancellationException e) {
             Log.e(getLogTag(), "canceled: " + e.getMessage());

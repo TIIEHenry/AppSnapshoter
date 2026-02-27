@@ -52,7 +52,8 @@ dependencies {
     // Root service libraries
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
-    
+    implementation(libs.libsu.nio)
+
     // Compression
     implementation(libs.zstd.jni)
 }

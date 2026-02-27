@@ -28,7 +28,7 @@ interface IFileSystem {
     ParcelFileDescriptor openInputStream(String path);
     ParcelFileDescriptor openOutputStream(String path);
     String createTempFile(String prefix, String suffix);
-    void createTarArchive(String sourceDir, String targetFile,in List<String> excludes,in List<String> excludeFiles);
+    void createTarArchive(String sourceDir, String targetFile,in List<String> excludes,in List<String> excludeFiles,String stdErr,String stdOut);
     void diff(String oldDir, String newDir, inout List<String> addedList, inout List<String> removedList, inout List<String> changedList, inout List<String> keepedList);
     IFileCompressor getCompressor();
 }

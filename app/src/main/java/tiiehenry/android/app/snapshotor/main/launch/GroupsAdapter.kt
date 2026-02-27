@@ -17,9 +17,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshotor.R
 import tiiehenry.android.app.snapshotor.SnapShotApp
+import tiiehenry.android.app.snapshotor.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshotor.group.SelectAppFragment
 import tiiehenry.android.app.snapshotor.group.SnapGroup
-import tiiehenry.android.app.snapshotor.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshotor.group.SnapedApp
 import tiiehenry.android.app.snapshotor.ui.group.GroupConfigFragment
 
@@ -267,11 +267,12 @@ class GroupsAdapter(
                 binding.groupRecyclerView.visibility = View.VISIBLE
                 binding.emptyLayout.visibility = View.GONE
             }
+            val sortedApps = synchronized(group.apps) {
+                // 应用排序
+               applySorting(group.apps, group.config.sortConfig)
 
-            // 应用排序
-            val sortedApps = applySorting(group.apps, group.config.sortConfig)
-
-            Log.i("refresh", "refresh " + group.apps.size)
+            }
+            Log.i("GroupsAdapter", "refresh " +sortedApps)
             (recyclerView.adapter as GroupItemAdapter).submitList(sortedApps)
             recyclerView.invalidate()
             recyclerView.requestLayout()
@@ -319,7 +320,7 @@ class GroupsAdapter(
                 }
 
                 else -> { // 默认排序
-                    apps
+                    apps.toList()
                 }
             }
         }
