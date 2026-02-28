@@ -11,6 +11,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Parcel
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.core.graphics.createBitmap
 import kotlinx.coroutines.runBlocking
 import tiiehenry.android.snapshotor.app.AppPermission
@@ -228,12 +229,29 @@ class AppManagerProviderImpl(
             suspend fun installApk(file: String, userId: Int): Boolean {
                 val service = getRootService()
                 return try {
+                    Log.i("AppManageRootServiceProxy", "installApk: $file")
                     service.installApk(file, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
                         "AppManageRootServiceProxy",
                         "installApk",
                         "Failed to install APK",
+                        e
+                    )
+                    false
+                }
+            }
+
+            suspend fun installApks(files: List<String>, userId: Int): Boolean {
+                val service = getRootService()
+                return try {
+                    Log.i("AppManageRootServiceProxy", "installApks: ${files.joinToString()}")
+                    service.installApks(files, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "installApks",
+                        "Failed to install APKs",
                         e
                     )
                     false
@@ -252,6 +270,62 @@ class AppManagerProviderImpl(
                         e
                     )
                     false
+                }
+            }
+
+            suspend fun forceStopPackage(packageName: String, userId: Int) {
+                val service = getRootService()
+                try {
+                    service.forceStopPackage(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "forceStopPackage",
+                        "Failed to force-stop package",
+                        e
+                    )
+                }
+            }
+
+            suspend fun clearAppData(packageName: String, userId: Int) {
+                val service = getRootService()
+                try {
+                    service.clearAppData(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "clearAppData",
+                        "Failed to clear app data",
+                        e
+                    )
+                }
+            }
+
+            suspend fun suspendPackage(packageName: String, userId: Int) {
+                val service = getRootService()
+                try {
+                    service.suspendPackage(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "suspendPackage",
+                        "Failed to suspend package",
+                        e
+                    )
+                }
+            }
+
+            suspend fun unsuspendPackage(packageName: String, userId: Int) {
+                val service = getRootService()
+                try {
+                    service.unsuspendPackage(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "AppManageRootServiceProxy",
+                        "unsuspendPackage",
+                        "Failed to unsuspend package",
+                        e
+                    )
                 }
             }
 
@@ -502,8 +576,7 @@ class AppManagerProviderImpl(
             }
         }
 
-        override fun installApk(file: String?, userId: Int): Boolean {
-            if (file == null) return false
+        override fun installApk(file: String, userId: Int): Boolean {
             return try {
                 // 使用 RootService 安装 APK
                 runBlocking {
@@ -515,8 +588,20 @@ class AppManagerProviderImpl(
             }
         }
 
-        override fun uninstallApk(packageName: String?, userId: Int): Boolean {
-            if (packageName == null) return false
+        override fun installApks(files: List<String>, userId: Int): Boolean {
+            if (files.isEmpty()) return false
+            return try {
+                // 使用 RootService 安装多个 APK
+                runBlocking {
+                    proxy.installApks(files, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "installApks", "Failed to install APKs", e)
+                false
+            }
+        }
+
+        override fun uninstallApk(packageName: String, userId: Int): Boolean {
             return try {
                 // 使用 RootService 卸载 APK
                 runBlocking {
@@ -525,6 +610,48 @@ class AppManagerProviderImpl(
             } catch (e: Exception) {
                 LogHelper.e("AppManagerImpl", "uninstallApk", "Failed to uninstall APK", e)
                 false
+            }
+        }
+
+        override fun forceStopPackage(packageName: String, userId: Int) {
+            try {
+                runBlocking {
+                    proxy.forceStopPackage(packageName, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "forceStopPackage", "Failed to force-stop package", e)
+            }
+        }
+
+        override fun clearAppData(packageName: String, userId: Int) {
+            try {
+                runBlocking {
+                    proxy.clearAppData(packageName, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "clearAppData", "Failed to clear app data", e)
+            }
+        }
+
+        override fun suspendPackage(packageName: String?, userId: Int) {
+            if (packageName == null) return
+            try {
+                runBlocking {
+                    proxy.suspendPackage(packageName, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "suspendPackage", "Failed to suspend package", e)
+            }
+        }
+
+        override fun unsuspendPackage(packageName: String?, userId: Int) {
+            if (packageName == null) return
+            try {
+                runBlocking {
+                    proxy.unsuspendPackage(packageName, userId)
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "unsuspendPackage", "Failed to unsuspend package", e)
             }
         }
 

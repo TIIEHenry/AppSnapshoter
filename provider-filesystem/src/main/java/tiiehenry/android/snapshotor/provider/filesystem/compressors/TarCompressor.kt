@@ -2,14 +2,11 @@ package tiiehenry.android.snapshotor.provider.filesystem.compressors
 
 import android.content.Context
 import android.util.Log
-import com.github.luben.zstd.ZstdOutputStream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import tiiehenry.android.snapshotor.file.CountingOutputStream
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.CompressState
@@ -22,8 +19,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * 所有File文件操作都需要通过IFileSystem
  */
-object ZstdCompressor : IAlgorithmCompressor {
-    private const val TAG = "ZstdCompressor"
+object TarCompressor : IAlgorithmCompressor {
+    private const val TAG = "TarCompressor"
 
     override fun compress(
         context: Context,
@@ -40,7 +37,7 @@ object ZstdCompressor : IAlgorithmCompressor {
             var isCancel = AtomicBoolean(false)
 
             override fun id(): String {
-                return "zstd:" + dir + ">" + targetFile
+                return "tar:" + dir + ">" + targetFile
             }
 
             override fun state(): Int {
@@ -111,18 +108,12 @@ object ZstdCompressor : IAlgorithmCompressor {
         var status = 0
         var info = ""
 
-        val stdOut = fileSystem.createTempFile(TMP_FIFO_PREFIX, TMP_SUFFIX)
-        fileSystem.delete(stdOut)
         val stdErr = fileSystem.createTempFile(TMP_FIFO_PREFIX, TMP_SUFFIX)
         fileSystem.delete(stdErr)
 
         // 使用fileSystem接口创建FIFO管道
         if (!fileSystem.mkfifo(stdErr, 420)) {
             callback.onError("Failed to create stderr FIFO")
-            return
-        }
-        if (!fileSystem.mkfifo(stdOut, 420)) {
-            callback.onError("Failed to create stdout FIFO")
             return
         }
 
@@ -140,14 +131,13 @@ object ZstdCompressor : IAlgorithmCompressor {
                             excludes,
                             excludeFiles,
                             stdErr,
-                            stdOut
+                            targetFile
                         )
                     }.onFailure { exception ->
                         errorMessage = "Tar packaging failed: ${exception.message}"
                         Log.e(TAG, errorMessage, exception)
                         throw exception
                     }
-
                 }
                 val getStdErr = async(Dispatchers.IO) {
                     runCatching {
@@ -168,22 +158,10 @@ object ZstdCompressor : IAlgorithmCompressor {
                     }
                 }
 
-
-                val zstdCompression = async(Dispatchers.IO) {
-                    runCatching {
-                        compressTarStream(fileSystem, stdOut, targetFile, callback)
-                    }.onFailure { exception ->
-                        errorMessage = "Zstd compression failed: ${exception.message}"
-                        Log.e(TAG, errorMessage, exception)
-                        throw exception
-                    }
-                }
-
                 // 等待两个任务都完成
                 tarPackaging.await()
                 getStdErr.await()
                 Log.i(TAG, "stdErr: $info")
-                zstdCompression.await()
             }
 
             // 成功完成，计算最终信息
@@ -206,44 +184,8 @@ object ZstdCompressor : IAlgorithmCompressor {
         } finally {
             // 清理临时tar文件
             runCatching {
-                fileSystem.delete(stdOut)
                 fileSystem.delete(stdErr)
             }
-        }
-    }
-
-    /**
-     * 流式压缩tar文件
-     */
-    private suspend fun compressTarStream(
-        fileSystem: IFileSystem,
-        tarFile: String,
-        targetFile: String,
-        callback: ICompressCallback
-    ) {
-        val inputStream = fileSystem.openInputStream(tarFile)
-        val outputStream = fileSystem.openOutputStream(targetFile)
-
-        if (inputStream != null && outputStream != null) {
-            inputStream.use { parcelInput ->
-                val fis = android.os.ParcelFileDescriptor.AutoCloseInputStream(parcelInput)
-                outputStream.use { parcelOutput ->
-                    val fos = android.os.ParcelFileDescriptor.AutoCloseOutputStream(parcelOutput)
-                    CountingOutputStream(
-                        source = fos,
-                        onProgress = { bytesWritten, speed ->
-                            callback.onProgress(bytesWritten, speed)
-                        }
-                    ).use { countingOutputStream ->
-                        ZstdOutputStream(countingOutputStream).use { zstdOutputStream ->
-                            zstdOutputStream.setWorkers(Runtime.getRuntime().availableProcessors())
-                            fis.copyTo(zstdOutputStream)
-                        }
-                    }
-                }
-            }
-        } else {
-            throw Exception("Failed to open input or output stream for compression")
         }
     }
 
@@ -260,7 +202,7 @@ object ZstdCompressor : IAlgorithmCompressor {
             var isCancel = AtomicBoolean(false)
 
             override fun id(): String {
-                return "zstd:multiple>" + targetFile
+                return "tar:multiple>" + targetFile
             }
 
             override fun state(): Int {
@@ -333,8 +275,6 @@ object ZstdCompressor : IAlgorithmCompressor {
         var status = 0
         var info = ""
 
-        val stdOut = fileSystem.createTempFile(TMP_FIFO_PREFIX, TMP_SUFFIX)
-        fileSystem.delete(stdOut)
         val stdErr = fileSystem.createTempFile(TMP_FIFO_PREFIX, TMP_SUFFIX)
         fileSystem.delete(stdErr)
 
@@ -342,11 +282,6 @@ object ZstdCompressor : IAlgorithmCompressor {
             callback.onError("Failed to create stderr FIFO")
             return
         }
-        if (!fileSystem.mkfifo(stdOut, 420)) {
-            callback.onError("Failed to create stdout FIFO")
-            return
-        }
-
         // 计算总大小
         var originalSize = 0L
         files.forEach { filePath ->
@@ -363,7 +298,7 @@ object ZstdCompressor : IAlgorithmCompressor {
                             files,
                             "-",
                             stdErr,
-                            stdOut
+                            targetFile
                         )
                     }.onFailure { exception ->
                         errorMessage = "Tar packaging failed: ${exception.message}"
@@ -391,24 +326,9 @@ object ZstdCompressor : IAlgorithmCompressor {
                     }
                 }
 
-                val zstdCompression = async(Dispatchers.IO) {
-                    while (!fileSystem.exists(stdOut)) {
-                        delay(100)
-                    }
-
-                    runCatching {
-                        compressTarStream(fileSystem, stdOut, targetFile, callback)
-                    }.onFailure { exception ->
-                        errorMessage = "Zstd compression failed: ${exception.message}"
-                        Log.e(TAG, errorMessage, exception)
-                        throw exception
-                    }
-                }
-
                 tarPackaging.await()
                 getStdErr.await()
                 Log.i(TAG, "stdErr: $info")
-                zstdCompression.await()
             }
 
             if (fileSystem.exists(targetFile)) {
@@ -428,7 +348,6 @@ object ZstdCompressor : IAlgorithmCompressor {
             runCatching { fileSystem.delete(targetFile) }
         } finally {
             runCatching {
-                fileSystem.delete(stdOut)
                 fileSystem.delete(stdErr)
             }
         }

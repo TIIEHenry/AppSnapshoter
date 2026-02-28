@@ -29,6 +29,13 @@ interface IFileSystem {
     ParcelFileDescriptor openOutputStream(String path);
     String createTempFile(String prefix, String suffix);
     void createTarArchive(String sourceDir, String targetFile,in List<String> excludes,in List<String> excludeFiles,String stdErr,String stdOut);
+    void createTarArchiveForMultiple(in List<String> files, String targetFile, String stdErr, String stdOut);
     void diff(String oldDir, String newDir, inout List<String> addedList, inout List<String> removedList, inout List<String> changedList, inout List<String> keepedList);
     IFileCompressor getCompressor();
+    
+    // FIFO管道操作
+    boolean mkfifo(String path, int mode);
+    boolean isFifo(String path);
+    boolean extractTar(String tarFifo, String targetDir);
+    boolean cleanDir(String path);
 }

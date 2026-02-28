@@ -32,6 +32,8 @@ public class MetaDataItem {
 
     @JSONField(name = "compressCost")
     private long compressCost;
+    @JSONField(name = "makeTime")
+    private long makeTime;
 
     // 无参构造函数
     public MetaDataItem() {
@@ -39,7 +41,7 @@ public class MetaDataItem {
 
     // 全参构造函数
     public MetaDataItem(String algorithm, String name, String file, String path,
-                       long originSize, long targetSize, String md5, long compressCost) {
+                       long originSize, long targetSize, String md5, long compressCost, long makeTime) {
         this.algorithm = algorithm;
         this.name = name;
         this.file = file;
@@ -48,6 +50,8 @@ public class MetaDataItem {
         this.targetSize = targetSize;
         this.md5 = md5;
         this.compressCost = compressCost;
+        this.makeTime = makeTime;
+
     }
 
     // Getter和Setter方法
@@ -126,6 +130,7 @@ public class MetaDataItem {
                 ", targetSize=" + targetSize +
                 ", md5='" + md5 + '\'' +
                 ", compressCost=" + compressCost +
+                ", makeTime=" + makeTime +
                 '}';
     }
 }

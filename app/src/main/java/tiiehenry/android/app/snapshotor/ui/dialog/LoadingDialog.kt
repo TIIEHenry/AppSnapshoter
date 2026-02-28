@@ -1,44 +1,37 @@
 package tiiehenry.android.app.snapshotor.ui.dialog
 
-import android.app.Dialog
+import android.app.AlertDialog
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.WindowManager
-import android.widget.ProgressBar
-import android.widget.TextView
 import tiiehenry.android.app.snapshotor.R
+import tiiehenry.android.app.snapshotor.databinding.DialogLoadingBinding
 
 /**
  * 简单的Loading对话框
  */
-class LoadingDialog(context: Context) : Dialog(context, R.style.LoadingDialogStyle) {
+class LoadingDialog(context: Context) : AlertDialog(context, R.style.LoadingDialogStyle) {
     
-    private val progressBar: ProgressBar
-    private val messageText: TextView
+    private val binding: DialogLoadingBinding
     
     init {
-        val view = LayoutInflater.from(context).inflate(R.layout.dialog_loading, null)
-        setContentView(view)
-        
-        progressBar = view.findViewById(R.id.progressBar)
-        messageText = view.findViewById(R.id.messageText)
-        
-        // 设置对话框属性
-        window?.apply {
-            setBackgroundDrawableResource(android.R.color.transparent)
-            setDimAmount(0.3f)
-        }
-        
+        binding = DialogLoadingBinding.inflate(LayoutInflater.from(context))
+        setView(binding.root)
         setCancelable(false)
         setCanceledOnTouchOutside(false)
     }
     
     fun setMessage(message: String) {
-        messageText.text = message
+        binding.messageText.text = message
     }
     
     fun setProgress(progress: Int) {
-        progressBar.progress = progress
+        binding.progressBar.progress = progress
+    }
+    
+    fun setCurrentItem(item: String) {
+        binding.currentItemText.text = item
+        binding.currentItemText.visibility = if (item.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
     }
     
     override fun show() {
@@ -47,6 +40,10 @@ class LoadingDialog(context: Context) : Dialog(context, R.style.LoadingDialogSty
         } catch (e: WindowManager.BadTokenException) {
             // 忽略窗口token异常
         }
+    }
+
+    fun post(runnable: Runnable) {
+        binding.root.post(runnable)
     }
     
     override fun dismiss() {

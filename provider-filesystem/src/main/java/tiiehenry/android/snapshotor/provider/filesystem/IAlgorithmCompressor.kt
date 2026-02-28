@@ -16,4 +16,12 @@ interface IAlgorithmCompressor {
         callback: ICompressCallback
     ): ITaskHandler
 
+    fun compressMultiple(
+        context: Context,
+        fileSystem: IFileSystem,
+        files: List<String>,
+        targetFile: String,
+        callback: ICompressCallback
+    ): ITaskHandler
+
 }

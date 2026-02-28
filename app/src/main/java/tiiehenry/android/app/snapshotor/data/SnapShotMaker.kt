@@ -1,13 +1,13 @@
 package tiiehenry.android.app.snapshotor.data
 
-import android.os.ParcelFileDescriptor
-import android.util.Log
-import com.alibaba.fastjson2.JSON
-import com.alibaba.fastjson2.JSONWriter
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import tiiehenry.android.app.snapshotor.app.AppInfo
 import tiiehenry.android.app.snapshotor.config.AppConfig
 import tiiehenry.android.app.snapshotor.config.CompressItems
 import tiiehenry.android.app.snapshotor.config.GroupConfig
+import tiiehenry.android.app.snapshotor.group.SnapedApp
+import tiiehenry.android.app.snapshotor.util.ApkUtil
 import tiiehenry.android.snapshotor.app.IAppManager
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.file.IFileSystem
@@ -15,19 +15,21 @@ import tiiehenry.android.snapshotor.fs.CompressState
 import tiiehenry.android.snapshotor.fs.IFileType
 import tiiehenry.android.snapshotor.task.ITaskHandler
 import java.io.File
-import java.io.FileWriter
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.absolutePathString
+import kotlin.io.path.isRegularFile
+import kotlin.io.path.pathString
 
 object SnapShotMaker {
 
     fun makeSnapshot(
         fileSystem: IFileSystem,
         appManager: IAppManager,
+        snapedApp: SnapedApp,
         appInfo: AppInfo,
         callback: ICompressCallback,
         groupConfig: GroupConfig,
@@ -67,63 +69,46 @@ object SnapShotMaker {
             val packageInfo = appInfo.getPackageInfo(appManager) ?: throw IllegalStateException(
                 "PackageInfo is null"
             )
+            val handler =
+                createMetaInfoTask(appInfo, appManager, packageInfo, applicationInfo, compressItems, archiveDir)
+            tasks["meta-info"] = handler
             val compressor = fileSystem.compressor
-            val algorithm = if (compressAlgorithm.isEmpty()) {
+            val algorithm = compressAlgorithm.ifEmpty {
                 compressor.supportedAlgorithms().first()
-            } else {
-                compressAlgorithm
             }
             val dataItems = mutableListOf<MetaDataItem>()
             for (item in compressItems) {
                 when (item) {
                     CompressItems.COMPRESS_ITEM_APK -> {
+                        val apkDataItemDir = ArchivedApks.getArchivedApkDir(
+                            snapedApp.packageDir,
+                            packageInfo.longVersionCode
+                        )
                         val apkPath = applicationInfo.publicSourceDir
                         val extension = compressor.fileExtension(algorithm, item, apkPath)
-                        val fileName = "apks.$extension"
-                        val task = compressor.compress(
+                        val id = ApkUtil.calculateInstalledApkSize(fileSystem, applicationInfo).toString()
+                        val fileName = "$id$extension"
+                        //使用版本号作为文件夹名
+                        //文件大小作为文件名唯一标识
+                        val filePath = Paths.get(apkDataItemDir, fileName)
+                        if (filePath.isRegularFile()) {
+                            continue
+                        }
+                        val apks=mutableListOf<String>()
+                        apks.add(apkPath)
+                        applicationInfo.splitPublicSourceDirs?.forEach { apks.add(it) }
+                        val task = compressor.compressMultiple(
                             algorithm,
-                            apkPath,
-                            Paths.get(archiveDir, fileName).absolutePathString(),
-                            arrayListOf(),
-                            arrayListOf(),
-                            object : ICompressCallback.Stub() {
-                                var startTime = 0L
-                                override fun onStart() {
-                                    startTime = System.currentTimeMillis()
-                                    callback.onStart()
-                                }
-
-                                override fun onProgress(
-                                    bytesWritten: Long,
-                                    kbPerS: Long
-                                ) {
-                                    callback.onProgress(bytesWritten, kbPerS)
-                                }
-
-                                override fun onDone(
-                                    originSize: Long,
-                                    targetSize: Long,
-                                    md5: String
-                                ) {
-                                    callback.onDone(originSize, targetSize, md5)
-                                    val endTime = System.currentTimeMillis()
-                                    val dataItem = MetaDataItem(
-                                        algorithm,
-                                        name,
-                                        fileName,
-                                        "install",
-                                        originSize,
-                                        targetSize,
-                                        md5,
-                                        endTime - startTime
-                                    )
-                                    dataItems.add(dataItem)
-                                }
-
-                                override fun onError(msg: String?) {
-                                    callback.onError(msg)
-                                }
-                            }
+                            apks,
+                            filePath.absolutePathString(),
+                            createCompressCallback(
+                                callback,
+                                dataItems,
+                                algorithm,
+                                fileName,
+                                id,
+                                apkDataItemDir
+                            )
                         )
                         tasks[item] = task
                     }
@@ -132,7 +117,7 @@ object SnapShotMaker {
                         val dataPath = appInfo.getDataDir()
                         if (fileSystem.fileType(dataPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, dataPath)
-                            val fileName = "data.$extension"
+                            val fileName = "data$extension"
                             val task = compressor.compress(
                                 algorithm,
                                 dataPath,
@@ -143,9 +128,9 @@ object SnapShotMaker {
                                     callback,
                                     dataItems,
                                     algorithm,
-                                    name,
                                     fileName,
-                                    "data"
+                                    item,
+                                    archiveDir
                                 )
                             )
                             tasks[item] = task
@@ -156,7 +141,7 @@ object SnapShotMaker {
                         val userPath = appInfo.getUserDir()
                         if (fileSystem.fileType(userPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, userPath)
-                            val fileName = "user.$extension"
+                            val fileName = "user$extension"
                             val task = compressor.compress(
                                 algorithm,
                                 userPath,
@@ -167,9 +152,9 @@ object SnapShotMaker {
                                     callback,
                                     dataItems,
                                     algorithm,
-                                    name,
                                     fileName,
-                                    "user"
+                                    item,
+                                    archiveDir
                                 )
                             )
                             tasks[item] = task
@@ -181,7 +166,7 @@ object SnapShotMaker {
                         if (fileSystem.fileType(userDePath) != IFileType.TYPE_NONE) {
                             val extension =
                                 compressor.fileExtension(algorithm, item, userDePath)
-                            val fileName = "user_de.$extension"
+                            val fileName = "user_de$extension"
                             val task = compressor.compress(
                                 algorithm,
                                 userDePath,
@@ -192,9 +177,9 @@ object SnapShotMaker {
                                     callback,
                                     dataItems,
                                     algorithm,
-                                    name,
                                     fileName,
-                                    "user_de"
+                                    item,
+                                    archiveDir
                                 )
                             )
                             tasks[item] = task
@@ -205,7 +190,7 @@ object SnapShotMaker {
                         val obbPath = appInfo.getObbDir()
                         if (fileSystem.fileType(obbPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, obbPath)
-                            val fileName = "obb.$extension"
+                            val fileName = "obb$extension"
                             val task = compressor.compress(
                                 algorithm,
                                 obbPath,
@@ -216,9 +201,9 @@ object SnapShotMaker {
                                     callback,
                                     dataItems,
                                     algorithm,
-                                    name,
                                     fileName,
-                                    "obb"
+                                    item,
+                                    archiveDir
                                 )
                             )
                             tasks[item] = task
@@ -230,7 +215,7 @@ object SnapShotMaker {
                         if (fileSystem.fileType(externalDataPath) != IFileType.TYPE_NONE) {
                             val extension =
                                 compressor.fileExtension(algorithm, item, externalDataPath)
-                            val fileName = "external_data.$extension"
+                            val fileName = "external_data$extension"
                             val task = compressor.compress(
                                 algorithm,
                                 externalDataPath,
@@ -241,9 +226,9 @@ object SnapShotMaker {
                                     callback,
                                     dataItems,
                                     algorithm,
-                                    name,
                                     fileName,
-                                    "external_data"
+                                    item,
+                                    archiveDir
                                 )
                             )
                             tasks[item] = task
@@ -251,78 +236,118 @@ object SnapShotMaker {
                     }
                 }
             }
-            val handler = object : ITaskHandler.Stub() {
-                var state = CompressState.COMPRESS_STATE_NONE
-                var isCancel = AtomicBoolean(false)
-                override fun id(): String {
-                    return "meta-info"
-                }
-
-                override fun state(): Int {
-                    return state
-                }
-
-                override fun start() {
-                    state = CompressState.COMPRESS_STATE_RUNNING
-                    try {
-                        // 这里只创建meta-info.json
-                        val metaPackageInfo = MetaPackageInfo(
-                            appInfo.loadLabel(appManager) ?: appInfo.packageName,
-                            appInfo.packageName,
-                            packageInfo.longVersionCode,
-                            packageInfo.versionName,
-                            packageInfo.firstInstallTime,
-                            applicationInfo.flags,
-                            packageInfo.lastUpdateTime
-                        )
-                        val metaInfo = MetaInfo(
-                            metaPackageInfo,
-                            appInfo.userId,
-                            dataItems,
-                            appInfo.getPermissions(appManager)
-                                .map { MetaPermission.fromAppPermission(it) },
-                            TimeInfo(
-                                dataItems.sumOf { it.compressCost },
-                                System.currentTimeMillis()
-                            )
-                        )
-                        for (item in metaInfo.permissions) {
-                            Log.i("SnapShotMaker", "metaInfo: $item")
-                        }
-                        val jsonString =
-                            JSON.toJSONString(metaInfo, JSONWriter.Feature.PrettyFormat)
-                        if (isCancel.get()) {
-                            state = CompressState.COMPRESS_STATE_CANCELED
-                            return
-                        }
-                        val metaFile = File(archiveDir, "meta-info.json")
-                        val fileDescriptor =
-                            fileSystem.openFile(
-                                metaFile.absolutePath,
-                                ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_CREATE
-                            )
-                        fileDescriptor.use {
-                            FileWriter(it.fileDescriptor).use {
-                                it.write(jsonString)
-                            }
-                        }
-                        state = CompressState.COMPRESS_STATE_COMPLETE
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        state = CompressState.COMPRESS_STATE_ERROR
-                    }
-                }
-
-                override fun cancel() {
-                    isCancel.set(true)
-                }
-            }
-            tasks["meta-info"] = handler
             return tasks
         } catch (e: Exception) {
             e.printStackTrace()
             return null
         }
+    }
+
+    private fun createMetaInfoTask(
+        appInfo: AppInfo,
+        appManager: IAppManager,
+        packageInfo: PackageInfo,
+        applicationInfo: ApplicationInfo,
+        compressItems: Set<String>,
+        archiveDir: String
+    ): ITaskHandler.Stub {
+        val makeTime = System.currentTimeMillis()
+        val handler = object : ITaskHandler.Stub() {
+            var state = CompressState.COMPRESS_STATE_NONE
+            var isCancel = AtomicBoolean(false)
+            override fun id(): String {
+                return "meta-info"
+            }
+
+            override fun state(): Int {
+                return state
+            }
+
+            override fun start() {
+                state = CompressState.COMPRESS_STATE_RUNNING
+                try {
+                    // 这里只创建meta-info.json
+                    val metaPackageInfo = MetaPackageInfo(
+                        appInfo.loadLabel(appManager) ?: appInfo.packageName,
+                        appInfo.packageName,
+                        packageInfo.longVersionCode,
+                        packageInfo.versionName,
+                        packageInfo.firstInstallTime,
+                        applicationInfo.flags,
+                        packageInfo.lastUpdateTime,
+                        ApkUtil.calculateInstalledApkSize(appInfo.fs, applicationInfo)
+                    )
+                    val permissions = appInfo.getPermissions(appManager)
+                        .map { MetaPermission.fromAppPermission(it) }
+                    val dataItems = compressItems.map { "${it}.json" }
+                    val metaInfo = MetaInfo(
+                        metaPackageInfo,
+                        appInfo.userId,
+                        dataItems,
+                        permissions,
+                        makeTime
+                    )
+
+                    // 分别保存 meta-info.json（使用compressItems）、permissions.json 和各个 data-item.json
+                    MetaInfoHelper.writeToArchive(metaInfo, File(archiveDir))
+                    MetaInfoHelper.writePermissions(
+                        permissions,
+                        File(archiveDir)
+                    )
+                    state = CompressState.COMPRESS_STATE_COMPLETE
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    state = CompressState.COMPRESS_STATE_ERROR
+                }
+            }
+
+            override fun cancel() {
+                isCancel.set(true)
+            }
+        }
+        return handler
+    }
+
+    private fun createPermissionTask(
+        appInfo: AppInfo,
+        appManager: IAppManager,
+        packageInfo: PackageInfo,
+        applicationInfo: ApplicationInfo,
+        compressItems: Set<String>,
+        archiveDir: String
+    ): ITaskHandler.Stub {
+        val handler = object : ITaskHandler.Stub() {
+            var state = CompressState.COMPRESS_STATE_NONE
+            var isCancel = AtomicBoolean(false)
+            override fun id(): String {
+                return "permissions"
+            }
+
+            override fun state(): Int {
+                return state
+            }
+
+            override fun start() {
+                state = CompressState.COMPRESS_STATE_RUNNING
+                try {
+                    val permissions = appInfo.getPermissions(appManager)
+                        .map { MetaPermission.fromAppPermission(it) }
+                    MetaInfoHelper.writePermissions(
+                        permissions,
+                        File(archiveDir)
+                    )
+                    state = CompressState.COMPRESS_STATE_COMPLETE
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    state = CompressState.COMPRESS_STATE_ERROR
+                }
+            }
+
+            override fun cancel() {
+                isCancel.set(true)
+            }
+        }
+        return handler
     }
 
     private fun generateArchiveName(): String {
@@ -334,9 +359,9 @@ object SnapShotMaker {
         callback: ICompressCallback,
         dataItems: MutableList<MetaDataItem>,
         algorithm: String,
-        archiveName: String,
         fileName: String,
-        itemType: String
+        itemType: String,
+        archiveDir: String
     ): ICompressCallback {
         return object : ICompressCallback.Stub() {
             var startTime = 0L
@@ -361,15 +386,17 @@ object SnapShotMaker {
                 val endTime = System.currentTimeMillis()
                 val dataItem = MetaDataItem(
                     algorithm,
-                    archiveName,
+                    itemType,
                     fileName,
                     itemType,
                     originSize,
                     targetSize,
                     md5,
-                    endTime - startTime
+                    endTime - startTime,
+                    System.currentTimeMillis()
                 )
                 dataItems.add(dataItem)
+                MetaInfoHelper.saveDataItem(dataItem, File(archiveDir))
             }
 
             override fun onError(msg: String?) {

@@ -15,6 +15,7 @@ import android.os.ParcelFileDescriptor
 import android.os.StatFs
 import android.os.UserManagerHidden
 import android.system.Os
+import android.util.Log
 import com.github.luben.zstd.ZstdOutputStream
 import com.topjohnwu.superuser.ipc.RootService
 import com.xayah.libnative.TarWrapper
@@ -119,8 +120,6 @@ class FileSystemRootService : RootService() {
         }
 
         override fun callTarCli(stdOut: String, stdErr: String, argv: Array<String>): Int {
-            Os.mkfifo(stdErr, 420)
-            Os.mkfifo(stdOut, 420)
             return TarWrapper.callCli(stdOut, stdErr, argv)
         }
 
@@ -247,7 +246,7 @@ class FileSystemRootService : RootService() {
         override fun md5(file: String): String? {
             return runCatching {
                 val digest = java.security.MessageDigest.getInstance("MD5")
-                java.io.FileInputStream(file).use { input ->
+                FileInputStream(file).use { input ->
                     val buffer = ByteArray(8192)
                     var bytesRead: Int
                     while (input.read(buffer).also { bytesRead = it } != -1) {
@@ -256,6 +255,27 @@ class FileSystemRootService : RootService() {
                 }
                 digest.digest().joinToString("") { "%02x".format(it) }
             }.getOrNull()
+        }
+
+        override fun extractTar(tarFifo: String, targetDir: String): Boolean {
+            return runCatching {
+                File(targetDir).mkdirs()
+                val stdOut = File.createTempFile("tar-stdout-", ".log", context.cacheDir).absolutePath
+                val stdErr = File.createTempFile("tar-stderr-", ".log", context.cacheDir).absolutePath
+                try {
+                    val argv = arrayOf("tar", "-xpf", tarFifo, "-C", targetDir)
+                    Log.i("FileSystemRootService", "Running: ${argv.joinToString(" ")}")
+                    val exitCode = callTarCli(stdOut, stdErr, argv)
+                    exitCode == 0
+                } finally {
+                    runCatching {
+                        File(stdOut).delete()
+                        File(stdErr).delete()
+                    }
+                }
+            }.onFailure { exception ->
+                android.util.Log.e("FileSystemRootService", "Failed to extract tar", exception)
+            }.getOrNull() ?: false
         }
     }
 

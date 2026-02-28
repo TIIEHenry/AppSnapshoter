@@ -44,10 +44,13 @@ data class AppInfo(
 
     var archiveIconFile: String? = null
     val icon: Bitmap by lazy {
-        android.util.Log.d("AppInfo", "Loading icon for $packageName, archiveIconFile: $archiveIconFile")
+        android.util.Log.d(
+            "AppInfo",
+            "Loading icon for $packageName, archiveIconFile: $archiveIconFile"
+        )
         loadIcon(appManager)?.also {
             android.util.Log.d("AppInfo", "Loaded system icon for $packageName")
-        } ?: archiveIconFile?.let { 
+        } ?: archiveIconFile?.let {
             android.util.Log.d("AppInfo", "Trying to load archive icon from: $it")
             loadArchiveIcon(fs, it)
         }?.also {
@@ -110,7 +113,9 @@ data class AppInfo(
     }
 
     fun loadLabel(appManager: IAppManager): String? {
-        return appManager.loadLabel(packageName, userId)
+        if (appManager.isInstalled(packageName, userId)) {
+            return appManager.loadLabel(packageName, userId)
+        } else return null
     }
 
     fun getApplicationInfo(appManager: IAppManager): ApplicationInfo? {

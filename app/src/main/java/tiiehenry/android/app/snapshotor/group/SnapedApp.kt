@@ -1,11 +1,12 @@
 package tiiehenry.android.app.snapshotor.group
 
-import tiiehenry.android.snapshotor.app.IAppManager
-import tiiehenry.android.snapshotor.file.IFileSystem
-import tiiehenry.android.snapshotor.fs.IFileType
+import android.util.Log
 import tiiehenry.android.app.snapshotor.app.AppInfo
 import tiiehenry.android.app.snapshotor.archive.ArchiveItem
 import tiiehenry.android.app.snapshotor.data.MetaInfoHelper
+import tiiehenry.android.snapshotor.app.IAppManager
+import tiiehenry.android.snapshotor.file.IFileSystem
+import tiiehenry.android.snapshotor.fs.IFileType
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
@@ -17,7 +18,7 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
 
     val latestArchive: ArchiveItem?
         get() = synchronized(archives) {
-            archives.values.maxByOrNull { it.metaInfo.time.makeTime }
+            archives.values.maxByOrNull { it.metaInfo.makeTime }
         }
 
     fun loadArchives(
@@ -31,6 +32,7 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
                 archives.clear()
             }
         }
+        Log.i("SnapedApp", "Loading archives: $archiveNames")
         for (archiveName in archiveNames) {
             if (!reload) {
                 synchronized(archives) {
@@ -40,7 +42,7 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
                 }
             }
             val archiveDir = Paths.get(packageDir, archiveName).absolutePathString()
-            val jsonFile = Paths.get(archiveDir, archiveName, MetaInfoHelper.META_INFO_FILE_NAME)
+            val jsonFile = Paths.get(archiveDir,  MetaInfoHelper.META_INFO_FILE_NAME)
                 .absolutePathString()
             if (fs.fileType(jsonFile) == IFileType.TYPE_FILE) {
                 val metaInfo = MetaInfoHelper.read(fs, jsonFile)
@@ -53,10 +55,16 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
                     metaInfo.packageInfo.versionCode
                 )
                 appInfo.archiveIconFile = iconFile
-                val archiveItem = ArchiveItem(metaInfo, appInfo, archiveName, archiveDir)
+                val dataItems = MetaInfoHelper.readDataItems(
+                    metaInfo.dataItems.filter { it != "apk.json" },
+                    archiveDir
+                )
+                val archiveItem = ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems)
                 synchronized(archives) {
                     archives[archiveName] = archiveItem
                 }
+            } else {
+                Log.e("SnapedApp", "Invalid meta info file: $jsonFile")
             }
         }
         if (!this::appInfo.isInitialized) {

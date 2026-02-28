@@ -19,12 +19,15 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshotor.R
 import tiiehenry.android.app.snapshotor.SnapShotApp
 import tiiehenry.android.app.snapshotor.app.AppConfigFragment
+import tiiehenry.android.app.snapshotor.archive.ArchiveItem
 import tiiehenry.android.app.snapshotor.config.AppConfig
+import tiiehenry.android.app.snapshotor.data.ArchivedApks
 import tiiehenry.android.app.snapshotor.data.SnapShotMaker
 import tiiehenry.android.app.snapshotor.databinding.ItemAppBinding
 import tiiehenry.android.app.snapshotor.databinding.LayoutPopupMenuBinding
@@ -34,6 +37,7 @@ import tiiehenry.android.app.snapshotor.ui.dialog.LoadingDialog
 import tiiehenry.android.app.snapshotor.utils.ArchiveRenameHelper
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.fs.CompressState
+import java.io.File
 
 class GroupItemAdapter(
     private val groupsHolder: GroupsAdapter.GroupViewHolder,
@@ -43,9 +47,13 @@ class GroupItemAdapter(
     private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit = { a, s -> } // 添加更新回调){}){}
 ) : ListAdapter<SnapedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
 
+    // 添加删除状态标志
+    var isDeleteMode = false
+        private set
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding, groupsHolder, viewModel, group, onItemUpdated)
+        return ViewHolder(binding, groupsHolder, viewModel, group, onItemUpdated, this)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -57,7 +65,8 @@ class GroupItemAdapter(
         private val groupsHolder: GroupsAdapter.GroupViewHolder,
         private val viewModel: LauncherViewModel,
         private val group: SnapGroup,
-        private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit
+        private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit,
+        private val adapter: GroupItemAdapter
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: SnapedApp) {
@@ -84,7 +93,13 @@ class GroupItemAdapter(
                     launchApp(item.appInfo.packageName)
                 } else {
                     // 应用未安装，执行备份/恢复逻辑
-                    viewModel.onGroupItemClicked(group.id, group.mmkv, appInfo.packageName, item)
+                    viewModel.onGroupItemClicked(
+                        binding.root.context,
+                        group.id,
+                        group.mmkv,
+                        appInfo.packageName,
+                        item
+                    )
                 }
             }
 
@@ -228,26 +243,95 @@ class GroupItemAdapter(
                 popupWindow.dismiss()
             }
 
-            popupBinding.btnDelete.setOnClickListener {
+            popupBinding.btnDelete.setOnLongClickListener {
                 // 删除存档 - 显示确认对话框
                 showDeleteConfirmationDialog(item) {
                     popupWindow.dismiss()
                 }
+                true
             }
+            // 先声明adapter变量
+            lateinit var archiveAdapter: ArchiveItemAdapter
 
-            // 下半部分存档列表
-            val archiveAdapter = ArchiveItemAdapter { archiveItem ->
-                // 点击存档列表项时调用viewModel.onGroupItemClicked
-                viewModel.onGroupItemClicked(group.id, group.mmkv, item.appInfo.packageName, item)
-                popupWindow.dismiss()
-            }
+            // 创建adapter实例
+            archiveAdapter = ArchiveItemAdapter(
+                onItemClick = { archiveItem: ArchiveItem, needConfirm: Boolean ->
+                    //这是正常状态的点击事件
+                    // 点击存档列表项时调用viewModel.onGroupItemClicked
+                    if (needConfirm) {
+                        // 点击图标时需要二次确认
+                        androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
+                            .setTitle("确认操作")
+                            .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
+                            .setPositiveButton("确认") { _, _ ->
+                                viewModel.onGroupItemClicked(
+                                    binding.root.context,
+                                    group.id,
+                                    group.mmkv,
+                                    item.appInfo.packageName,
+                                    item
+                                )
+                                popupWindow.dismiss()
+                            }
+                            .setNegativeButton("取消", null)
+                            .show()
+                    } else {
+                        viewModel.onGroupItemClicked(
+                            binding.root.context,
+                            group.id,
+                            group.mmkv,
+                            item.appInfo.packageName,
+                            item
+                        )
+                        popupWindow.dismiss()
+                    }
+                },
+                onDeleteClick = { archiveItem ->
+                    // 删除存档
+                    deleteArchiveAsync(item, archiveItem) { success ->
+                        if (success) {
+                            // 删除成功后从列表中移除该项
+                            val currentList = archiveAdapter.currentList.toMutableList()
+                            currentList.removeAll { it.name == archiveItem.name }
+                            archiveAdapter.submitList(currentList) {
+                                archiveAdapter.notifyDataSetChanged()
+                            }
+                        }
+                    }
+                }
+            )
 
             popupBinding.archiveList.layoutManager = LinearLayoutManager(binding.root.context)
             popupBinding.archiveList.adapter = archiveAdapter
 
             // 设置存档列表数据
             val archives = item.archives.values.toList()
+            Log.i("GroupItemAdapter", "Archives: ${archives.size}")
             archiveAdapter.submitList(archives)
+
+            popupBinding.btnDelete.setOnClickListener {
+                // 切换删除状态
+                adapter.isDeleteMode = !adapter.isDeleteMode
+
+                // 更新删除按钮的外观
+                if (adapter.isDeleteMode) {
+                    // 进入删除状态 - 改为完成图标
+                    popupBinding.btnDelete.setImageResource(R.drawable.check)
+                } else {
+                    // 退出删除状态 - 恢复删除图标
+                    popupBinding.btnDelete.setImageResource(R.drawable.delete_forever_outline)
+                }
+
+                // 通知archiveAdapter更新删除状态
+                archiveAdapter.setDeleteMode(adapter.isDeleteMode)
+
+                // 如果退出删除模式，刷新列表以恢复正常显示
+                if (!adapter.isDeleteMode) {
+                    archiveAdapter.notifyDataSetChanged()
+                }
+
+//                popupWindow.dismiss()
+            }
 
             // 显示弹窗
             popupWindow.showAsDropDown(binding.root)
@@ -412,6 +496,70 @@ class GroupItemAdapter(
                 .show()
         }
 
+        /**
+         * 显示单个存档删除确认对话框
+         */
+        private fun deleteArchiveAsync(
+            item: SnapedApp,
+            archiveItem: ArchiveItem,
+            onResult: (Boolean) -> Unit
+        ) {
+            val context = binding.root.context
+            viewModel.viewModelScope.launch {
+                val fs = SnapShotApp.getInstance().fileSystem
+                val success = try {
+                    // 删除指定的存档目录
+                    fs.delete(archiveItem.path)
+                    true
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    false
+                }
+                val archivedApkDirPath = ArchivedApks.getArchivedApkDir(
+                    item.packageDir,
+                    archiveItem.metaInfo.packageInfo.versionCode
+                )
+                val archivedApkDir = File(archivedApkDirPath)
+                val archiveFiles =
+                    archivedApkDir.listFiles { it.name.startsWith("${archiveItem.metaInfo.packageInfo.size}") }
+                // 检查是否有其他archiveItem引用了相同的versionCode和size
+                val versionCode = archiveItem.metaInfo.packageInfo.versionCode
+                val size = archiveItem.metaInfo.packageInfo.size
+                val isReferencedByOther = synchronized(item.archives) {
+                    item.archives.values.any { other ->
+                        other != archiveItem &&
+                                other.metaInfo.packageInfo.versionCode == versionCode &&
+                                other.metaInfo.packageInfo.size == size
+                    }
+                }
+                // 如果没有被引用，删除archiveFiles
+                if (!isReferencedByOther && archiveFiles != null) {
+                    archiveFiles.forEach { file ->
+                        try {
+                            file.delete()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+                if (archivedApkDir.list()?.isEmpty() == true) {
+                    archivedApkDir.delete()
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        Toast.makeText(context, "存档删除成功", Toast.LENGTH_SHORT).show()
+                        // 重新加载应用的存档列表
+                        item.loadArchives(fs, SnapShotApp.getInstance().appManager, true)
+                        onResult(true)
+                    } else {
+                        Toast.makeText(context, "删除失败", Toast.LENGTH_SHORT).show()
+                        onResult(false)
+                    }
+                }
+            }
+        }
+
         private fun launchApp(packageName: String) {
             try {
                 val intent =
@@ -445,25 +593,26 @@ class GroupItemAdapter(
                     val snapShotApp = SnapShotApp.getInstance()
                     val fs = snapShotApp.fileSystem
                     val appManager = snapShotApp.appManager
-                    val mmkv = snapShotApp.mmkv
 
                     // 获取应用配置
-
                     val appConfig = AppConfig(item.appInfo.packageName)
                     val groupConfig = group.config
+
+                    // 挂起应用（应用进程暂停运行）
+                    appManager.suspendPackage(item.appInfo.packageName, item.appInfo.userId)
 
                     // 创建简单的压缩回调
                     val callback = object : ICompressCallback.Stub() {
                         override fun onStart() {
                             viewModel.viewModelScope.launch(Dispatchers.Main) {
-                                loadingDialog.setMessage("开始压缩...")
+                                loadingDialog.setMessage("打包中...")
                             }
                         }
 
                         override fun onProgress(bytesWritten: Long, kbPerS: Long) {
                             viewModel.viewModelScope.launch(Dispatchers.Main) {
                                 val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                                val fileSize1 = Formatter.formatFileSize(context, kbPerS * 1024)
+                                val fileSize1 = Formatter.formatFileSize(context, kbPerS)
                                 val message = "已写入: $fileSize\n" +
                                         "速度: $fileSize1/s"
                                 loadingDialog.setMessage(message)
@@ -471,9 +620,6 @@ class GroupItemAdapter(
                         }
 
                         override fun onDone(originSize: Long, targetSize: Long, md5: String) {
-                            viewModel.viewModelScope.launch(Dispatchers.Main) {
-                                loadingDialog.setMessage("压缩完成，正在保存元数据...")
-                            }
                         }
 
                         override fun onError(msg: String?) {
@@ -484,19 +630,23 @@ class GroupItemAdapter(
                         }
                     }
 
-                    // 调用快照制作器
                     val tasks = SnapShotMaker.makeSnapshot(
-                        fs, appManager, item.appInfo, callback, groupConfig, appConfig
+                        fs, appManager, item, item.appInfo, callback, groupConfig, appConfig
                     )
 
                     if (tasks != null) {
-                        // 启动所有任务
-                        tasks.values.forEach { task ->
+                        tasks.remove("meta-info")!!.let {
+                            async {
+                                it.start()
+                            }
+                        }
+                        for (entry in tasks) {
+                            viewModel.viewModelScope.launch(Dispatchers.Main) {
+                                loadingDialog.setCurrentItem(entry.key)
+                            }
+                            val task = entry.value
                             task.start()
                         }
-
-                        // 简单等待一段时间，然后检查状态
-                        delay(3000) // 等待3秒
 
                         val hasError = tasks.values.any {
                             it.state() == CompressState.COMPRESS_STATE_ERROR
@@ -509,10 +659,14 @@ class GroupItemAdapter(
                                 Toast.makeText(context, "存档过程中出现错误", Toast.LENGTH_LONG)
                                     .show()
                             } else {
-                                Toast.makeText(context, "存档创建成功", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "存档创建成功", Toast.LENGTH_SHORT)
+                                    .show()
                                 // 重新加载应用数据
                                 item.loadArchives(fs, appManager, true)
-                                groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                                groupsHolder.refresh(
+                                    group,
+                                    groupsHolder.binding.groupRecyclerView
+                                )
                                 SnapShotApp.getViewModel().loadGroups()
                             }
                         }
@@ -526,7 +680,18 @@ class GroupItemAdapter(
                     e.printStackTrace()
                     viewModel.viewModelScope.launch(Dispatchers.Main) {
                         loadingDialog.dismiss()
-                        Toast.makeText(context, "存档失败: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "存档失败: ${e.message}", Toast.LENGTH_LONG)
+                            .show()
+                    }
+                } finally {
+                    // 用IAppManager实现恢复挂起应用
+                    try {
+                        val snapShotApp = SnapShotApp.getInstance()
+                        val appManager = snapShotApp.appManager
+                        appManager.unsuspendPackage(item.appInfo.packageName, item.appInfo.userId)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Log.e("GroupItemAdapter", "Failed to unsuspend package", e)
                     }
                 }
             }

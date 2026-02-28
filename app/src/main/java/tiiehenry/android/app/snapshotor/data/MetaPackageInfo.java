@@ -27,13 +27,16 @@ public class MetaPackageInfo {
     @JSONField(name = "lastUpdateTime")
     private long lastUpdateTime;
 
+    @JSONField(name = "size")
+    private long size;
+
     // 无参构造函数
     public MetaPackageInfo() {
     }
 
     // 全参构造函数
     public MetaPackageInfo(String label, String packageName, long versionCode, String versionName,
-                          long firstInstallTime, int flags, long lastUpdateTime) {
+                          long firstInstallTime, int flags, long lastUpdateTime, long size) {
         this.label = label;
         this.packageName = packageName;
         this.versionCode = versionCode;
@@ -41,6 +44,7 @@ public class MetaPackageInfo {
         this.firstInstallTime = firstInstallTime;
         this.flags = flags;
         this.lastUpdateTime = lastUpdateTime;
+        this.size = size;
     }
 
     // Getter和Setter方法
@@ -100,6 +104,14 @@ public class MetaPackageInfo {
         this.lastUpdateTime = lastUpdateTime;
     }
 
+    public long getSize() {
+        return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
+    }
+
     @Override
     public String toString() {
         return "MetaPackageInfo{" +
@@ -110,6 +122,7 @@ public class MetaPackageInfo {
                 ", firstInstallTime=" + firstInstallTime +
                 ", flags=" + flags +
                 ", lastUpdateTime=" + lastUpdateTime +
+                ", size=" + size +
                 '}';
     }
 }

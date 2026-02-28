@@ -70,7 +70,7 @@
     <!-- 下半部分：存档列表 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/archive_list"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:maxHeight="200dp" />

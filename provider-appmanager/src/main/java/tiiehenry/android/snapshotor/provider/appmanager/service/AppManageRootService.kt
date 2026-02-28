@@ -372,9 +372,7 @@ class AppManageRootService : RootService() {
             }
         }
 
-        override fun installApk(file: String?, userId: Int): Boolean {
-            if (file == null) return false
-                    
+        override fun installApk(file: String, userId: Int): Boolean {
             try {
                 // 使用 pm install 命令安装 APK
                 // -r: 允许重新安装已存在的应用
@@ -390,7 +388,6 @@ class AppManageRootService : RootService() {
                 // 获取 root shell 并执行安装命令
                 val shell = com.topjohnwu.superuser.Shell.Builder.create()
                     .setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
-                    .setCommands("su")
                     .setTimeout(120) // 设置较长的超时时间，因为安装可能需要较长时间
                     .build()
                         
@@ -407,16 +404,94 @@ class AppManageRootService : RootService() {
                 )
                         
                 // 检查安装结果
-                return result.isSuccess && (
-                    output.contains("Success") || 
-                    output.contains("success") ||
-                    output.contains("existing package") // 覆盖安装成功
-                )
+                return result.isSuccess
             } catch (e: Exception) {
                 LogHelper.e(
                     "AppManageRootService",
                     "installApk",
                     "Failed to install APK: $file",
+                    e
+                )
+                return false
+            }
+        }
+
+        override fun installApks(files: List<String>, userId: Int): Boolean {
+            if (files.isEmpty()) return false
+
+            try {
+                // 获取 root shell
+                val shell = com.topjohnwu.superuser.Shell.Builder.create()
+                    .setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
+                    .setTimeout(300) // 较长的超时时间
+                    .build()
+
+                // 1. 创建安装会话
+                val createCmd = "pm install-create --user $userId"
+                LogHelper.d("AppManageRootService", "installApks", "Creating install session: $createCmd")
+
+                var createResult = shell.newJob().to(null, null).add(createCmd).exec()
+                var output = createResult.out.joinToString("\n")
+                var errOutput = createResult.err.joinToString("\n")
+
+                LogHelper.d("AppManageRootService", "installApks", "Create session output: $output, Error: $errOutput")
+
+                // 从输出中提取session ID，格式如: [20061]
+                val sessionMatch = Regex("\\[(\\d+)\\]").find(output)
+                if (sessionMatch == null) {
+                    LogHelper.e("AppManageRootService", "installApks", "Failed to get session ID from output: $output")
+                    shell.close()
+                    return false
+                }
+                val sessionId = sessionMatch.groupValues[1]
+                LogHelper.d("AppManageRootService", "installApks", "Got session ID: $sessionId")
+
+                // 2. 写入每个 APK 文件
+                for ((index, filePath) in files.withIndex()) {
+                    // 获取文件大小
+                    val file = java.io.File(filePath)
+                    val fileSize = file.length()
+
+                    // 确定 split 名称：第一个是 base，其余按顺序命名
+                    val splitName = if (index == 0) "base" else "split_$index"
+
+                    val writeCmd = "pm install-write -S $fileSize - $sessionId $splitName \"$filePath\""
+                    LogHelper.d("AppManageRootService", "installApks", "Writing APK: $writeCmd")
+
+                    createResult = shell.newJob().to(null, null).add(writeCmd).exec()
+                    output = createResult.out.joinToString("\n")
+                    errOutput = createResult.err.joinToString("\n")
+
+                    LogHelper.d("AppManageRootService", "installApks", "Write output: $output, Error: $errOutput")
+
+                    if (!createResult.isSuccess && !output.contains("Success")) {
+                        LogHelper.e("AppManageRootService", "installApks", "Failed to write APK: $filePath")
+                        // 失败时尝试中止会话
+                        shell.newJob().to(null, null).add("pm install-abandon $sessionId").exec()
+                        shell.close()
+                        return false
+                    }
+                }
+
+                // 3. 提交安装会话
+                val commitCmd = "pm install-commit $sessionId"
+                LogHelper.d("AppManageRootService", "installApks", "Committing install session: $commitCmd")
+
+                createResult = shell.newJob().to(null, null).add(commitCmd).exec()
+                output = createResult.out.joinToString("\n")
+                errOutput = createResult.err.joinToString("\n")
+
+                LogHelper.d("AppManageRootService", "installApks", "Commit output: $output, Error: $errOutput, Exit code: ${createResult.code}")
+
+                shell.close()
+
+                // 检查安装结果
+                return createResult.isSuccess
+            } catch (e: Exception) {
+                LogHelper.e(
+                    "AppManageRootService",
+                    "installApks",
+                    "Failed to install APKs: ${files.joinToString(", ")}",
                     e
                 )
                 return false
@@ -439,7 +514,6 @@ class AppManageRootService : RootService() {
                 // 获取 root shell 并执行卸载命令
                 val shell = com.topjohnwu.superuser.Shell.Builder.create()
                     .setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
-                    .setCommands("su")
                     .setTimeout(60)
                     .build()
                 
@@ -469,6 +543,127 @@ class AppManageRootService : RootService() {
                     e
                 )
                 return false
+            }
+        }
+
+        override fun forceStopPackage(packageName: String?, userId: Int) {
+            if (packageName == null) return
+            try {
+                val cmd = "am force-stop --user $userId $packageName"
+                LogHelper.d(
+                    "AppManageRootService",
+                    "forceStopPackage",
+                    "Executing force-stop command: $cmd"
+                )
+                val shell = com.topjohnwu.superuser.Shell.Builder.create()
+                    .setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
+                    .setTimeout(30)
+                    .build()
+                val result = shell.newJob().to(null, null).add(cmd).exec()
+                shell.close()
+                LogHelper.d(
+                    "AppManageRootService",
+                    "forceStopPackage",
+                    "Force-stop output: ${result.out.joinToString("\n")}\nExit code: ${result.code}"
+                )
+            } catch (e: Exception) {
+                LogHelper.e(
+                    "AppManageRootService",
+                    "forceStopPackage",
+                    "Failed to force-stop package: $packageName",
+                    e
+                )
+            }
+        }
+
+        override fun clearAppData(packageName: String?, userId: Int) {
+            if (packageName == null) return
+            try {
+                val cmd = "pm clear --user $userId $packageName"
+                LogHelper.d(
+                    "AppManageRootService",
+                    "clearAppData",
+                    "Executing clear data command: $cmd"
+                )
+                val shell = com.topjohnwu.superuser.Shell.Builder.create()
+                    .setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
+                    .setTimeout(60)
+                    .build()
+                val result = shell.newJob().to(null, null).add(cmd).exec()
+                shell.close()
+                val output = result.out.joinToString("\n")
+                LogHelper.d(
+                    "AppManageRootService",
+                    "clearAppData",
+                    "Clear data output: $output\nExit code: ${result.code}"
+                )
+            } catch (e: Exception) {
+                LogHelper.e(
+                    "AppManageRootService",
+                    "clearAppData",
+                    "Failed to clear app data: $packageName",
+                    e
+                )
+            }
+        }
+
+        override fun suspendPackage(packageName: String?, userId: Int) {
+            if (packageName == null) return
+            try {
+                val cmd = "pm suspend $packageName"
+                LogHelper.d(
+                    "AppManageRootService",
+                    "suspendPackage",
+                    "Executing suspend command: $cmd"
+                )
+                val shell = com.topjohnwu.superuser.Shell.Builder.create()
+                    .setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
+                    .setTimeout(30)
+                    .build()
+                val result = shell.newJob().to(null, null).add(cmd).exec()
+                shell.close()
+                LogHelper.d(
+                    "AppManageRootService",
+                    "suspendPackage",
+                    "Suspend output: ${result.out.joinToString("\n")}\nExit code: ${result.code}"
+                )
+            } catch (e: Exception) {
+                LogHelper.e(
+                    "AppManageRootService",
+                    "suspendPackage",
+                    "Failed to suspend package: $packageName",
+                    e
+                )
+            }
+        }
+
+        override fun unsuspendPackage(packageName: String?, userId: Int) {
+            if (packageName == null) return
+            try {
+                val cmd = "pm unsuspend $packageName"
+                LogHelper.d(
+                    "AppManageRootService",
+                    "unsuspendPackage",
+                    "Executing unsuspend command: $cmd"
+                )
+                val shell = com.topjohnwu.superuser.Shell.Builder.create()
+                    .setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
+                    .setTimeout(30)
+                    .build()
+                val result = shell.newJob().to(null, null).add(cmd).exec()
+                shell.close()
+                LogHelper.d(
+                    "AppManageRootService",
+                    "unsuspendPackage",
+                    "Unsuspend output: ${result.out.joinToString("\n")}\nExit code: ${result.code}"
+                )
+            } catch (e: Exception) {
+                LogHelper.e(
+                    "AppManageRootService",
+                    "unsuspendPackage",
+                    "Failed to unsuspend package: $packageName",
+                    e
+                )
             }
         }
 

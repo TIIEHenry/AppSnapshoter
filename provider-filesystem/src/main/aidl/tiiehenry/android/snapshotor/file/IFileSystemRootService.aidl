@@ -29,4 +29,5 @@ interface IFileSystemRootService {
     boolean setGid(String path, int gid);
     ParcelFileDescriptor openFile(String path, int mode);
     String md5(String file);
+    boolean extractTar(String tarFifo, String targetDir);
 }

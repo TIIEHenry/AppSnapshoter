@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
+import android.system.Os
+import android.system.OsConstants
 import android.util.Log
 import com.topjohnwu.superuser.ipc.RootService
 import com.topjohnwu.superuser.nio.FileSystemManager
@@ -106,7 +108,28 @@ class FileSystemProviderImpl(
 
         override fun delete(path: String): Boolean {
             return try {
-                fileSystemManager.getFile(path).delete()
+                fileSystemManager.getFile(path).deleteRecursively()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+
+        override fun cleanDir(path: String): Boolean {
+            return try {
+                val file = fileSystemManager.getFile(path)
+                if (!file.exists() || !file.isDirectory) {
+                    return false
+                }
+                file.list()?.forEach { childName ->
+                    val childFile = File(file, childName)
+                    if (childFile.isDirectory) {
+                        childFile.deleteRecursively()
+                    } else {
+                        childFile.delete()
+                    }
+                }
+                true
             } catch (e: Exception) {
                 e.printStackTrace()
                 false
@@ -188,7 +211,44 @@ class FileSystemProviderImpl(
                 file.createNewFile()
             }
             Log.i("FileSystemProvider", "openFile $path with mode $mode")
+//            // 如果是FIFO文件，使用非阻塞模式打开，避免死锁
+//            if (isFifo(path)) {
+//                return try {
+//                    val fd = Os.open(path, convertModeToOsFlags(mode) or OsConstants.O_NONBLOCK, 0)
+//                    ParcelFileDescriptor.dup(fd)
+//                } catch (e: Exception) {
+//                    Log.w(
+//                        "FileSystemProvider",
+//                        "Failed to open FIFO in non-blocking mode, falling back to blocking",
+//                        e
+//                    )
+//                    ParcelFileDescriptor.open(file, mode)
+//                }
+//            }
             return ParcelFileDescriptor.open(file, mode)
+        }
+
+        private fun convertModeToOsFlags(mode: Int): Int {
+            var flags = 0
+            if (mode and ParcelFileDescriptor.MODE_READ_ONLY != 0) {
+                flags = flags or OsConstants.O_RDONLY
+            }
+            if (mode and ParcelFileDescriptor.MODE_WRITE_ONLY != 0) {
+                flags = flags or OsConstants.O_WRONLY
+            }
+            if (mode and ParcelFileDescriptor.MODE_READ_WRITE != 0) {
+                flags = flags or OsConstants.O_RDWR
+            }
+            if (mode and ParcelFileDescriptor.MODE_CREATE != 0) {
+                flags = flags or OsConstants.O_CREAT
+            }
+            if (mode and ParcelFileDescriptor.MODE_TRUNCATE != 0) {
+                flags = flags or OsConstants.O_TRUNC
+            }
+            if (mode and ParcelFileDescriptor.MODE_APPEND != 0) {
+                flags = flags or OsConstants.O_APPEND
+            }
+            return flags
         }
 
         override fun openInputStream(path: String): ParcelFileDescriptor? {
@@ -227,7 +287,7 @@ class FileSystemProviderImpl(
                 val dirName = sourceFile.name
 
                 // 构建正确的tar命令参数
-                val args = mutableListOf("tar", "-cpf", targetFile, "-C", parentDir)
+                val args = mutableListOf("tar", "-cpf", targetFile, "-C", sourceFile.absolutePath)
 
                 // 添加排除选项
                 excludes.forEach { exclude ->
@@ -240,8 +300,8 @@ class FileSystemProviderImpl(
                     args.add(excludeFile)
                 }
 
-                // 添加要打包的目录（相对路径）
-                args.add(dirName)
+                // 添加要打包的文件（相对路径）
+                args.add(".")
 
                 Log.i("FileSystemProvider", "Executing tar command: ${args.joinToString(" ")}")
                 // 调用root服务执行tar命令
@@ -254,20 +314,71 @@ class FileSystemProviderImpl(
                     throw RuntimeException(errorMsg)
                 }
 
-                // 验证生成的tar文件是否存在且不为空
-                val tarFile = fileSystemManager.getFile(targetFile)
-                if (!tarFile.exists() || tarFile.length() == 0L) {
-                    val errorMsg = "Tar file was not created or is empty: $targetFile"
+//                // 验证生成的tar文件是否存在且不为空
+//                val tarFile = fileSystemManager.getFile(targetFile)
+//                if (!tarFile.exists() || tarFile.length() == 0L) {
+//                    val errorMsg = "Tar file was not created or is empty: $targetFile"
+//                    Log.e("FileSystemProvider", errorMsg)
+//                    throw RuntimeException(errorMsg)
+//                }
+//
+//                Log.i(
+//                    "FileSystemProvider",
+//                    "Successfully created tar file: ${tarFile.absolutePath}, size: ${tarFile.length()} bytes"
+//                )
+            } catch (e: Exception) {
+                Log.e("FileSystemProvider", "Failed to create tar archive", e)
+                throw e
+            }
+        }
+
+        override fun createTarArchiveForMultiple(
+            files: List<String>,
+            targetFile: String,
+            stdErr: String,
+            stdOut: String
+        ) {
+            try {
+                val rootService = getRootService()
+
+                // 构建tar命令参数用于打包多个文件
+                val args = mutableListOf<String>()
+                args.add("tar")
+                args.add("-cpf")
+                args.add(targetFile)
+
+                // 处理每个文件/目录
+                files.forEach { filePath ->
+                    val file = File(filePath)
+                    if (file.parent != null) {
+                        // 添加 -C 选项改变工作目录到父目录
+                        args.add("-C")
+                        args.add(file.parent)
+                    }
+                    // 添加文件名（仅相对路径部分）
+                    args.add(file.name)
+                }
+
+                Log.i(
+                    "FileSystemProvider",
+                    "Executing tar command for multiple files: ${args.joinToString(" ")}"
+                )
+                // 调用root服务执行tar命令
+                val resultCode = rootService.callTarCli(stdOut, stdErr, args.toTypedArray())
+
+                // 检查tar命令执行结果
+                if (resultCode != 0) {
+                    val errorMsg = "Tar command failed with exit code: $resultCode"
                     Log.e("FileSystemProvider", errorMsg)
                     throw RuntimeException(errorMsg)
                 }
 
                 Log.i(
                     "FileSystemProvider",
-                    "Successfully created tar file: ${tarFile.absolutePath}, size: ${tarFile.length()} bytes"
+                    "Successfully created tar file for multiple files: $targetFile"
                 )
             } catch (e: Exception) {
-                Log.e("FileSystemProvider", "Failed to create tar archive", e)
+                Log.e("FileSystemProvider", "Failed to create tar archive for multiple files", e)
                 throw e
             }
         }
@@ -344,6 +455,36 @@ class FileSystemProviderImpl(
 
         override fun getCompressor(): IFileCompressor {
             return fileCompressor
+        }
+
+        override fun mkfifo(path: String, mode: Int): Boolean {
+            return try {
+                Os.mkfifo(path, mode)
+                true
+            } catch (e: Exception) {
+                Log.e("FileSystemProvider", "Failed to create FIFO: $path", e)
+                false
+            }
+        }
+
+        override fun isFifo(path: String): Boolean {
+            return try {
+                val stat = Os.stat(path)
+                (stat.st_mode and OsConstants.S_IFMT) == OsConstants.S_IFIFO
+            } catch (e: Exception) {
+                Log.e("FileSystemProvider", "Failed to check if $path is FIFO", e)
+                false
+            }
+        }
+
+        override fun extractTar(tarFifo: String, targetDir: String): Boolean {
+            return try {
+                val rootService = getRootService()
+                runBlocking { rootService.extractTar(tarFifo, targetDir) }
+            } catch (e: Exception) {
+                Log.e("FileSystemProvider", "Failed to extract tar from FIFO", e)
+                false
+            }
         }
     }
 }

@@ -17,5 +17,10 @@ interface IAppManager {
     void setAppPermissions(String packageName, int userId, in List<AppPermission> permissions);
     boolean isInstalled(String packageName, int userId);
     boolean installApk(String file, int userId);
+    boolean installApks(in List<String> files, int userId);
     boolean uninstallApk(String packageName, int userId);
+    void forceStopPackage(String packageName, int userId);
+    void clearAppData(String packageName, int userId);
+    void suspendPackage(String packageName, int userId);
+    void unsuspendPackage(String packageName, int userId);
 }
