@@ -4,6 +4,11 @@
     <item
         android:id="@+id/menu_add_group"
         android:title="添加分组"
-        android:icon="@android:drawable/ic_input_add"
-        app:showAsAction="ifRoom" />
+        android:icon="@drawable/group_add"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_sort_groups"
+        android:title="分组排序"
+        android:icon="@drawable/group_sort"
+        app:showAsAction="always" />
 </menu>

@@ -1,14 +1,21 @@
 package tiiehenry.android.app.snapshotor.main
 
+import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.MenuProvider
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import tiiehenry.android.app.snapshotor.R
 import tiiehenry.android.app.snapshotor.SnapShotApp
 import tiiehenry.android.app.snapshotor.databinding.ActivityMainBinding
 import tiiehenry.android.app.snapshotor.main.apps.AppsFragment
 import tiiehenry.android.app.snapshotor.main.launch.LauncherFragment
+import tiiehenry.android.app.snapshotor.main.settings.SettingsActivity
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,14 +29,19 @@ class MainActivity : AppCompatActivity() {
         // 实现沉浸式状态栏
         setupImmersiveStatusBar()
 
+        // 使用MenuProvider实现菜单
+        setupMenuProvider()
+
+        val launcherFragment = LauncherFragment()
+        val appsFragment = AppsFragment()
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_launcher -> {
-                    switchFragment(LauncherFragment())
+                    switchFragment(launcherFragment)
                     true
                 }
                 R.id.nav_apps -> {
-                    switchFragment(AppsFragment())
+                    switchFragment(appsFragment)
                     true
                 }
                 else -> false
@@ -38,9 +50,28 @@ class MainActivity : AppCompatActivity() {
 
         // 默认显示LauncherFragment
         if (savedInstanceState == null) {
-            switchFragment(LauncherFragment())
+            switchFragment(launcherFragment)
             SnapShotApp.getViewModel().loadData()
         }
+    }
+
+    private fun setupMenuProvider() {
+        addMenuProvider(object : MenuProvider {
+            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                menuInflater.inflate(R.menu.menu_main, menu)
+            }
+
+            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                return when (menuItem.itemId) {
+                    R.id.menu_settings -> {
+                        // 打开设置页面
+                        startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }, this, Lifecycle.State.CREATED)
     }
 
     private fun setupImmersiveStatusBar() {
@@ -59,4 +90,5 @@ class MainActivity : AppCompatActivity() {
             .replace(R.id.fragment_container, fragment)
             .commit()
     }
+
 }

@@ -99,7 +99,6 @@ object JsonUtils {
                     parent.mkdirs()
                 }
             }
-            
             val json = toJsonString(obj, prettyFormat)
             file.writeText(json)
             true

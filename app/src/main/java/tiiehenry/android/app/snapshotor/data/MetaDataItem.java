@@ -15,12 +15,6 @@ public class MetaDataItem {
     @JSONField(name = "file")
     private String file;
 
-    /**
-     * 自定义路径，恢复时如果是apk，用install代表安装
-     */
-    @JSONField(name = "path")
-    private String path;
-
     @JSONField(name = "origin_size")
     private long originSize;
 
@@ -40,12 +34,11 @@ public class MetaDataItem {
     }
 
     // 全参构造函数
-    public MetaDataItem(String algorithm, String name, String file, String path,
-                       long originSize, long targetSize, String md5, long compressCost, long makeTime) {
+    public MetaDataItem(String algorithm, String name, String file,
+                        long originSize, long targetSize, String md5, long compressCost, long makeTime) {
         this.algorithm = algorithm;
         this.name = name;
         this.file = file;
-        this.path = path;
         this.originSize = originSize;
         this.targetSize = targetSize;
         this.md5 = md5;
@@ -77,14 +70,6 @@ public class MetaDataItem {
 
     public void setFile(String file) {
         this.file = file;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
     }
 
     public long getOriginSize() {
@@ -125,7 +110,6 @@ public class MetaDataItem {
                 "algorithm='" + algorithm + '\'' +
                 ", name='" + name + '\'' +
                 ", file='" + file + '\'' +
-                ", path='" + path + '\'' +
                 ", originSize=" + originSize +
                 ", targetSize=" + targetSize +
                 ", md5='" + md5 + '\'' +

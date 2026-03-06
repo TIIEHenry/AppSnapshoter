@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshotor.R
 import tiiehenry.android.app.snapshotor.SnapShotApp
+import tiiehenry.android.app.snapshotor.config.SortConfig
 import tiiehenry.android.app.snapshotor.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshotor.group.SelectAppFragment
 import tiiehenry.android.app.snapshotor.group.SnapGroup
@@ -70,7 +71,14 @@ class GroupsAdapter(
             // 显示SelectAppFragment选择应用
             SelectAppFragment.newInstance(group.id) { appInfos ->
                 SnapShotApp.getViewModel().addAppsToGroup(group.id, appInfos) {
-                    refresh(group, binding.groupRecyclerView)
+                    // 从ViewModel获取最新的group对象，确保使用的是已更新的实例
+                    val updatedGroup =
+                        SnapShotApp.getViewModel().groupList.value?.find { it.id == group.id }
+                    if (updatedGroup != null) {
+                        refresh(updatedGroup, binding.groupRecyclerView)
+                    } else {
+                        refresh(group, binding.groupRecyclerView)
+                    }
                 }
             }.show(fragmentManager, "SelectAppFragment")
         }
@@ -136,7 +144,7 @@ class GroupsAdapter(
 
             // 根据排序类型决定是否显示btnMove按钮
             val sortType = group.config.sortConfig.sortType
-            if (sortType == 3) { // 3代表自定义排序
+            if (sortType == SortConfig.SORT_TYPE_CUSTOM) { // 自定义排序模式下显示btnMove
                 binding.btnMove.visibility = View.VISIBLE
                 binding.btnMove.setOnClickListener {
                     // 进入排序状态
@@ -147,8 +155,10 @@ class GroupsAdapter(
             }
 
             binding.btnTune.setOnClickListener {
-                // 显示GroupConfigFragment
-                GroupConfigFragment.newInstance(group).show(fragmentManager, "GroupConfigFragment")
+                // 显示GroupConfigFragment，保存后刷新列表
+                GroupConfigFragment.newInstance(group) {
+                    refresh(group, binding.groupRecyclerView)
+                }.show(fragmentManager, "GroupConfigFragment")
             }
 
             updateButtonVisibility(!isSortMode)
@@ -166,9 +176,9 @@ class GroupsAdapter(
                 updateButtonVisibility(false)
             } else {
                 // 退出排序模式
-                binding.btnMove.setImageResource(R.drawable.text_box_edit_outline) // 恢复原始图标
+                binding.btnMove.setImageResource(R.drawable.app_sort) // 恢复原始图标
                 binding.groupTitle.text = group.name // 恢复正常标题
-                stopDragSortMode()
+                stopDragSortMode(adapter)
                 // 恢复按钮显示
                 updateButtonVisibility(true)
             }
@@ -203,6 +213,9 @@ class GroupsAdapter(
                     // 更新适配器
                     adapter.submitList(currentList)
 
+                    // 立即保存排序后的顺序（submitList是异步的，currentList可能还未更新）
+                    saveSortOrderToConfig(currentList, group)
+
                     return true
                 }
 
@@ -211,7 +224,7 @@ class GroupsAdapter(
                 }
 
                 override fun isLongPressDragEnabled(): Boolean {
-                    return false // 禁用长按拖拽，我们使用按钮控制
+                    return false // 禁用长按拖拽，我们通过触摸事件控制
                 }
 
                 override fun isItemViewSwipeEnabled(): Boolean {
@@ -228,18 +241,26 @@ class GroupsAdapter(
                     y: Int
                 ) {
                     super.onMoved(recyclerView, viewHolder, fromPos, target, toPos, x, y)
-                    // 当拖拽完成时，保存排序到SortConfig
-                    saveSortOrderToConfig(adapter.currentList, group)
+                    // 排序已在 onMove 中保存，这里可以添加其他拖拽完成的逻辑
                 }
             }
 
             itemTouchHelper = ItemTouchHelper(callback)
             itemTouchHelper?.attachToRecyclerView(binding.groupRecyclerView)
+
+            // 将 ItemTouchHelper 设置给 adapter，以便在 onBindViewHolder 中使用
+            adapter.itemTouchHelper = itemTouchHelper
+            // 刷新列表以应用拖拽触摸监听
+            adapter.notifyDataSetChanged()
         }
 
-        private fun stopDragSortMode() {
+        private fun stopDragSortMode(adapter: GroupItemAdapter) {
             itemTouchHelper?.attachToRecyclerView(null)
             itemTouchHelper = null
+            // 清除 adapter 的 ItemTouchHelper 引用
+            adapter.itemTouchHelper = null
+            // 刷新列表以清除拖拽触摸监听
+            adapter.notifyDataSetChanged()
         }
 
         private fun saveSortOrderToConfig(sortedList: List<SnapedApp>, group: SnapGroup) {
@@ -248,10 +269,13 @@ class GroupsAdapter(
 
             // 保存到SortConfig
             val sortConfig = group.config.sortConfig
-            sortConfig.sortOrder = sortedPackageNames.toSet()
+            sortConfig.sortOrder = sortedPackageNames.toMutableList()
 
             // 也可以设置排序类型为自定义
-            sortConfig.sortType = 3 // 假设3代表自定义排序
+            sortConfig.sortType = SortConfig.SORT_TYPE_CUSTOM
+
+            // 保存所有配置到文件
+            group.config.save()
         }
 
         fun refresh(
@@ -262,18 +286,21 @@ class GroupsAdapter(
                 binding.progressBar.visibility = View.GONE
                 binding.groupRecyclerView.visibility = View.GONE
                 binding.emptyLayout.visibility = View.VISIBLE
+                binding.btnAdd.visibility = View.GONE
             } else {
                 binding.progressBar.visibility = View.GONE
                 binding.groupRecyclerView.visibility = View.VISIBLE
                 binding.emptyLayout.visibility = View.GONE
+                binding.btnAdd.visibility = View.VISIBLE
             }
             val sortedApps = synchronized(group.apps) {
                 // 应用排序
-               applySorting(group.apps, group.config.sortConfig)
+                applySorting(group.apps, group.config.sortConfig, group)
 
             }
-            Log.i("GroupsAdapter", "refresh " +sortedApps)
+            Log.i("GroupsAdapter", "refresh " + sortedApps)
             (recyclerView.adapter as GroupItemAdapter).submitList(sortedApps)
+            (recyclerView.adapter as GroupItemAdapter).notifyDataSetChanged()
             recyclerView.invalidate()
             recyclerView.requestLayout()
 
@@ -295,28 +322,40 @@ class GroupsAdapter(
 
         private fun applySorting(
             apps: List<SnapedApp>,
-            sortConfig: tiiehenry.android.app.snapshotor.config.SortConfig
+            sortConfig: SortConfig,
+            group: SnapGroup
         ): List<SnapedApp> {
+            binding.btnMove.visibility =
+                if (sortConfig.sortType == SortConfig.SORT_TYPE_CUSTOM) View.VISIBLE else View.GONE
+
             return when (sortConfig.sortType) {
-                3 -> { // 自定义排序
-                    val sortOrder = sortConfig.sortOrder.toList()
+                SortConfig.SORT_TYPE_CUSTOM -> { // 自定义排序
+                    val sortOrder = sortConfig.sortOrder.toMutableList()
+                    val appPackageNames = apps.map { it.appInfo.packageName }
+
+                    // 1. 移除 sortOrder 中已不存在的应用（被删除的）
+                    sortOrder.removeAll { it !in appPackageNames }
+
+                    // 2. 将新添加的应用（不在 sortOrder 中的）添加到末尾
+                    val newApps = appPackageNames.filter { it !in sortOrder }
+                    sortOrder.addAll(newApps)
+
+                    // 3. 如果 sortOrder 有变化，保存更新后的配置
+                    if (sortOrder != sortConfig.sortOrder) {
+                        sortConfig.sortOrder = sortOrder
+                        group.config.save()
+                    }
+
+                    // 4. 按 sortOrder 排序应用
                     apps.sortedBy { sortOrder.indexOf(it.appInfo.packageName) }
                 }
 
-                2 -> { // 按名称排序（降序）
-                    if (sortConfig.sortReverse) {
-                        apps.sortedByDescending { it.appInfo.label }
-                    } else {
-                        apps.sortedBy { it.appInfo.label }
-                    }
+                SortConfig.SORT_TYPE_NAME_DESC -> { // 按名称排序（降序）
+                    apps.sortedByDescending { it.appInfo.label }
                 }
 
-                1 -> { // 按名称排序（升序）
-                    if (sortConfig.sortReverse) {
-                        apps.sortedByDescending { it.appInfo.label }
-                    } else {
-                        apps.sortedBy { it.appInfo.label }
-                    }
+                SortConfig.SORT_TYPE_NAME_ASC -> { // 按名称排序（升序）
+                    apps.sortedBy { it.appInfo.label }
                 }
 
                 else -> { // 默认排序

@@ -4,42 +4,60 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import androidx.recyclerview.widget.LinearLayoutManager
+import android.widget.SearchView
+import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshotor.R
-import tiiehenry.android.app.snapshotor.SnapShotApp
 import tiiehenry.android.app.snapshotor.app.AppInfo
 import tiiehenry.android.app.snapshotor.databinding.FragmentSelectAppBinding
+import tiiehenry.android.app.snapshotor.main.apps.AppsListComponent
+import tiiehenry.android.app.snapshotor.main.apps.AppsViewModel
+import tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
 
-class SelectAppFragment : BottomSheetDialogFragment() {
+class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbacks<FragmentSelectAppBinding> {
 
     private var _binding: FragmentSelectAppBinding? = null
     private val binding get() = _binding!!
+    private val viewModel: AppsViewModel by activityViewModels()
     private lateinit var selectAppAdapter: SelectAppAdapter
+    private lateinit var appsListComponent: AppsListComponent<FragmentSelectAppBinding>
 
     private var groupId: String? = null
     private var onAppsSelected: ((List<AppInfo>) -> Unit)? = null
-    private var currentUserId: Int = 0
-    private var allApps: List<AppInfo> = emptyList()
-    private var filteredApps: List<AppInfo> = emptyList()
-    private var currentFilterType: AppFilterType = AppFilterType.ALL
 
-    enum class AppFilterType {
-        ALL,        // 全部应用
-        SYSTEM_ONLY,  // 仅系统应用
-        USER_ONLY   // 仅用户应用
-    }
+    override var filterIgnoredApps: Boolean = false
+        private set
 
     companion object {
         private const val ARG_GROUP_ID = "group_id"
+        private const val ARG_FILTER_IGNORED = "filter_ignored"
 
-        fun newInstance(groupId: String,  onAppsSelected: (List<AppInfo>) -> Unit): SelectAppFragment {
+        fun newInstance(
+            groupId: String,
+            onAppsSelected: (List<AppInfo>) -> Unit
+        ): SelectAppFragment {
             return SelectAppFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_GROUP_ID, groupId)
+                    putBoolean(ARG_FILTER_IGNORED, false)
+                }
+                this.onAppsSelected = onAppsSelected
+            }
+        }
+
+        /**
+         * 创建用于选择要忽略的应用的 Fragment（会过滤掉已忽略的应用）
+         */
+        fun newInstanceForIgnoreApps(
+            groupId: String,
+            onAppsSelected: (List<AppInfo>) -> Unit
+        ): SelectAppFragment {
+            return SelectAppFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_GROUP_ID, groupId)
+                    putBoolean(ARG_FILTER_IGNORED, true)
                 }
                 this.onAppsSelected = onAppsSelected
             }
@@ -49,6 +67,7 @@ class SelectAppFragment : BottomSheetDialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         groupId = arguments?.getString(ARG_GROUP_ID)
+        filterIgnoredApps = arguments?.getBoolean(ARG_FILTER_IGNORED, false) ?: false
     }
 
     override fun onCreateView(
@@ -57,13 +76,26 @@ class SelectAppFragment : BottomSheetDialogFragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentSelectAppBinding.inflate(inflater, container, false)
+        appsListComponent = AppsListComponent(this, binding, viewModel, this)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        appsListComponent.onViewCreated(viewLifecycleOwner)
+    }
 
-        binding.appsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+    override fun getRecyclerView(binding: FragmentSelectAppBinding): RecyclerView = binding.appsRecyclerView
+
+    override fun getUserTabLayout(binding: FragmentSelectAppBinding): TabLayout = binding.userTabLayout
+
+    override fun getFilterSpinner(binding: FragmentSelectAppBinding): android.widget.Spinner = binding.spinnerAppFilter
+
+    override fun getTagsFilterLayout(binding: FragmentSelectAppBinding): TagsFilterLayout = binding.tagsFilterLayout
+
+    override fun getSearchView(binding: FragmentSelectAppBinding): SearchView = binding.searchView
+
+    override fun setupRecyclerViewAdapter(binding: FragmentSelectAppBinding) {
         selectAppAdapter = SelectAppAdapter(
             onItemClick = { appInfo ->
                 onAppsSelected?.invoke(listOf(appInfo))
@@ -80,28 +112,6 @@ class SelectAppFragment : BottomSheetDialogFragment() {
 
         // 设置多选工具栏按钮事件
         setupMultiSelectToolbar()
-
-        // 设置 Spinner
-        setupFilterSpinner()
-
-        // 观察全局ViewModel的appList
-        SnapShotApp.getViewModel().appsList.observe(viewLifecycleOwner) { apps ->
-            allApps = apps[currentUserId] ?: emptyList()
-            setupUserTabs()
-            filterApps(binding.searchView.query.toString())
-        }
-
-        // 搜索功能
-        binding.searchView.setOnQueryTextListener(object : android.widget.SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                filterApps(newText ?: "")
-                return true
-            }
-        })
     }
 
     private fun setupMultiSelectToolbar() {
@@ -124,100 +134,20 @@ class SelectAppFragment : BottomSheetDialogFragment() {
     }
 
     private fun updateMultiSelectToolbarVisibility(isVisible: Boolean) {
-        if (isVisible) {
-            binding.multiSelectToolbar.root.visibility = View.VISIBLE
-        } else {
-            binding.multiSelectToolbar.root.visibility = View.GONE
-        }
+        binding.multiSelectToolbar.root.visibility = if (isVisible) View.VISIBLE else View.GONE
     }
 
     private fun updateSelectedCount(count: Int) {
-        binding.multiSelectToolbar.selectedCountText.text = getString(R.string.selected_count, count)
+        binding.multiSelectToolbar.selectedCountText.text =
+            getString(R.string.selected_count, count)
     }
 
-    private fun setupFilterSpinner() {
-        val filterOptions = arrayOf(
-            getString(R.string.app_filter_all),
-            getString(R.string.app_filter_system_only),
-            getString(R.string.app_filter_user_only)
-        )
-
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, filterOptions)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerAppFilter.adapter = adapter
-
-        binding.spinnerAppFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                currentFilterType = when (position) {
-                    0 -> AppFilterType.ALL
-                    1 -> AppFilterType.SYSTEM_ONLY
-                    2 -> AppFilterType.USER_ONLY
-                    else -> AppFilterType.ALL
-                }
-                filterApps(binding.searchView.query.toString())
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                // Do nothing
-            }
-        }
+    override fun onAppsLoadingStateChanged(isLoading: Boolean) {
+        // SelectAppFragment 不需要显示加载状态
     }
 
-    private fun setupUserTabs() {
-        // 获取所有不同的userId
-        val userIds = allApps.map { it.userId }.distinct().sorted()
-
-        binding.userTabLayout.removeAllTabs()
-        userIds.forEach { userId ->
-            val tab = binding.userTabLayout.newTab()
-            tab.text = if (userId == 0) "主用户" else "用户 $userId"
-            tab.tag = userId
-            binding.userTabLayout.addTab(tab)
-        }
-
-        // 默认选中第一个tab
-        if (binding.userTabLayout.tabCount > 0) {
-            binding.userTabLayout.getTabAt(0)?.select()
-        }
-
-        // Tab切换监听
-        binding.userTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                val userId = tab?.tag as? Int ?: 0
-                currentUserId = userId
-                filterApps(binding.searchView.query.toString())
-                binding.searchView.setQuery("", false)
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab?) {}
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
-        })
-    }
-
-    private fun filterApps(query: String) {
-        var appsForCurrentUser = allApps.filter { it.userId == currentUserId }
-        
-        // 根据筛选类型过滤
-        appsForCurrentUser = when (currentFilterType) {
-            AppFilterType.ALL -> appsForCurrentUser
-            AppFilterType.SYSTEM_ONLY -> appsForCurrentUser.filter { 
-                it.isSystemApp(it.appManager)
-            }
-            AppFilterType.USER_ONLY -> appsForCurrentUser.filter { 
-                !it.isSystemApp(it.appManager)
-            }
-        }
-        
-        // 根据搜索关键词过滤
-        if (query.isEmpty()) {
-            filteredApps = appsForCurrentUser
-        } else {
-            filteredApps = appsForCurrentUser.filter {
-                it.label.contains(query, ignoreCase = true) ||
-                it.packageName.contains(query, ignoreCase = true)
-            }
-        }
-        selectAppAdapter.submitList(filteredApps)
+    override fun onFilteredAppsChanged(apps: List<AppInfo>) {
+        selectAppAdapter.submitList(apps)
     }
 
     override fun onDestroyView() {

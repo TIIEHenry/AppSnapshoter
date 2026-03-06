@@ -55,7 +55,7 @@ object PathHelper {
     /**
      * 获取应用的缓存目录
      */
-    fun getAppCacheDir(userId: Int, packageName: String): String {
+    fun getAppExCacheDir(userId: Int, packageName: String): String {
         return "${Environment.getExternalStorageDirectory()}/Android/data/$packageName/cache"
     }
 }

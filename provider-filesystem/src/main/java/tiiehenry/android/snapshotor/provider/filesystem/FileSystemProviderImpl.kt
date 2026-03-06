@@ -12,8 +12,8 @@ import android.util.Log
 import com.topjohnwu.superuser.ipc.RootService
 import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.runBlocking
-import tiiehenry.android.snapshotor.file.FileSystemManagerRootService
-import tiiehenry.android.snapshotor.file.FileSystemRootServiceClient
+import tiiehenry.android.snapshotor.provider.filesystem.root.fsm.FileSystemManagerRootService
+import tiiehenry.android.snapshotor.provider.filesystem.root.FileSystemRootServiceClient
 import tiiehenry.android.snapshotor.file.IFileCompressor
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.IFileType
@@ -483,6 +483,34 @@ class FileSystemProviderImpl(
                 runBlocking { rootService.extractTar(tarFifo, targetDir) }
             } catch (e: Exception) {
                 Log.e("FileSystemProvider", "Failed to extract tar from FIFO", e)
+                false
+            }
+        }
+
+        override fun move(sourcePath: String, targetPath: String): Boolean {
+            return try {
+                val sourceFile = fileSystemManager.getFile(sourcePath)
+                val targetFile = fileSystemManager.getFile(targetPath)
+
+                // 检查源文件是否存在
+                if (!sourceFile.exists()) {
+                    Log.e("FileSystemProvider", "Source path does not exist: $sourcePath")
+                    return false
+                }
+
+                // 检查目标是否已存在
+                if (targetFile.exists()) {
+                    Log.e("FileSystemProvider", "Target path already exists: $targetPath")
+                    return false
+                }
+
+                // 确保目标父目录存在
+                targetFile.parentFile?.mkdirs()
+
+                // 执行重命名/移动操作
+                sourceFile.renameTo(targetFile)
+            } catch (e: Exception) {
+                Log.e("FileSystemProvider", "Failed to move from '$sourcePath' to '$targetPath'", e)
                 false
             }
         }

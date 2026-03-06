@@ -14,6 +14,10 @@ public class MetaInfo {
 
     @JSONField(name = "userId")
     private int userId;
+
+    @JSONField(name = "ssaid")
+    private String ssaid;
+
     @JSONField(name = "dataItems")
     private List<String> dataItems;
 
@@ -28,13 +32,20 @@ public class MetaInfo {
     }
 
     // 全参构造函数
-    public MetaInfo(MetaPackageInfo packageInfo, int userId, List<String> dataItems,
+    public MetaInfo(MetaPackageInfo packageInfo, int userId, String ssaid, List<String> dataItems,
                     List<MetaPermission> permissions, long makeTime) {
         this.packageInfo = packageInfo;
         this.userId = userId;
+        this.ssaid = ssaid;
         this.dataItems = dataItems;
         this.permissions = permissions;
         this.makeTime = makeTime;
+    }
+
+    // 兼容旧的构造函数（不含ssaid）
+    public MetaInfo(MetaPackageInfo packageInfo, int userId, List<String> dataItems,
+                    List<MetaPermission> permissions, long makeTime) {
+        this(packageInfo, userId, "", dataItems, permissions, makeTime);
     }
 
     // Getter和Setter方法
@@ -52,6 +63,14 @@ public class MetaInfo {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public String getSsaid() {
+        return ssaid;
+    }
+
+    public void setSsaid(String ssaid) {
+        this.ssaid = ssaid;
     }
 
     public List<String> getDataItems() {
@@ -83,6 +102,7 @@ public class MetaInfo {
         return "MetaInfo{" +
                "packageInfo=" + packageInfo +
                ", userId=" + userId +
+               ", ssaid='" + ssaid + '\'' +
                ", dataItems=" + dataItems +
                ", permissions=" + permissions +
                ", makeTime=" + makeTime +

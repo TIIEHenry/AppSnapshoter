@@ -154,10 +154,13 @@ class AppConfigFragment : BottomSheetDialogFragment() {
         appConfig.syncConfig.enableSyncToTarget = syncOptionsManager.getEnableSyncToTarget()
         appConfig.syncConfig.enableSyncToSystem = syncOptionsManager.getEnableSyncToSystem()
         appConfig.syncConfig.syncType = syncOptionsManager.getSyncType()
+
+        // 保存所有配置到文件
+        appConfig.save()
     }
 
     private fun resetConfig() {
-        appConfig.getMMKV().clear()
+        appConfig.reset()
         loadConfig()
         Toast.makeText(requireContext(), "配置已重置", Toast.LENGTH_SHORT).show()
     }
@@ -175,7 +178,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
                 
                 withContext(Dispatchers.Main) {
                     // 根据配置更新选中的设备
-                    val selectedDeviceIds = appConfig.syncConfig.syncTargets ?: emptySet()
+                    val selectedDeviceIds = appConfig.syncConfig.syncTargets
                     
                     // 使用SyncOptionsManager来设置配对设备列表
                     syncOptionsManager.setPairedDevices(pairedDevices, selectedDeviceIds)

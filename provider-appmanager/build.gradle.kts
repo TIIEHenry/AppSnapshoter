@@ -56,7 +56,9 @@ dependencies {
     
     // Hidden API
     implementation(project(":hiddenapi"))
-    
+    implementation(project(":systemapi"))
+    implementation("tiiehenry.nota.toolkit:android-common:+")
+
     // Native library
     implementation(project(":native"))
     

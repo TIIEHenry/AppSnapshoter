@@ -41,6 +41,11 @@
         <activity
             android:name=".app.AppConfigActivity"
             android:exported="false" />
+        <activity
+            android:name=".main.settings.SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppSnapShotor"
+            android:parentActivityName=".main.MainActivity" />
     </application>
 
 </manifest>

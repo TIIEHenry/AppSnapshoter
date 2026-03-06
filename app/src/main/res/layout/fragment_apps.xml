@@ -1,8 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/user_tab_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        app:tabMode="scrollable"
+        app:tabGravity="start" />
+
+    <Spinner
+        android:id="@+id/spinner_app_filter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp" />
+
+    <!-- Tags Filter Layout -->
+    <tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
+        android:id="@+id/tags_filter_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="8dp" />
 
     <SearchView
         android:id="@+id/search_view"
@@ -11,11 +33,25 @@
         android:iconifiedByDefault="false"
         android:queryHint="搜索应用..." />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/apps_recycler_view"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="8dp" />
+        android:layout_weight="1">
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="visible" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/apps_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="8dp"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </LinearLayout>

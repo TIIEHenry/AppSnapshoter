@@ -1,14 +1,8 @@
 package tiiehenry.android.app.snapshotor.ui.common
 
-import android.view.LayoutInflater
-import android.widget.CheckBox
-import android.widget.TextView
-import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import tiiehenry.android.app.snapshotor.config.CompressItems
-import tiiehenry.android.app.snapshotor.databinding.IncludeShotOptionsBinding
 import tiiehenry.android.app.snapshotor.config.ShotConfig
+import tiiehenry.android.app.snapshotor.databinding.IncludeShotOptionsBinding
 
 class ShotOptionsManager(
     private val binding: IncludeShotOptionsBinding,
@@ -23,7 +17,7 @@ class ShotOptionsManager(
         setAutoSnapshot(shotConfig.autoSnapshot)
         setPermission(shotConfig.permission)
         setUninstallArchived(shotConfig.uninstallArchived)
-        setCompressItems(shotConfig.compressItems)
+        setCompressItems(shotConfig.compressItems.toSet())
         setCompressAlgorithm(shotConfig.compressAlgorithm)
     }
 
@@ -60,19 +54,17 @@ class ShotOptionsManager(
         binding.chipObb.setOnCheckedChangeListener { _, isChecked ->
             updateCompressItems("obb", isChecked)
         }
-        binding.chipExternalData.setOnCheckedChangeListener { _, isChecked ->
-            updateCompressItems("external_data", isChecked)
+        binding.chipMedia.setOnCheckedChangeListener { _, isChecked ->
+            updateCompressItems("media", isChecked)
         }
     }
 
     private fun updateCompressItems(item: String, isSelected: Boolean) {
-        val currentItems = shotConfig.compressItems.toMutableSet()
         if (isSelected) {
-            currentItems.add(item)
+            shotConfig.compressItems.add(item)
         } else {
-            currentItems.remove(item)
+            shotConfig.compressItems.remove(item)
         }
-        shotConfig.compressItems = currentItems
     }
 
     fun setAutoSnapshot(enabled: Boolean) {
@@ -93,7 +85,7 @@ class ShotOptionsManager(
         binding.chipUser.isChecked = CompressItems.COMPRESS_ITEM_USER in items
         binding.chipUserDe.isChecked = CompressItems.COMPRESS_ITEM_USER_DE in items
         binding.chipObb.isChecked = CompressItems.COMPRESS_ITEM_OBB in items
-        binding.chipExternalData.isChecked = CompressItems.COMPRESS_ITEM_EXTERNAL_DATA in items
+        binding.chipMedia.isChecked = CompressItems.COMPRESS_ITEM_MEDIA in items
     }
 
     fun setCompressAlgorithm(algorithm: String) {
@@ -114,12 +106,12 @@ class ShotOptionsManager(
 
     fun getCompressItems(): Set<String> {
         val items = mutableSetOf<String>()
-        if (binding.chipApk.isChecked) items.add("apk")
-        if (binding.chipData.isChecked) items.add("data")
-        if (binding.chipUser.isChecked) items.add("user")
-        if (binding.chipUserDe.isChecked) items.add("user_de")
-        if (binding.chipObb.isChecked) items.add("obb")
-        if (binding.chipExternalData.isChecked) items.add("external_data")
+        if (binding.chipApk.isChecked) items.add(CompressItems.COMPRESS_ITEM_APK)
+        if (binding.chipData.isChecked) items.add(CompressItems.COMPRESS_ITEM_DATA)
+        if (binding.chipUser.isChecked) items.add(CompressItems.COMPRESS_ITEM_USER)
+        if (binding.chipUserDe.isChecked) items.add(CompressItems.COMPRESS_ITEM_USER_DE)
+        if (binding.chipObb.isChecked) items.add(CompressItems.COMPRESS_ITEM_OBB)
+        if (binding.chipMedia.isChecked) items.add(CompressItems.COMPRESS_ITEM_MEDIA)
         return items
     }
 

@@ -16,6 +16,8 @@
 
 package android.content.pm;
 
+import android.os.UserHandle;
+
 import java.util.List;
 
 import dev.rikka.tools.refine.RefineAs;
@@ -40,6 +42,21 @@ public class PackageManagerHidden {
         throw new RuntimeException("Stub!");
     }
 
+    public void grantRuntimePermission(String packageName, String permissionName, UserHandle user) {
+        throw new RuntimeException("Stub!");
+    }
+
+    public void revokeRuntimePermission(String packageName, String permissionName, UserHandle user) {
+        throw new RuntimeException("Stub!");
+    }
+
+    public int getPermissionFlags(String permissionName, String packageName, UserHandle user) {
+        throw new RuntimeException("Stub!");
+    }
+
+    public void updatePermissionFlags(String permissionName, String packageName, int flagMask, int flagValues, UserHandle user) {
+        throw new RuntimeException("Stub!");
+    }
 }
 
 // https://cs.android.com/android/platform/superproject/+/android-7.0.0_r36:frameworks/base/core/java/android/content/pm/PackageManager.java

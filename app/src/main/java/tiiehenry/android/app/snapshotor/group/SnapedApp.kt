@@ -42,7 +42,7 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
                 }
             }
             val archiveDir = Paths.get(packageDir, archiveName).absolutePathString()
-            val jsonFile = Paths.get(archiveDir,  MetaInfoHelper.META_INFO_FILE_NAME)
+            val jsonFile = Paths.get(archiveDir, MetaInfoHelper.META_INFO_FILE_NAME)
                 .absolutePathString()
             if (fs.fileType(jsonFile) == IFileType.TYPE_FILE) {
                 val metaInfo = MetaInfoHelper.read(fs, jsonFile)
@@ -54,6 +54,7 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
                     metaInfo.packageInfo.versionName,
                     metaInfo.packageInfo.versionCode
                 )
+                appInfo.archiveLabel = metaInfo.packageInfo.label
                 appInfo.archiveIconFile = iconFile
                 val dataItems = MetaInfoHelper.readDataItems(
                     metaInfo.dataItems.filter { it != "apk.json" },
@@ -74,4 +75,12 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
         }
         return archives
     }
+
+    val isRunning: Boolean
+        get() {
+            return appInfo.appManager.isPackageRunning(
+                appInfo.packageName,
+                appInfo.userId
+            )
+        }
 }

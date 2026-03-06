@@ -66,9 +66,7 @@ class SyncOptionsManager(
                 GlobalConfig.syncSystems = globalSystems
 
                 // 然后根据当前配置对象决定是否也添加到特定配置
-                val currentSystems = syncConfig.syncSystems.toMutableSet()
-                currentSystems.add(systemTag)
-                syncConfig.syncSystems = currentSystems
+                syncConfig.syncSystems.add(systemTag)
 
                 // 更新所有系统标签显示
                 updateAllSyncSystemChips()
@@ -86,9 +84,7 @@ class SyncOptionsManager(
                 GlobalConfig.syncSystems = globalSystems
 
                 // 然后根据当前配置对象决定是否也添加到特定配置
-                val currentSystems = syncConfig.syncSystems.toMutableSet()
-                currentSystems.add(systemTag)
-                syncConfig.syncSystems = currentSystems
+                syncConfig.syncSystems.add(systemTag)
 
                 // 更新所有系统标签显示
                 updateAllSyncSystemChips()
@@ -187,9 +183,7 @@ class SyncOptionsManager(
             isCloseIconVisible = false // 已启用的标签不显示关闭图标
             setOnClickListener {
                 // 从当前配置中移除（变为未启用状态）
-                val currentSystems = syncConfig.syncSystems.toMutableSet()
-                currentSystems.remove(system)
-                syncConfig.syncSystems = currentSystems
+                syncConfig.syncSystems.remove(system)
                 // 更新所有系统标签显示
                 updateAllSyncSystemChips()
             }
@@ -216,9 +210,7 @@ class SyncOptionsManager(
                 globalSystems.remove(system)
                 GlobalConfig.syncSystems = globalSystems
 
-                val currentSystems = syncConfig.syncSystems.toMutableSet()
-                currentSystems.remove(system)
-                syncConfig.syncSystems = currentSystems
+                syncConfig.syncSystems.remove(system)
 
                 // 更新所有系统标签显示
                 updateAllSyncSystemChips()
@@ -226,9 +218,7 @@ class SyncOptionsManager(
             }
             setOnClickListener {
                 // 点击未启用的标签，将其添加到当前配置中（启用）
-                val currentSystems = syncConfig.syncSystems.toMutableSet()
-                currentSystems.add(system)
-                syncConfig.syncSystems = currentSystems
+                syncConfig.syncSystems.add(system)
                 // 更新所有系统标签显示
                 updateAllSyncSystemChips()
             }
@@ -265,7 +255,7 @@ class SyncOptionsManager(
 
         // 获取全局系统标签和当前配置的系统标签
         val globalSystems = GlobalConfig.syncSystems
-        val currentSystems = syncConfig.syncSystems
+        val currentSystems = syncConfig.syncSystems.toSet()
 
         // 添加已启用的系统标签
         currentSystems.forEach { system ->
@@ -324,7 +314,7 @@ class SyncOptionsManager(
 
         // 获取全局系统标签和当前配置的系统标签
         val globalSystems = GlobalConfig.syncSystems
-        val currentSystems = syncConfig.syncSystems
+        val currentSystems = syncConfig.syncSystems.toSet()
 
         // 添加已启用的系统标签
         currentSystems.forEach { system ->

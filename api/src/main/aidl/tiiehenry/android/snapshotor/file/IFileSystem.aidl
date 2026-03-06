@@ -38,4 +38,7 @@ interface IFileSystem {
     boolean isFifo(String path);
     boolean extractTar(String tarFifo, String targetDir);
     boolean cleanDir(String path);
+
+    // 移动/重命名操作
+    boolean move(String sourcePath, String targetPath);
 }

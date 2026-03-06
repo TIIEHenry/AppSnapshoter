@@ -5,12 +5,10 @@ import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.file.IFileCompressor
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.CompressorAlgorithms
-import tiiehenry.android.snapshotor.provider.filesystem.compressors.TarCompressor
-import tiiehenry.android.snapshotor.provider.filesystem.compressors.ZipCompressor
-import tiiehenry.android.snapshotor.provider.filesystem.compressors.ZstdCompressor
-import tiiehenry.android.snapshotor.provider.filesystem.decompressors.TarDecompressor
-import tiiehenry.android.snapshotor.provider.filesystem.decompressors.ZipDecompressor
-import tiiehenry.android.snapshotor.provider.filesystem.decompressors.ZstdDecompressor
+import tiiehenry.android.snapshotor.provider.filesystem.compressors.tar.TarCompressor
+import tiiehenry.android.snapshotor.provider.filesystem.compressors.tar.TarDecompressor
+import tiiehenry.android.snapshotor.provider.filesystem.compressors.zstd.ZstdCompressor
+import tiiehenry.android.snapshotor.provider.filesystem.compressors.zstd.ZstdDecompressor
 import tiiehenry.android.snapshotor.task.ITaskHandler
 
 class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompressor.Stub() {
@@ -18,16 +16,13 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         return mutableListOf(
             CompressorAlgorithms.ALGORITHM_ZSTD,
             CompressorAlgorithms.ALGORITHM_TAR,
-            CompressorAlgorithms.ALGORITHM_ZIP
         )
     }
 
     override fun fileExtension(algorithm: String, type: String, file: String): String {
         when (algorithm) {
-            CompressorAlgorithms.ALGORITHM_TAR -> return ".tar"
-            CompressorAlgorithms.ALGORITHM_ZIP -> return ".zip"
             CompressorAlgorithms.ALGORITHM_ZSTD -> return ".tar.zst"
-            else -> return ".unknown"
+            else -> return ".tar"
         }
     }
 
@@ -35,13 +30,10 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         if (file.endsWith(".apk")) {
             return CompressorAlgorithms.ALGORITHM_TAR
         }
-        if (file.endsWith(".zip")) {
-            return CompressorAlgorithms.ALGORITHM_ZIP
-        }
         if (file.endsWith(".zst")) {
             return CompressorAlgorithms.ALGORITHM_ZSTD
         }
-        return CompressorAlgorithms.ALGORITHM_ZIP
+        return CompressorAlgorithms.ALGORITHM_ZSTD
     }
 
     override fun compress(
@@ -53,18 +45,6 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         callback: ICompressCallback
     ): ITaskHandler {
         when (algorithm) {
-            CompressorAlgorithms.ALGORITHM_ZIP -> {
-                return ZipCompressor.compress(
-                    context,
-                    fs,
-                    dir,
-                    targetFile,
-                    excludes,
-                    excludeFiles,
-                    callback
-                )
-            }
-
             CompressorAlgorithms.ALGORITHM_ZSTD -> {
                 return ZstdCompressor.compress(
                     context,
@@ -77,7 +57,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
                 )
             }
 
-            else -> return ZipCompressor.compress(
+            else -> return TarCompressor.compress(
                 context,
                 fs,
                 dir,
@@ -96,25 +76,6 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         callback: ICompressCallback
     ): ITaskHandler {
         return when (algorithm) {
-            CompressorAlgorithms.ALGORITHM_TAR -> {
-                TarCompressor.compressMultiple(
-                    context,
-                    fs,
-                    files,
-                    targetFile,
-                    callback
-                )
-            }
-
-            CompressorAlgorithms.ALGORITHM_ZIP -> {
-                ZipCompressor.compressMultiple(
-                    context,
-                    fs,
-                    files,
-                    targetFile,
-                    callback
-                )
-            }
 
             CompressorAlgorithms.ALGORITHM_ZSTD -> {
                 ZstdCompressor.compressMultiple(
@@ -126,13 +87,15 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
                 )
             }
 
-            else -> ZipCompressor.compressMultiple(
-                context,
-                fs,
-                files,
-                targetFile,
-                callback
-            )
+            else -> {
+                TarCompressor.compressMultiple(
+                    context,
+                    fs,
+                    files,
+                    targetFile,
+                    callback
+                )
+            }
         }
     }
 
@@ -154,10 +117,6 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         return when (algorithm) {
             CompressorAlgorithms.ALGORITHM_ZSTD -> {
                 ZstdDecompressor.decompress(fs, file, targetDir, callback)
-            }
-
-            CompressorAlgorithms.ALGORITHM_ZIP -> {
-                ZipDecompressor.decompress(fs, file, targetDir, callback)
             }
 
             CompressorAlgorithms.ALGORITHM_TAR -> {

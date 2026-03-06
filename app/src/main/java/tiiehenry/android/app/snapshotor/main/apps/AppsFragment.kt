@@ -1,73 +1,53 @@
 package tiiehenry.android.app.snapshotor.main.apps
 
-import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.LinearLayoutManager
-import tiiehenry.android.app.snapshotor.R
-import tiiehenry.android.app.snapshotor.SnapShotApp
+import android.widget.SearchView
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshotor.app.AppConfigFragment
+import tiiehenry.android.app.snapshotor.app.AppInfo
 import tiiehenry.android.app.snapshotor.databinding.FragmentAppsBinding
+import tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
 
-class AppsFragment : Fragment() {
+class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
 
-    private var _binding: FragmentAppsBinding? = null
-    private val binding get() = _binding!!
-    private val viewModel: AppsViewModel by activityViewModels()
     private lateinit var appsAdapter: AppsAdapter
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun createBinding(inflater: LayoutInflater, container: ViewGroup?): FragmentAppsBinding {
+        return FragmentAppsBinding.inflate(inflater, container, false)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentAppsBinding.inflate(inflater, container, false)
-        return binding.root
-    }
+    override fun getRecyclerView(binding: FragmentAppsBinding): RecyclerView = binding.appsRecyclerView
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun getUserTabLayout(binding: FragmentAppsBinding): TabLayout = binding.userTabLayout
 
-        binding.appsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+    override fun getFilterSpinner(binding: FragmentAppsBinding): android.widget.Spinner = binding.spinnerAppFilter
+
+    override fun getTagsFilterLayout(binding: FragmentAppsBinding): TagsFilterLayout = binding.tagsFilterLayout
+
+    override fun getSearchView(binding: FragmentAppsBinding): SearchView = binding.searchView
+
+    override fun setupRecyclerViewAdapter(binding: FragmentAppsBinding) {
         appsAdapter = AppsAdapter { appInfo ->
             // 显示AppConfigFragment作为BottomSheet
             val fragment = AppConfigFragment.newInstance(appInfo.packageName)
             fragment.show(parentFragmentManager, fragment.tag)
         }
         binding.appsRecyclerView.adapter = appsAdapter
-
-        // 观察全局ViewModel的appList
-        SnapShotApp.getViewModel().appsList.observe(viewLifecycleOwner) { apps ->
-            viewModel.setAppList(apps.flatMap { it.value }.distinctBy { it.packageName })
-        }
-
-        // 观察过滤后的列表
-        viewModel.filteredAppList.observe(viewLifecycleOwner) { apps ->
-            appsAdapter.submitList(apps)
-        }
-
-        // 搜索功能
-        binding.searchView.setOnQueryTextListener(object : android.widget.SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                viewModel.filterApps(newText ?: "")
-                return true
-            }
-        })
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    override fun onAppsLoadingStateChanged(isLoading: Boolean) {
+        if (isLoading) {
+            binding.progressBar.visibility = android.view.View.VISIBLE
+            binding.appsRecyclerView.visibility = android.view.View.GONE
+        } else {
+            binding.progressBar.visibility = android.view.View.GONE
+            binding.appsRecyclerView.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    override fun onFilteredAppsChanged(apps: List<AppInfo>) {
+        appsAdapter.submitList(apps)
     }
 }

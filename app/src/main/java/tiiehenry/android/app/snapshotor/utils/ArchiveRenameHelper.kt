@@ -5,9 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.IFileType
-import tiiehenry.android.app.snapshotor.data.MetaInfoHelper
 import java.io.File
-import java.nio.file.Paths
 
 object ArchiveRenameHelper {
 
@@ -42,51 +40,19 @@ object ArchiveRenameHelper {
                 Log.e(TAG, "Archive with name '$newName' already exists at path: $newArchivePath")
                 return@withContext false
             }
-
-            // 更新存档内的元信息文件中的名称信息
-            val metaFilePath =
-                Paths.get(archivePath, oldName, MetaInfoHelper.META_INFO_FILE_NAME).toString()
-
-            // 重命名目录：由于IFileSystem没有直接的移动方法，
-            // 我们尝试使用标准的File方法，但如果失败，则需要手动复制再删除
-            val oldArchiveDir = File(archivePath)
-            val newArchiveDir = File(newArchivePath)
-
-            // 首先尝试直接重命名
-            if (oldArchiveDir.renameTo(newArchiveDir)) {
+            // 使用 IFileSystem.move 方法重命名目录
+            if (fs.move(archivePath, newArchivePath)) {
                 Log.d(
                     TAG,
-                    "Successfully renamed archive from '$oldName' to '$newName' using renameTo"
+                    "Successfully renamed archive from '$oldName' to '$newName'"
                 )
                 return@withContext true
             } else {
-                // 如果直接重命名失败，尝试复制后删除的方式
-                Log.d(TAG, "Direct rename failed, attempting copy then delete approach")
-                if (copyDirectory(fs, archivePath, newArchivePath)) {
-                    // 复制完成后删除原目录
-                    val deleteSuccess = fs.delete(archivePath)
-                    if (deleteSuccess) {
-                        Log.d(
-                            TAG,
-                            "Successfully renamed archive from '$oldName' to '$newName' using copy-delete approach"
-                        )
-                        return@withContext true
-                    } else {
-                        Log.e(
-                            TAG,
-                            "Failed to delete original archive after copying to new location"
-                        )
-                        // 如果删除失败，尝试删除新创建的副本
-                        fs.delete(newArchivePath)
-                        return@withContext false
-                    }
-                } else {
-                    Log.e(
-                        TAG,
-                        "Failed to copy archive directory from '$archivePath' to '$newArchivePath'"
-                    )
-                    return@withContext false
-                }
+                Log.e(
+                    TAG,
+                    "Failed to rename archive from '$oldName' to '$newName'"
+                )
+                return@withContext false
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error renaming archive from '$oldName' to '$newName'", e)

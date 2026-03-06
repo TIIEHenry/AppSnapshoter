@@ -1,6 +1,5 @@
 package tiiehenry.android.app.snapshotor.main.launch
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,7 +8,6 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -65,6 +63,10 @@ class LauncherFragment : Fragment() {
                         showAddGroupDialog()
                         true
                     }
+                    R.id.menu_sort_groups -> {
+                        showSortGroupsDialog()
+                        true
+                    }
                     else -> false
                 }
             }
@@ -72,22 +74,19 @@ class LauncherFragment : Fragment() {
     }
 
     private fun showAddGroupDialog() {
-        val inputView = EditText(requireContext()).apply {
-            hint = "请输入分组名称"
-            setPadding(50, 30, 50, 30)
-        }
+        val bottomSheet = AddGroupBottomSheet.newInstance()
+        bottomSheet.show(childFragmentManager, AddGroupBottomSheet.TAG)
+    }
 
-        AlertDialog.Builder(requireContext())
-            .setTitle("添加分组")
-            .setView(inputView)
-            .setPositiveButton("确定") { _, _ ->
-                val groupName = inputView.text.toString().trim()
-                if (groupName.isNotEmpty()) {
-                    SnapShotApp.getViewModel().addGroup(groupName)
-                }
+    private fun showSortGroupsDialog() {
+        val bottomSheet = GroupSortBottomSheet.newInstance()
+        bottomSheet.setOnSortSavedListener {
+            // 保存后刷新 groupsAdapter
+            SnapShotApp.getViewModel().groupList.value?.let { groups ->
+                groupsAdapter.submitList(groups)
             }
-            .setNegativeButton("取消", null)
-            .show()
+        }
+        bottomSheet.show(childFragmentManager, GroupSortBottomSheet.TAG)
     }
 
     override fun onDestroyView() {

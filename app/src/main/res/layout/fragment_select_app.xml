@@ -43,6 +43,13 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp" />
 
+    <!-- Tags Filter Layout -->
+    <tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
+        android:id="@+id/tags_filter_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" />
+
     <SearchView
         android:id="@+id/search_view"
         android:layout_width="match_parent"

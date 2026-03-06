@@ -77,6 +77,9 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
+    // DocumentFile
+    implementation(libs.androidx.documentfile)
+
     // Root service libraries
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)

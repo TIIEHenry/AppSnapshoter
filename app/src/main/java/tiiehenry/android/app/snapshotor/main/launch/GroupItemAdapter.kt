@@ -14,6 +14,7 @@ import android.widget.PopupWindow
 import android.widget.Toast
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -33,11 +34,24 @@ import tiiehenry.android.app.snapshotor.databinding.ItemAppBinding
 import tiiehenry.android.app.snapshotor.databinding.LayoutPopupMenuBinding
 import tiiehenry.android.app.snapshotor.group.SnapGroup
 import tiiehenry.android.app.snapshotor.group.SnapedApp
+import tiiehenry.android.app.snapshotor.model.PackageStatus
 import tiiehenry.android.app.snapshotor.ui.dialog.LoadingDialog
-import tiiehenry.android.app.snapshotor.utils.ArchiveRenameHelper
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.fs.CompressState
 import java.io.File
+import kotlin.io.path.absolutePathString
+
+/**
+ * 将字符串中最后一个匹配的 oldValue 替换为 newValue
+ */
+private fun String.replaceLast(oldValue: String, newValue: String): String {
+    val lastIndex = this.lastIndexOf(oldValue)
+    return if (lastIndex != -1) {
+        this.substring(0, lastIndex) + newValue + this.substring(lastIndex + oldValue.length)
+    } else {
+        this
+    }
+}
 
 class GroupItemAdapter(
     private val groupsHolder: GroupsAdapter.GroupViewHolder,
@@ -51,6 +65,9 @@ class GroupItemAdapter(
     var isDeleteMode = false
         private set
 
+    // ItemTouchHelper 引用，用于拖拽排序
+    var itemTouchHelper: ItemTouchHelper? = null
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding, groupsHolder, viewModel, group, onItemUpdated, this)
@@ -58,6 +75,12 @@ class GroupItemAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(getItem(position))
+        // 在排序模式下设置触摸监听以启动拖拽
+        if (groupsHolder.isSortMode) {
+            holder.setupDragOnTouch()
+        } else {
+            holder.clearDragOnTouch()
+        }
     }
 
     class ViewHolder(
@@ -81,7 +104,15 @@ class GroupItemAdapter(
             // 根据应用状态设置状态指示器
             updateStatusIndicator(item)
 
+            // 根据应用是否正在运行显示运行指示器
+            updateRunningIndicator(item)
+
             binding.root.setOnClickListener {
+                // 排序模式下禁用点击
+                if (groupsHolder.isSortMode) {
+                    return@setOnClickListener
+                }
+
                 // 检查应用是否已安装
                 val isAppInstalled = item.appInfo.appManager.isInstalled(
                     item.appInfo.packageName,
@@ -113,61 +144,112 @@ class GroupItemAdapter(
         }
 
         private fun updateStatusIndicator(item: SnapedApp) {
-            // 根据应用状态设置状态指示器
-            // 编辑中: 隐藏指示器, 使用中: 显示绿色指示器, 已存档: 隐藏指示器
             val context = binding.root.context
-            val status = when {
-                // 检查是否有正在运行的备份/恢复任务
-                item.archives.isEmpty() -> {
-                    "EDITING" // 编辑中
+
+            // 判断应用状态
+            val status = getPackageStatus(item)
+
+            // 根据状态设置图标和可见性
+            when (status) {
+                PackageStatus.NOT_INSTALLED -> {
+                    binding.appStatusIndicator.visibility = android.view.View.VISIBLE
+                    binding.appStatusIndicator.setImageResource(R.drawable.ic_status_not_installed)
                 }
 
-                hasActiveOperations(item) -> {
-                    "ACTIVE" // 使用中
+                PackageStatus.INSTALLED -> {
+                    binding.appStatusIndicator.visibility = android.view.View.VISIBLE
+                    binding.appStatusIndicator.setImageResource(R.drawable.ic_status_installed)
                 }
 
-                else -> {
-                    "ARCHIVED" // 已存档
+                PackageStatus.CAN_UPDATE -> {
+                    binding.appStatusIndicator.visibility = android.view.View.VISIBLE
+                    binding.appStatusIndicator.setImageResource(R.drawable.ic_status_can_update)
                 }
             }
+        }
 
-            when (status) {
-                "ACTIVE" -> {
-                    // 使用中：显示绿色指示器
-                    val colorDrawable =
-                        android.graphics.drawable.ColorDrawable(android.graphics.Color.GREEN)
-                    binding.appStatusIndicator.background = colorDrawable
-                    binding.appStatusIndicator.visibility = android.view.View.VISIBLE
-                }
+        /**
+         * 更新运行状态指示器
+         */
+        private fun updateRunningIndicator(item: SnapedApp) {
+            val isRunning = item.isRunning
+            binding.appRunIndicator.visibility = if (isRunning) {
+                android.view.View.VISIBLE
+            } else {
+                android.view.View.GONE
+            }
+        }
 
-                else -> {
-                    // 编辑中或已存档：隐藏指示器
-                    binding.appStatusIndicator.visibility = android.view.View.GONE
-                }
+        /**
+         * 获取应用包状态
+         */
+        private fun getPackageStatus(item: SnapedApp): PackageStatus {
+            val appManager = item.appInfo.appManager
+            val packageName = item.appInfo.packageName
+            val userId = item.appInfo.userId
+
+            // 检查应用是否安装
+            val isInstalled = try {
+                appManager.isInstalled(packageName, userId)
+            } catch (e: Exception) {
+                false
+            }
+
+            if (!isInstalled) {
+                return PackageStatus.NOT_INSTALLED
+            }
+
+            // 获取存档中最新版本的versionCode
+            val latestArchiveVersion = item.latestArchive?.metaInfo?.packageInfo?.versionCode
+
+            // 如果没有存档，返回已安装状态
+            if (latestArchiveVersion == null) {
+                return PackageStatus.INSTALLED
+            }
+
+            // 获取已安装应用的versionCode
+            val installedVersion = try {
+                val packageInfo = appManager.getPackageInfo(packageName, 0, userId)
+                packageInfo?.longVersionCode ?: 0L
+            } catch (e: Exception) {
+                0L
+            }
+
+            // 比较版本：存档版本高于已安装版本表示可更新
+            return if (latestArchiveVersion != installedVersion) {
+                PackageStatus.CAN_UPDATE
+            } else {
+                PackageStatus.INSTALLED
             }
         }
 
         private fun hasActiveOperations(item: SnapedApp): Boolean {
-            // 检查是否有活跃的备份/恢复操作
-            // 这里可以根据实际的存档状态来判断
-            // 例如：检查是否有正在运行的任务，或最近的任务状态
-            // 暂时返回false，实际实现需要根据存档状态判断
-            // 在实际应用中，这可能需要检查存档的最新操作状态
-            return false
+            // 使用 IAppManager 检查应用是否正在运行
+            return try {
+                item.appInfo.appManager.isPackageRunning(
+                    item.appInfo.packageName,
+                    item.appInfo.userId
+                )
+            } catch (e: Exception) {
+                false
+            }
         }
 
-        // 添加一个方法来处理拖拽事件
-        fun setOnStartDragListener(startDragListener: (() -> Unit)?) {
-            if (startDragListener != null) {
-                binding.root.setOnTouchListener { _, event ->
-                    if (event.action == MotionEvent.ACTION_DOWN) {
-                        startDragListener.invoke()
-                    }
+        // 设置拖拽触摸监听
+        fun setupDragOnTouch() {
+            binding.root.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    adapter.itemTouchHelper?.startDrag(this)
+                    true
+                } else {
                     false
                 }
-            } else {
-                binding.root.setOnTouchListener(null)
             }
+        }
+
+        // 清除拖拽触摸监听
+        fun clearDragOnTouch() {
+            binding.root.setOnTouchListener(null)
         }
 
         private fun showPopupMenu(item: SnapedApp) {
@@ -298,12 +380,20 @@ class GroupItemAdapter(
                             }
                         }
                     }
+                },
+                onRenameSuccess = { oldName, newName ->
+                    item.loadArchives(item.appInfo.fs, SnapShotApp.getInstance().appManager, true)
+                    archiveAdapter.submitList(item.archives.values.toList())
                 }
             )
 
             popupBinding.archiveList.layoutManager = LinearLayoutManager(binding.root.context)
             popupBinding.archiveList.adapter = archiveAdapter
 
+            // 只在存档列表为空时重新加载，避免每次弹出popupWindow时重复加载
+            if (item.archives.isEmpty()) {
+                item.loadArchives(item.appInfo.fs, SnapShotApp.getInstance().appManager, true)
+            }
             // 设置存档列表数据
             val archives = item.archives.values.toList()
             Log.i("GroupItemAdapter", "Archives: ${archives.size}")
@@ -338,84 +428,13 @@ class GroupItemAdapter(
         }
 
         private fun showEditNameDialog(item: SnapedApp) {
-            // 显示一个对话框让用户选择要重命名哪个存档
-            val archiveNames = item.archives.keys.toTypedArray()
-
-            if (archiveNames.isEmpty()) {
-                Toast.makeText(binding.root.context, "没有可重命名的存档", Toast.LENGTH_SHORT)
-                    .show()
-                return
-            }
-
-            val builder = AlertDialog.Builder(binding.root.context)
-            builder.setTitle("选择要重命名的存档")
-
-            builder.setItems(archiveNames) { _, which ->
-                val selectedArchiveName = archiveNames[which]
-                val archivePath = item.archives[selectedArchiveName]?.path ?: return@setItems
-
-                // 弹出输入框让用户输入新的存档名称
-                val input = android.widget.EditText(binding.root.context)
-                input.setText(selectedArchiveName)
-
-                AlertDialog.Builder(binding.root.context)
-                    .setTitle("重命名存档: $selectedArchiveName")
-                    .setView(input)
-                    .setPositiveButton("确定") { _, _ ->
-                        val newName = input.text.toString().trim()
-                        if (newName.isNotEmpty() && newName != selectedArchiveName) {
-                            // 重命名存档
-                            viewModel.viewModelScope.launch {
-                                val fs = SnapShotApp.getInstance().fileSystem
-                                val success = ArchiveRenameHelper.renameArchive(
-                                    fs,
-                                    archivePath,
-                                    selectedArchiveName,
-                                    newName
-                                )
-
-                                withContext(Dispatchers.Main) {
-                                    if (success) {
-                                        Toast.makeText(
-                                            binding.root.context,
-                                            "存档 '$selectedArchiveName' 已重命名为 '$newName'",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        // 刷新UI
-                                        item.loadArchives(
-                                            fs,
-                                            SnapShotApp.getInstance().appManager,
-                                            true
-                                        ) // 重新加载存档
-                                        groupsHolder.refresh(
-                                            group,
-                                            groupsHolder.binding.groupRecyclerView
-                                        )
-                                        // 通知全局ViewModel更新数据，以触发RecyclerView的更新
-                                        SnapShotApp.getViewModel().loadGroups()
-                                    } else {
-                                        Toast.makeText(
-                                            binding.root.context,
-                                            "重命名失败",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                }
-                            }
-                        } else if (newName == selectedArchiveName) {
-                            Toast.makeText(
-                                binding.root.context,
-                                "新名称与原名称相同",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                    .setNegativeButton("取消", null)
-                    .show()
-            }
-
-            builder.setNegativeButton("取消", null)
-            builder.show()
+            // 提示用户：重命名功能已移动到存档列表中
+            // 现在需要长按存档项，在弹出的信息对话框中点击"重命名"按钮
+            Toast.makeText(
+                binding.root.context,
+                "请长按下方存档列表中的存档项，在信息对话框中点击\"重命名\"",
+                Toast.LENGTH_LONG
+            ).show()
         }
 
         private fun showDeleteConfirmationDialog(item: SnapedApp, onDismiss: () -> Unit) {
@@ -431,9 +450,17 @@ class GroupItemAdapter(
                     viewModel.viewModelScope.launch {
                         val fs = SnapShotApp.getInstance().fileSystem
                         val success = try {
-                            // 只删除当前应用的存档目录和图标文件
-                            fs.delete(item.packageDir)
-                            fs.mkdirs(item.packageDir)
+                            // 删除存档子目录，但保留图标文件
+                            val archiveNames = fs.listDir(item.packageDir)
+                            for (archiveName in archiveNames) {
+                                val archivePath =
+                                    java.nio.file.Paths.get(item.packageDir, archiveName)
+                                        .absolutePathString()
+                                // 跳过图标文件，只删除存档目录
+                                if (archivePath != item.iconFile) {
+                                    fs.delete(archivePath)
+                                }
+                            }
                             true
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -441,7 +468,7 @@ class GroupItemAdapter(
                         }
                         withContext(Dispatchers.Main) {
                             if (success) {
-                                Toast.makeText(context, "删除应用成功", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "删除存档成功", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(
                                     context,
@@ -449,11 +476,11 @@ class GroupItemAdapter(
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
-                            // 从组中移除应用并刷新 UI
-                            group.apps.remove(item)
-                            groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
-                            // 通知全局 ViewModel 更新数据，以触发 RecyclerView 的更新
-                            SnapShotApp.getViewModel().loadGroups()
+                            item.loadArchives(
+                                item.appInfo.fs,
+                                SnapShotApp.getInstance().appManager,
+                                true
+                            )
                         }
                     }
                 }
@@ -604,9 +631,9 @@ class GroupItemAdapter(
                     // 创建简单的压缩回调
                     val callback = object : ICompressCallback.Stub() {
                         override fun onStart() {
-                            viewModel.viewModelScope.launch(Dispatchers.Main) {
-                                loadingDialog.setMessage("打包中...")
-                            }
+//                            viewModel.viewModelScope.launch(Dispatchers.Main) {
+//                                loadingDialog.setMessage("打包中...")
+//                            }
                         }
 
                         override fun onProgress(bytesWritten: Long, kbPerS: Long) {

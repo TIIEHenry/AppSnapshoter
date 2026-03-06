@@ -1,11 +1,21 @@
 <resources>
     <string name="app_name">AppSnapShotor</string>
-    
+
     <!-- 应用筛选 -->
     <string name="app_filter_all">全部应用</string>
     <string name="app_filter_system_only">仅系统应用</string>
     <string name="app_filter_user_only">仅用户应用</string>
-    
+
     <!-- 多选模式 -->
     <string name="selected_count">已选择 %d 项</string>
+
+    <!-- 设置 -->
+    <string name="settings">设置</string>
+    <string name="ignore_apps">忽略应用</string>
+    <string name="ignore_apps_description">管理要忽略的应用，被忽略的应用不会显示在应用列表中</string>
+    <string name="add_ignore_app">添加忽略应用</string>
+    <string name="remove_ignore_app">移除</string>
+    <string name="remove_ignore_app_confirm">确定要从忽略列表中移除 %s 吗？</string>
+    <string name="no_ignored_apps">暂无忽略的应用</string>
+    <string name="long_press_to_remove">长按可移除应用</string>
 </resources>

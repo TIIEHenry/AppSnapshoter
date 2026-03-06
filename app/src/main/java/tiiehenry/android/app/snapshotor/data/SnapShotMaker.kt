@@ -22,7 +22,6 @@ import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.isRegularFile
-import kotlin.io.path.pathString
 
 object SnapShotMaker {
 
@@ -51,12 +50,12 @@ object SnapShotMaker {
             fileSystem.mkdirs(archiveDir)
 
             // 获取要压缩的项目
-            val compressItems = if (appConfig.shotConfig.hasCompressItems) {
+            val compressItems = if (appConfig.shotConfig.hasCompressItems()) {
                 appConfig.shotConfig.compressItems
             } else {
                 groupConfig.shotConfig.compressItems
             }
-            val compressAlgorithm = if (appConfig.shotConfig.hasCompressAlgorithm) {
+            val compressAlgorithm = if (appConfig.shotConfig.hasCompressAlgorithm()) {
                 appConfig.shotConfig.compressAlgorithm
             } else {
                 groupConfig.shotConfig.compressAlgorithm
@@ -114,7 +113,7 @@ object SnapShotMaker {
                     }
 
                     CompressItems.COMPRESS_ITEM_DATA -> {
-                        val dataPath = appInfo.getDataDir()
+                        val dataPath = appInfo.getPackageDataDir()
                         if (fileSystem.fileType(dataPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, dataPath)
                             val fileName = "data$extension"
@@ -187,7 +186,7 @@ object SnapShotMaker {
                     }
 
                     CompressItems.COMPRESS_ITEM_OBB -> {
-                        val obbPath = appInfo.getObbDir()
+                        val obbPath = appInfo.getPackageObbDir()
                         if (fileSystem.fileType(obbPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, obbPath)
                             val fileName = "obb$extension"
@@ -210,12 +209,12 @@ object SnapShotMaker {
                         }
                     }
 
-                    CompressItems.COMPRESS_ITEM_EXTERNAL_DATA -> {
-                        val externalDataPath = appInfo.getExternalDataDir()
+                    CompressItems.COMPRESS_ITEM_MEDIA -> {
+                        val externalDataPath = appInfo.getPackageMediaDir()
                         if (fileSystem.fileType(externalDataPath) != IFileType.TYPE_NONE) {
                             val extension =
                                 compressor.fileExtension(algorithm, item, externalDataPath)
-                            val fileName = "external_data$extension"
+                            val fileName = "media$extension"
                             val task = compressor.compress(
                                 algorithm,
                                 externalDataPath,
@@ -280,9 +279,17 @@ object SnapShotMaker {
                     val permissions = appInfo.getPermissions(appManager)
                         .map { MetaPermission.fromAppPermission(it) }
                     val dataItems = compressItems.map { "${it}.json" }
+                    val uid = appManager.getPackageUid(appInfo.packageName, appInfo.userId)
+                    val ssaid = try {
+                        appManager.getPackageSsaidAsUser(appInfo.packageName, uid, appInfo.userId) ?: ""
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        ""
+                    }
                     val metaInfo = MetaInfo(
                         metaPackageInfo,
                         appInfo.userId,
+                        ssaid,
                         dataItems,
                         permissions,
                         makeTime
@@ -388,7 +395,6 @@ object SnapShotMaker {
                     algorithm,
                     itemType,
                     fileName,
-                    itemType,
                     originSize,
                     targetSize,
                     md5,

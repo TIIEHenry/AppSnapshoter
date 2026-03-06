@@ -1,56 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:background="?android:attr/selectableItemBackground"
-    android:paddingVertical="5dp"
-    android:paddingHorizontal="10dp"
-    android:gravity="center_vertical">
+    android:paddingHorizontal="5dp"
+    android:paddingVertical="5dp">
 
     <ImageView
         android:id="@+id/app_icon"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:contentDescription="App Icon" />
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:contentDescription="App Icon"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/app_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:layout_marginStart="12dp"
-        android:orientation="vertical">
+        android:ellipsize="marquee"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:text="App Name"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/app_checkbox"
+        app:layout_constraintStart_toEndOf="@id/app_icon"
+        app:layout_constraintTop_toTopOf="@id/app_icon" />
 
-        <TextView
-            android:id="@+id/app_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="App Name"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+    <TextView
+        android:id="@+id/app_package"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="marquee"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:text="com.example.app"
+        android:textColor="?android:textColorSecondary"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toStartOf="@id/app_checkbox"
+        app:layout_constraintStart_toStartOf="@id/app_name"
+        app:layout_constraintTop_toBottomOf="@id/app_name" />
 
-        <TextView
-            android:id="@+id/app_package"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="com.example.app"
-            android:textSize="12sp"
-            android:textColor="?android:textColorSecondary" />
-
-        <TextView
-            android:id="@+id/app_version"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1.0.0 (1)"
-            android:textSize="12sp"
-            android:textColor="?android:textColorSecondary" />
-
-    </LinearLayout>
+    <TextView
+        android:id="@+id/app_version"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="marquee"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:text="1.0.0 (1)"
+        android:textColor="?android:textColorSecondary"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@id/app_icon"
+        app:layout_constraintEnd_toStartOf="@id/app_checkbox"
+        app:layout_constraintStart_toStartOf="@id/app_name" />
 
     <CheckBox
         android:id="@+id/app_checkbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

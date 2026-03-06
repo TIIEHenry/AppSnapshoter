@@ -2,7 +2,7 @@ package tiiehenry.android.snapshotor.provider.filesystem
 
 import org.junit.Test
 import tiiehenry.android.snapshotor.file.ICompressCallback
-import tiiehenry.android.snapshotor.provider.filesystem.compressors.ZstdCompressor
+import tiiehenry.android.snapshotor.provider.filesystem.compressors.zstd.ZstdCompressor
 import java.io.File
 import kotlin.test.assertTrue
 

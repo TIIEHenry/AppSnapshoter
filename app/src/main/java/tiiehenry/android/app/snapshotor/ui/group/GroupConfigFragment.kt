@@ -37,18 +37,24 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
     private lateinit var shotOptionsManager: ShotOptionsManager
     private lateinit var pairedDeviceAdapter: PairedDeviceAdapter
     private lateinit var sortTypeSpinner: Spinner
+    private var onConfigSavedListener: (() -> Unit)? = null
 
     companion object {
         private const val ARG_GROUP_ID = "group_id"
 
-        fun newInstance(group: SnapGroup): GroupConfigFragment {
+        fun newInstance(group: SnapGroup, onConfigSaved: (() -> Unit)? = null): GroupConfigFragment {
             val fragment = GroupConfigFragment()
             val args = Bundle()
             args.putString(ARG_GROUP_ID, group.id)
             fragment.arguments = args
             fragment.groupConfig = group.config
+            fragment.onConfigSavedListener = onConfigSaved
             return fragment
         }
+    }
+
+    fun setOnConfigSavedListener(listener: () -> Unit) {
+        onConfigSavedListener = listener
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +103,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
     private fun initViews() {
         binding.btnSave.setOnClickListener {
             saveConfig()
+            onConfigSavedListener?.invoke()
             dismiss()
         }
 
@@ -176,6 +183,9 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         // 保存同步目标和系统
         groupConfig.syncConfig.syncTargets = syncOptionsManager.getSyncTargets()
         groupConfig.syncConfig.syncSystems = syncOptionsManager.getSyncSystems()
+
+        // 保存所有配置到文件
+        groupConfig.save()
     }
 
     private fun loadPairedDevices() {

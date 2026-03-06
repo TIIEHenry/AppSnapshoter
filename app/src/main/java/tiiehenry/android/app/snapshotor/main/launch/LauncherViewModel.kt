@@ -1,5 +1,6 @@
 package tiiehenry.android.app.snapshotor.main.launch
 
+import android.app.AppOpsManagerHidden
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
@@ -8,6 +9,7 @@ import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.tencent.mmkv.MMKV
+import com.xayah.core.util.command.SELinux
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,13 +23,12 @@ import tiiehenry.android.app.snapshotor.data.MetaInfoHelper
 import tiiehenry.android.app.snapshotor.group.SnapedApp
 import tiiehenry.android.app.snapshotor.ui.dialog.LoadingDialog
 import tiiehenry.android.app.snapshotor.util.ApkUtil
+import tiiehenry.android.snapshotor.app.AppPermission
 import tiiehenry.android.snapshotor.app.IAppManager
 import tiiehenry.android.snapshotor.file.ICompressCallback
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.CompressState
-import java.io.File
 import java.nio.file.Paths
-import kotlin.io.path.pathString
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -196,6 +197,62 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        // 恢复权限
+        withContext(Dispatchers.Main) {
+            loadingDialog.setMessage("正在恢复权限...")
+        }
+        val archiveDir = ArchivedApks.getArchivedApkDir(
+            snapedApp.packageDir,
+            archiveItem.metaInfo.packageInfo.versionCode
+        )
+        val permissionsFile = "$archiveDir/${MetaInfoHelper.PERMISSIONS_FILE_NAME}"
+        val metaPermissions = MetaInfoHelper.readPermissions(fs, permissionsFile)
+        if (metaPermissions.isNotEmpty()) {
+            val appPermissions = metaPermissions.map { metaPermission ->
+                AppPermission(
+                    metaPermission.isGranted(),
+                    metaPermission.mode,
+                    metaPermission.name,
+                    metaPermission.op
+                )
+            }
+
+            // 获取uid和UserHandle
+            val uid = appManager.getPackageUid(packageName, userId)
+            val user = appManager.getUserHandle(userId)
+
+            if (uid != -1 && user != null) {
+                // 重置AppOps
+                appManager.resetAppOps(userId, packageName)
+
+                Log.i("LauncherViewModel", "Permissions size: ${appPermissions.size}...")
+                appPermissions.forEach {
+                    Log.i(
+                        "LauncherViewModel",
+                        "Permission name: ${it.name}, isGranted: ${it.isGranted}, op: ${it.op}, mode: ${it.mode}"
+                    )
+                    runCatching {
+                        if (it.isGranted) {
+                            appManager.grantRuntimePermission(packageName, it.name, user)
+                        } else {
+                            appManager.revokeRuntimePermission(packageName, it.name, user)
+                        }
+                        if (it.op != AppOpsManagerHidden.OP_NONE) {
+                            appManager.setOpsMode(it.op, uid, packageName, it.mode)
+                        }
+                    }
+                }
+                Log.i("LauncherViewModel", "已恢复 ${appPermissions.size} 个权限")
+            } else {
+                Log.i("LauncherViewModel", "Failed to get uid or user handle for $packageName")
+            }
+        } else {
+            Log.i("LauncherViewModel", "未找到权限数据或权限列表为空")
+        }
+
+        if (archiveItem.metaInfo.ssaid.isNotEmpty()) {
+            appManager.setPackageSsaidAsUser(packageName, userId, archiveItem.metaInfo.ssaid)
+        }
         withContext(Dispatchers.Main) {
             loadingDialog.dismiss()
             Toast.makeText(context, "存档恢复成功", Toast.LENGTH_SHORT).show()
@@ -239,7 +296,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 withContext(Dispatchers.Main) {
                     loadingDialog.setMessage("正在恢复应用数据...")
                 }
-                restoreData(fs, archiveItem, dataItem, appInfo.getDataDir(), callback)
+                restoreData(
+                    fs,
+                    appManager,
+                    archiveItem,
+                    dataItem,
+                    appInfo.getPackageDataDir(),
+                    callback
+                )
                 true
             }
 
@@ -248,7 +312,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 withContext(Dispatchers.Main) {
                     loadingDialog.setMessage("正在恢复用户数据...")
                 }
-                restoreData(fs, archiveItem, dataItem, appInfo.getUserDir(), callback)
+                restoreData(fs, appManager, archiveItem, dataItem, appInfo.getUserDir(), callback)
                 true
             }
 
@@ -257,7 +321,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 withContext(Dispatchers.Main) {
                     loadingDialog.setMessage("正在恢复用户DE数据...")
                 }
-                restoreData(fs, archiveItem, dataItem, appInfo.getUserDeDir(), callback)
+                restoreData(fs, appManager, archiveItem, dataItem, appInfo.getUserDeDir(), callback)
                 true
             }
 
@@ -266,16 +330,30 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 withContext(Dispatchers.Main) {
                     loadingDialog.setMessage("正在恢复OBB数据...")
                 }
-                restoreData(fs, archiveItem, dataItem, appInfo.getObbDir(), callback)
+                restoreData(
+                    fs,
+                    appManager,
+                    archiveItem,
+                    dataItem,
+                    appInfo.getPackageObbDir(),
+                    callback
+                )
                 true
             }
 
-            CompressItems.COMPRESS_ITEM_EXTERNAL_DATA -> {
+            CompressItems.COMPRESS_ITEM_MEDIA -> {
                 // 恢复外部数据
                 withContext(Dispatchers.Main) {
                     loadingDialog.setMessage("正在恢复外部数据...")
                 }
-                restoreData(fs, archiveItem, dataItem, appInfo.getExternalDataDir(), callback)
+                restoreData(
+                    fs,
+                    appManager,
+                    archiveItem,
+                    dataItem,
+                    appInfo.getPackageMediaDir(),
+                    callback
+                )
                 true
             }
 
@@ -401,8 +479,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    private fun restoreData(
+    private suspend fun restoreData(
         fs: IFileSystem,
+        appManager: IAppManager,
         archiveItem: ArchiveItem,
         dataItem: MetaDataItem,
         targetDir: String,
@@ -418,10 +497,30 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
 
         try {
+            val packageInfo = appManager.getPackageInfo(
+                archiveItem.metaInfo.packageInfo.packageName,
+                0,
+                archiveItem.metaInfo.userId
+            )
+            val uid = packageInfo?.applicationInfo?.uid ?: run {
+                callback.onError("无法获取应用UID")
+                return false
+            }
+
+            // Get the SELinux context of the path.
+            val pathContext: String
+            SELinux.getContext(path = targetDir).also { result ->
+                pathContext = if (result.isSuccess) result.outString else ""
+            }
+
+            Log.i("LauncherViewModel", "Original SELinux context: $pathContext.")
             // 确保目标目录存在
             val parentDir = fs.getParent(targetDir) ?: ""
             if (parentDir.isNotEmpty()) {
                 fs.mkdirs(parentDir)
+            }
+            if (targetDir.endsWith("/" + archiveItem.metaInfo.userId)) {
+                throw Exception("！！！！！！！！！！！！ wrong dir: $targetDir")
             }
 
             // 解压数据
@@ -436,12 +535,50 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 Thread.sleep(100)
                 state = task?.state() ?: CompressState.COMPRESS_STATE_ERROR
             }
+            var isSuccess = state == CompressState.COMPRESS_STATE_COMPLETE
 
-            if (state != CompressState.COMPRESS_STATE_COMPLETE) {
+            if (!isSuccess) {
                 callback.onError("数据解压失败: ${dataItem.file}")
+            } else {
+                // Restore SELinux context.
+                var gid: UInt = uid.toUInt()
+                if (dataItem.name == CompressItems.COMPRESS_ITEM_DATA || dataItem.name == CompressItems.COMPRESS_ITEM_OBB || dataItem.name == CompressItems.COMPRESS_ITEM_MEDIA) {
+                    val pathGid = fs.getGid(targetDir)
+                    gid = pathGid.toUInt()
+                }
+                val out = mutableListOf<String>()
+                SELinux.chown(uid = uid.toUInt(), gid = gid, path = targetDir).also { result ->
+                    isSuccess = isSuccess && result.isSuccess
+                    out.addAll(result.out)
+                }
+                if (pathContext.isNotEmpty()) {
+                    SELinux.chcon(context = pathContext, path = targetDir).also { result ->
+                        isSuccess = isSuccess && result.isSuccess
+                        out.addAll(result.out)
+                    }
+                } else {
+                    //data/user/0/pkg的父文件夹就是0了，这里不要随便改
+//                    val parentContext: String
+//                    SELinux.getContext(parentDir).also { result ->
+//                        parentContext = if (result.isSuccess) result.outString.replace(
+//                            "system_data_file",
+//                            "app_data_file"
+//                        ) else ""
+//                    }
+//                    if (parentContext.isNotEmpty()) {
+//                        SELinux.chcon(context = parentContext, path = targetDir).also { result ->
+//                            isSuccess = isSuccess && result.isSuccess
+//                            out.addAll(result.out)
+//                        }
+//                    } else {
+//                        isSuccess = false
+//                        out.add("Failed to restore context: $targetDir")
+//                    }
+                }
+                Log.i("LauncherViewModel", "Restore SELinux context: ${out.joinToString(", ")}")
             }
 
-            return true
+            return isSuccess
         } catch (e: Exception) {
             callback.onError("恢复数据出错: ${e.message}")
             return true

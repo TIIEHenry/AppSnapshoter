@@ -4,20 +4,29 @@ import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshotor.R
+import tiiehenry.android.app.snapshotor.SnapShotApp
 import tiiehenry.android.app.snapshotor.archive.ArchiveItem
 import tiiehenry.android.app.snapshotor.databinding.ItemArchiveBinding
+import tiiehenry.android.app.snapshotor.utils.ArchiveRenameHelper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class ArchiveItemAdapter(
     private val onItemClick: (ArchiveItem, Boolean) -> Unit,
-    private val onDeleteClick: (ArchiveItem) -> Unit
+    private val onDeleteClick: (ArchiveItem) -> Unit,
+    private val onRenameSuccess: ((oldName: String, newName: String) -> Unit)? = null
 ) : ListAdapter<ArchiveItem, ArchiveItemAdapter.ViewHolder>(ArchiveItemDiffCallback()) {
 
     // 添加删除模式标志
@@ -44,6 +53,7 @@ class ArchiveItemAdapter(
 
         fun bind(item: ArchiveItem) {
             binding.archiveName.text = item.name
+            binding.archiveUserid.text = "u${item.metaInfo.userId}"
 
             // 根据删除模式更新UI
             if (deleteMode) {
@@ -67,7 +77,7 @@ class ArchiveItemAdapter(
                 binding.archiveIcon.setColorFilter(Color.BLACK)
                 binding.archiveName.setTextColor(Color.BLACK)
 
-                binding.archiveIcon.setOnClickListener{
+                binding.archiveIcon.setOnClickListener {
                     onItemClick.invoke(item, true)
                 }
                 // 正常模式下的点击事件
@@ -131,6 +141,9 @@ class ArchiveItemAdapter(
             AlertDialog.Builder(context)
                 .setTitle("存档信息 - ${item.name}")
                 .setMessage(message)
+                .setNeutralButton("重命名") { _, _ ->
+                    showRenameDialog(item, context)
+                }
                 .setPositiveButton("确定", null)
                 .show()
         }
@@ -155,6 +168,60 @@ class ArchiveItemAdapter(
             } else {
                 "0%"
             }
+        }
+
+        /**
+         * 显示重命名对话框
+         */
+        private fun showRenameDialog(item: ArchiveItem, context: Context) {
+            val input = android.widget.EditText(context)
+            input.setText(item.name)
+            input.setSelection(item.name.length)
+
+            AlertDialog.Builder(context)
+                .setTitle("重命名存档")
+                .setView(input)
+                .setPositiveButton("确定") { _, _ ->
+                    val newName = input.text.toString().trim()
+                    if (newName.isNotEmpty() && newName != item.name) {
+                        // 执行重命名操作
+                        (binding.root.context as? LifecycleOwner)?.lifecycleScope?.launch {
+                            val fs = SnapShotApp.getInstance().fileSystem
+                            val success = ArchiveRenameHelper.renameArchive(
+                                fs,
+                                item.path,
+                                item.name,
+                                newName
+                            )
+
+                            withContext(Dispatchers.Main) {
+                                if (success) {
+                                    Toast.makeText(
+                                        context,
+                                        "存档 '${item.name}' 已重命名为 '$newName'",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    // 通知UI更新
+                                    onRenameSuccess?.invoke(item.name, newName)
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "重命名失败",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
+                    } else if (newName == item.name) {
+                        Toast.makeText(
+                            context,
+                            "新名称与原名称相同",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
         }
     }
 

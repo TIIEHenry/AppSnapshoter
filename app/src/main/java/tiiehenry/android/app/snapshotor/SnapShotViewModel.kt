@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshotor.app.AppInfo
 import tiiehenry.android.app.snapshotor.config.GlobalConfig
 import tiiehenry.android.app.snapshotor.group.SnapGroup
-import tiiehenry.android.snapshotor.fs.IFileType
+import tiiehenry.android.snapshotor.app.UserInfoParcelable
 import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 import java.util.UUID
@@ -26,16 +26,19 @@ class SnapShotViewModel : ViewModel() {
     val groupList = MutableLiveData<List<SnapGroup>>()
 
     /**
-     * userId to appInfo list
+     * UserInfoParcelable to appInfo list
      */
-    val appsList = MutableLiveData<Map<Int, List<AppInfo>>>(emptyMap())
+    val appsList = MutableLiveData<Map<UserInfoParcelable, List<AppInfo>>>(emptyMap())
+
+    /**
+     * 应用列表加载状态
+     */
+    val isAppsLoading = MutableLiveData<Boolean>(false)
 
     fun loadData() {
         viewModelScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.IO) {
-                loadGroups()
-                loadApps()
-            }
+            loadGroups()
+            loadApps()
         }
     }
 
@@ -57,47 +60,65 @@ class SnapShotViewModel : ViewModel() {
 
     private fun loadApps() {
         Log.i(TAG, "loadApps")
+        isAppsLoading.postValue(true)
         try {
             // 从系统加载已安装应用列表
-            val packageNames =
-                SnapShotApp.getInstance().appManager.getInstalledPackages(0, 0) ?: emptyList()
-            val appsMap = mutableMapOf<Int, List<AppInfo>>()
-            val apps = packageNames.mapNotNull { packageName ->
+            val appManager = SnapShotApp.getInstance().appManager
+            val appsMap = mutableMapOf<UserInfoParcelable, List<AppInfo>>()
+
+            // 获取所有用户列表
+            val userInfos = appManager.users ?: listOf()
+
+            Log.i(TAG, "loadApps: userInfos ${userInfos}")
+            // 遍历每个用户获取应用列表
+            for (userInfo in userInfos) {
+                val userId = userInfo.id
                 try {
-                    val packageInfo =
-                        SnapShotApp.getInstance().appManager.getPackageInfo(packageName, 0, 0)
-                    val appInfo = AppInfo(
-                        fs = SnapShotApp.getInstance().fileSystem,
-                        appManager = SnapShotApp.getInstance().appManager,
-                        packageName = packageName,
-                        userId = 0,
-                        versionName = packageInfo?.versionName,
-                        versionCode = packageInfo?.longVersionCode ?: 0
-                    )
-                    appInfo
+                    val packageNames = appManager.getInstalledPackages(0, userId) ?: emptyList()
+                    val apps = packageNames.mapNotNull { packageName ->
+                        try {
+                            val packageInfo = appManager.getPackageInfo(packageName, 0, userId)
+                            val appInfo = AppInfo(
+                                fs = SnapShotApp.getInstance().fileSystem,
+                                appManager = appManager,
+                                packageName = packageName,
+                                userId = userId,
+                                versionName = packageInfo?.versionName,
+                                versionCode = packageInfo?.longVersionCode ?: 0
+                            )
+                            appInfo
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            null
+                        }
+                    }
+                    appsMap[userInfo] = apps
                 } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
+                    Log.e(TAG, "Failed to load apps for user $userId", e)
                 }
             }
-            appsMap[0] = apps
+
             appsList.postValue(appsMap)
         } catch (e: Exception) {
             e.printStackTrace()
             appsList.postValue(emptyMap())
+        } finally {
+            isAppsLoading.postValue(false)
         }
     }
 
-    fun addGroup(name: String) {
+    fun addGroup(name: String, path: String? = null) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 // 生成唯一ID
                 val groupId = UUID.randomUUID().toString().substring(0, 7)
 
-                SnapGroup(groupId).name = name
+                val group = SnapGroup(groupId)
+                group.name = name
+                path?.let { group.path = it }
 
                 // 保存到全局配置
-                val currentGroups = GlobalConfig.groups.toMutableSet()
+                val currentGroups = GlobalConfig.groups.toMutableList()
                 currentGroups.add(groupId)
                 GlobalConfig.groups = currentGroups
 
@@ -107,14 +128,17 @@ class SnapShotViewModel : ViewModel() {
         }
     }
 
-    fun addAppsToGroup(groupId: String, appInfos: List<AppInfo>,callback:()-> Unit) {
+    fun addAppsToGroup(groupId: String, appInfos: List<AppInfo>, callback: () -> Unit) {
         viewModelScope.launch {
             try {
                 // 获取分组
                 val group = groupList.value?.find { it.id == groupId } ?: return@launch
                 for (appInfo in appInfos) {
                     val packageName = appInfo.packageName
-                    android.util.Log.d("addAppsToGroup", "Adding app: $packageName to group: ${group.id}")
+                    android.util.Log.d(
+                        "addAppsToGroup",
+                        "Adding app: $packageName to group: ${group.id}"
+                    )
                     // 创建应用目录
                     val packageDir = Paths.get(group.path, packageName).absolutePathString()
                     if (!SnapShotApp.getInstance().fileSystem.exists(packageDir)) {
@@ -142,7 +166,7 @@ class SnapShotViewModel : ViewModel() {
 
                 // 通知 UI 更新
 //                loadGroups()
-                withContext(Dispatchers.Main){
+                withContext(Dispatchers.Main) {
                     callback()
                 }
             } catch (e: Exception) {
@@ -176,7 +200,7 @@ class SnapShotViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 // 获取分组
-                GlobalConfig.groups = GlobalConfig.groups.toMutableSet().apply {
+                GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply {
                     remove(groupId)
                 }
                 groupList.value?.find { it.id == groupId }?.let {

@@ -1,115 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/round_white_background"
-    android:orientation="vertical"
-    android:padding="8dp">
+    android:layout_height="wrap_content">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:background="@drawable/round_white_background"
+        android:orientation="vertical"
+        android:layout_marginBottom="8dp"
+        android:padding="8dp">
 
-        <TextView
-            android:id="@+id/group_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="分组名称"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/btn_add"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="添加"
-            android:src="@drawable/plus" />
-
-        <ImageButton
-            android:id="@+id/btn_move"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="移动"
-            android:src="@drawable/text_box_edit_outline" />
-
-        <ImageButton
-            android:id="@+id/btn_tune"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="设置"
-            android:src="@drawable/tune" />
-
-        <ImageButton
-            android:id="@+id/btn_refresh"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="刷新"
-            android:src="@drawable/refresh" />
-
-    </LinearLayout>
-
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
-
-        <FrameLayout
-            android:id="@+id/expand_group"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <ImageView
-                android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/group_title"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:scaleType="centerInside"
-                android:src="@drawable/chevron_down" />
-        </FrameLayout>
+                android:layout_weight="1"
+                android:paddingHorizontal="8dp"
+                android:text="分组名称"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-        <FrameLayout
-            android:id="@+id/empty_layout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:visibility="gone">
-
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:scaleType="centerInside"
+            <ImageButton
+                android:id="@+id/btn_add"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="添加"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
                 android:src="@drawable/plus" />
-        </FrameLayout>
+
+            <ImageButton
+                android:id="@+id/btn_move"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="移动"
+                android:padding="10dp"
+                android:src="@drawable/app_sort" />
+
+            <ImageButton
+                android:id="@+id/btn_tune"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="设置"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/tune" />
+
+            <ImageButton
+                android:id="@+id/btn_refresh"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="刷新"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/refresh" />
+
+        </LinearLayout>
 
         <FrameLayout
-            android:id="@+id/app_layout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
 
-            <ProgressBar
-                android:id="@+id/progress_bar"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_gravity="center"
-                android:layout_margin="10dp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/group_recycler_view"
+            <FrameLayout
+                android:id="@+id/expand_group"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground">
 
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/chevron_down" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/empty_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/plus" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/app_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ProgressBar
+                    android:id="@+id/progress_bar"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_gravity="center"
+                    android:layout_margin="10dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/group_recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+            </FrameLayout>
         </FrameLayout>
-    </FrameLayout>
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>

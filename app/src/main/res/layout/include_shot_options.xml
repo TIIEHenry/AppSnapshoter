@@ -85,7 +85,7 @@
             android:text="OBB" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/chip_external_data"
+            android:id="@+id/chip_media"
             style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

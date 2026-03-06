@@ -2,10 +2,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_launcher"
-        android:icon="@android:drawable/ic_menu_view"
+        android:icon="@drawable/tab_archive"
         android:title="存档" />
     <item
         android:id="@+id/nav_apps"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:icon="@drawable/tab_apps"
         android:title="应用" />
 </menu>

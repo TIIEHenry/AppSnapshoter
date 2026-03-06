@@ -2,20 +2,23 @@ package tiiehenry.android.app.snapshotor.app
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.createBitmap
 import tiiehenry.android.app.snapshotor.SnapShotApp
-import tiiehenry.android.app.snapshotor.util.PathHelper
 import tiiehenry.android.snapshotor.app.AppPermission
 import tiiehenry.android.snapshotor.app.IAppManager
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.IFileType
+import java.io.IOException
+import java.util.zip.ZipFile
 
 data class AppInfo(
     val fs: IFileSystem,
@@ -25,6 +28,7 @@ data class AppInfo(
     val versionName: String? = null,
     val versionCode: Long = 0,
 ) {
+    var archiveLabel: String? = null
     var packageInfo: PackageInfo? = null
 
     companion object {
@@ -63,6 +67,11 @@ data class AppInfo(
         ).also {
             android.util.Log.w("AppInfo", "Using default icon for $packageName")
         }
+    }
+
+
+    val label: String by lazy {
+        loadLabel(appManager) ?: archiveLabel ?: packageName
     }
 
     private fun drawableToBitmap(drawable: Drawable): Bitmap {
@@ -108,10 +117,6 @@ data class AppInfo(
         return null
     }
 
-    val label: String by lazy {
-        loadLabel(appManager) ?: packageName
-    }
-
     fun loadLabel(appManager: IAppManager): String? {
         if (appManager.isInstalled(packageName, userId)) {
             return appManager.loadLabel(packageName, userId)
@@ -119,55 +124,88 @@ data class AppInfo(
     }
 
     fun getApplicationInfo(appManager: IAppManager): ApplicationInfo? {
-        return appManager.getApplicationInfo(packageName, 0, userId)
+        return appManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA, userId)
     }
 
     fun getPackageInfo(appManager: IAppManager): PackageInfo? {
-        return appManager.getPackageInfo(packageName, 0, userId)
+        return appManager.getPackageInfo(packageName, PackageManager.GET_META_DATA, userId)
     }
 
     fun getPermissions(appManager: IAppManager): List<AppPermission> {
         return appManager.getPermissions(packageName, userId) ?: emptyList()
     }
 
-    fun isSystemApp(appManager: IAppManager): Boolean {
-        val appInfo = getApplicationInfo(appManager) ?: return false
-        return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+    val isSystemApp: Boolean by lazy {
+        val appInfo = getApplicationInfo(appManager)
+        appInfo != null && (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+    }
+
+    /**
+     * 检查应用是否是Xposed模块
+     */
+    val isXposedModule: Boolean by lazy {
+        val applicationInfo = getApplicationInfo(appManager) ?: return@lazy false
+        try {
+            val metaData = applicationInfo.metaData
+            (metaData?.containsKey("xposedminversion") == true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        } || isModernModules(applicationInfo)
+    }
+
+    private fun isModernModules(info: ApplicationInfo): Boolean {
+        val apks = mutableListOf<String>()
+        apks.add(info.sourceDir)
+        apks.addAll(info.splitSourceDirs?.toMutableList() ?: emptyList())
+        for (apk in apks) {
+            try {
+                ZipFile(apk).use { zip ->
+                    if (zip.getEntry("META-INF/xposed/java_init.list") != null) {
+                        return true
+                    }
+                }
+            } catch (ignored: IOException) {
+            }
+        }
+        return false
     }
 
     /**
      * 获取应用的用户数据目录 (/data/user/[userId]/[packageName])
      */
     fun getUserDir(): String {
-        return PathHelper.getAppUserDir(userId, packageName)
+        return getPackageUserDir(userId)
     }
 
     /**
      * 获取应用的用户DE数据目录 (/data/user_de/[userId]/[packageName])
      */
     fun getUserDeDir(): String {
-        return PathHelper.getAppUserDeDir(userId, packageName)
-    }
-
-    /**
-     * 获取应用的数据目录 (/sdcard/Android/data/[packageName])
-     */
-    fun getDataDir(): String {
-        return PathHelper.getAppDataDir(userId, packageName)
+        return getPackageUserDeDir(userId)
     }
 
     /**
      * 获取应用的OBB目录 (/sdcard/Android/obb/[packageName])
      */
-    fun getObbDir(): String {
-        return PathHelper.getAppObbDir(userId, packageName)
+    fun getPackageObbDir(): String {
+        return getPackageObbDir(userId)
     }
 
-    /**
-     * 获取应用的外部数据目录
-     * 目前返回数据目录，可根据需要扩展
-     */
-    fun getExternalDataDir(): String {
-        return getDataDir()
+    fun getDataMediaDir(): String = "/data/media"
+
+    fun getPackageMediaDir(): String {
+        return "${getDataMediaDir()}/${userId}/Android/media/$packageName"
     }
+
+    fun getPackageDataDir(): String = getPackageDataDir(userId)
+
+    fun getPackageUserDir(userId: Int): String = "/data/user/${userId}/$packageName"
+    fun getPackageUserDeDir(userId: Int): String = "/data/user_de/${userId}/$packageName"
+    fun getPackageDataDir(userId: Int): String =
+        "${getDataMediaDir()}/${userId}/Android/data/$packageName"
+
+    fun getPackageObbDir(userId: Int): String =
+        "${getDataMediaDir()}/${userId}/Android/obb/$packageName"
+
 }
