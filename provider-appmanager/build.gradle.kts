@@ -23,12 +23,12 @@ android {
             )
         }
     }
-    
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    
+
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -49,11 +49,12 @@ dependencies {
     implementation(project(":api"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    
+
     // Root service dependencies
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
-    
+    implementation(libs.libsu.nio)
+
     // Hidden API
     implementation(project(":hiddenapi"))
     implementation(project(":systemapi"))
@@ -61,15 +62,15 @@ dependencies {
 
     // Native library
     implementation(project(":native"))
-    
-    // Zstd compression
-    implementation(libs.zstd.jni)
-    
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
-    
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // Compression
+    implementation(libs.zstd.jni)
 }

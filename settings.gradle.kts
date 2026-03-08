@@ -28,7 +28,7 @@ include(":api")
 include(":hiddenapi")
 include(":systemapi")
 include(":native")
-include(":provider-filesystem")
+//include(":provider-filesystem")
 include(":provider-appmanager")
 include(":provider-datasyncer")
 

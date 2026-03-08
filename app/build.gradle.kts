@@ -48,7 +48,6 @@ dependencies {
     
     // Provider implementations
     implementation(project(":provider-appmanager"))
-     implementation(project(":provider-filesystem"))
     implementation(project(":provider-datasyncer"))
     implementation(project(":hiddenapi"))
 
