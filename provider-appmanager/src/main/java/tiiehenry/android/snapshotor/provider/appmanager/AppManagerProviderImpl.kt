@@ -19,46 +19,44 @@ import tiiehenry.android.snapshotor.app.IAppManager
 import tiiehenry.android.snapshotor.provider.AppManagerProvider
 import tiiehenry.android.snapshotor.provider.appmanager.model.AppInfo
 import tiiehenry.android.snapshotor.provider.appmanager.model.AppStorage
-import tiiehenry.android.snapshotor.provider.appmanager.root.AppManageRootServiceClient
-import tiiehenry.android.snapshotor.provider.appmanager.service.IAppManageRootService
+import tiiehenry.android.snapshotor.provider.appmanager.root.SnapShotRootServiceClient
+import tiiehenry.android.snapshotor.provider.appmanager.service.ISnapShotRootService
 import tiiehenry.android.snapshotor.provider.appmanager.util.LogHelper
 import tiiehenry.android.snapshotor.provider.appmanager.util.PathHelper
 
 class AppManagerProviderImpl(
-    hostContext: Context,
-    pluginContext: Context
-) : AppManagerProvider(hostContext, pluginContext) {
+    context: Context,
+    val serviceClient: SnapShotRootServiceClient
+) : AppManagerProvider(context) {
 
-    val serviceClient = AppManageRootServiceClient.getInstance()
 
     override fun onInstall() {
-        serviceClient.fetchRemote(pluginContext)
+        serviceClient.fetchRemote(context)
     }
 
     override fun provide(): IAppManager {
-        if (serviceClient.waitFetch(pluginContext) == null) {
-            throw Exception("AppManageRootService is not available")
+        if (serviceClient.waitFetch(context) == null) {
+            throw Exception("SnapShotRootService is not available")
         }
-        return AppManagerImpl(hostContext, pluginContext, serviceClient)
+        return AppManagerImpl(context, serviceClient)
     }
 
     private class AppManagerImpl(
-        private val hostContext: Context,
-        private val pluginContext: Context,
-        private val rootServiceClient: AppManageRootServiceClient
+        private val context: Context,
+        private val rootServiceClient: SnapShotRootServiceClient
     ) : IAppManager.Stub() {
 
-        private val packageManager: PackageManager = hostContext.packageManager
-        private val proxy = AppManageRootServiceProxy(hostContext, rootServiceClient)
+        private val packageManager: PackageManager = context.packageManager
+        private val proxy = SnapShotRootServiceProxy(context, rootServiceClient)
 
         // RootService 客户端类
-        private class AppManageRootServiceProxy(
+        private class SnapShotRootServiceProxy(
             private val context: Context,
-            private val rootServiceClient: AppManageRootServiceClient
+            private val rootServiceClient: SnapShotRootServiceClient
         ) {
             val appInfos = mutableListOf<AppInfo>()
 
-            private fun getRootService(): IAppManageRootService {
+            private fun getRootService(): ISnapShotRootService {
                 return try {
                     rootServiceClient.client!!
                 } catch (e: Exception) {
@@ -113,7 +111,7 @@ class AppManagerProviderImpl(
                     service.getPackageInfo(packageName, flags, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "getPackageInfo",
                         "Failed to get package info",
                         e
@@ -132,7 +130,7 @@ class AppManagerProviderImpl(
                     service.getApplicationInfo(packageName, flags, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "getApplicationInfo",
                         "Failed to get application info",
                         e
@@ -146,7 +144,7 @@ class AppManagerProviderImpl(
                 return try {
                     service.loadLabel(packageName, userId)
                 } catch (e: Exception) {
-                    LogHelper.e("AppManageRootServiceProxy", "loadLabel", "Failed to load label", e)
+                    LogHelper.e("SnapShotRootServiceProxy", "loadLabel", "Failed to load label", e)
                     null
                 }
             }
@@ -156,7 +154,7 @@ class AppManagerProviderImpl(
                 return try {
                     service.loadIcon(packageName, userId)
                 } catch (e: Exception) {
-                    LogHelper.e("AppManageRootServiceProxy", "loadIcon", "Failed to load icon", e)
+                    LogHelper.e("SnapShotRootServiceProxy", "loadIcon", "Failed to load icon", e)
                     null
                 }
             }
@@ -167,7 +165,7 @@ class AppManagerProviderImpl(
                     service.getPermissions(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "getPermissions",
                         "Failed to get permissions",
                         e
@@ -186,7 +184,7 @@ class AppManagerProviderImpl(
                     service.setAppPermission(packageName, userId, permission)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "setAppPermission",
                         "Failed to set permission",
                         e
@@ -204,7 +202,7 @@ class AppManagerProviderImpl(
                     service.setAppPermissions(packageName, userId, permissions)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "setAppPermissions",
                         "Failed to set permissions",
                         e
@@ -218,7 +216,7 @@ class AppManagerProviderImpl(
                     service.isInstalled(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "isInstalled",
                         "Failed to check installation",
                         e
@@ -230,11 +228,11 @@ class AppManagerProviderImpl(
             suspend fun installApk(file: String, userId: Int): Boolean {
                 val service = getRootService()
                 return try {
-                    Log.i("AppManageRootServiceProxy", "installApk: $file")
+                    Log.i("SnapShotRootServiceProxy", "installApk: $file")
                     service.installApk(file, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "installApk",
                         "Failed to install APK",
                         e
@@ -246,11 +244,11 @@ class AppManagerProviderImpl(
             suspend fun installApks(files: List<String>, userId: Int): Boolean {
                 val service = getRootService()
                 return try {
-                    Log.i("AppManageRootServiceProxy", "installApks: ${files.joinToString()}")
+                    Log.i("SnapShotRootServiceProxy", "installApks: ${files.joinToString()}")
                     service.installApks(files, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "installApks",
                         "Failed to install APKs",
                         e
@@ -265,7 +263,7 @@ class AppManagerProviderImpl(
                     service.uninstallApk(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "uninstallApk",
                         "Failed to uninstall APK",
                         e
@@ -280,7 +278,7 @@ class AppManagerProviderImpl(
                     service.forceStopPackage(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "forceStopPackage",
                         "Failed to force-stop package",
                         e
@@ -294,7 +292,7 @@ class AppManagerProviderImpl(
                     service.clearAppData(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "clearAppData",
                         "Failed to clear app data",
                         e
@@ -308,7 +306,7 @@ class AppManagerProviderImpl(
                     service.suspendPackage(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "suspendPackage",
                         "Failed to suspend package",
                         e
@@ -322,7 +320,7 @@ class AppManagerProviderImpl(
                     service.unsuspendPackage(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "unsuspendPackage",
                         "Failed to unsuspend package",
                         e
@@ -340,7 +338,7 @@ class AppManagerProviderImpl(
                     service.grantRuntimePermission(packageName, permName, user)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "grantRuntimePermission",
                         "Failed to grant runtime permission",
                         e
@@ -358,7 +356,7 @@ class AppManagerProviderImpl(
                     service.revokeRuntimePermission(packageName, permName, user)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "revokeRuntimePermission",
                         "Failed to revoke runtime permission",
                         e
@@ -376,7 +374,7 @@ class AppManagerProviderImpl(
                     service.getPermissionFlags(packageName, permName, user)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "getPermissionFlags",
                         "Failed to get permission flags",
                         e
@@ -397,7 +395,7 @@ class AppManagerProviderImpl(
                     service.updatePermissionFlags(packageName, permName, user, flagMask, flagValues)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "updatePermissionFlags",
                         "Failed to update permission flags",
                         e
@@ -411,7 +409,7 @@ class AppManagerProviderImpl(
                     service.getPackageUid(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "getPackageUid",
                         "Failed to get package uid",
                         e
@@ -426,7 +424,7 @@ class AppManagerProviderImpl(
                     service.getUserHandle(userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "getUserHandle",
                         "Failed to get user handle",
                         e
@@ -441,7 +439,7 @@ class AppManagerProviderImpl(
                     service.setOpsMode(code, uid, packageName, mode)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "setOpsMode",
                         "Failed to set ops mode",
                         e
@@ -455,7 +453,7 @@ class AppManagerProviderImpl(
                     service.resetAppOps(userId, packageName)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "resetAppOps",
                         "Failed to reset appops",
                         e
@@ -469,7 +467,7 @@ class AppManagerProviderImpl(
                     service.getPackageSsaidAsUser(packageName, uid, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "getPackageSsaidAsUser",
                         "Failed to get ssaid",
                         e
@@ -486,7 +484,7 @@ class AppManagerProviderImpl(
                         service.setPackageSsaidAsUser(packageName, uid, userId, ssaid)
                     } else {
                         LogHelper.e(
-                            "AppManageRootServiceProxy",
+                            "SnapShotRootServiceProxy",
                             "setPackageSsaidAsUser",
                             "Failed to get uid for package $packageName",
                             Exception()
@@ -494,7 +492,7 @@ class AppManagerProviderImpl(
                     }
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "setPackageSsaidAsUser",
                         "Failed to set ssaid",
                         e
@@ -508,7 +506,7 @@ class AppManagerProviderImpl(
                     service.isPackageRunning(packageName, userId)
                 } catch (e: Exception) {
                     LogHelper.e(
-                        "AppManageRootServiceProxy",
+                        "SnapShotRootServiceProxy",
                         "isPackageRunning",
                         "Failed to check if package is running",
                         e
@@ -549,7 +547,7 @@ class AppManagerProviderImpl(
             }
         }
 
-        //原方法实现...
+        //原方法\u5b9e\u73b0\.\.
 
         override fun getUsers(): List<tiiehenry.android.snapshotor.app.UserInfoParcelable> {
             return try {
@@ -604,7 +602,7 @@ class AppManagerProviderImpl(
                     proxy.getPackageInfo(packageName, flags, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通 PackageManager
+                // 降级到\u666e\u901aPackageManager
                 LogHelper.w(
                     "AppManagerImpl",
                     "getPackageInfo",
@@ -626,7 +624,7 @@ class AppManagerProviderImpl(
                     proxy.getApplicationInfo(packageName, flags, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通 PackageManager
+                // 降级到\u666e\u901aPackageManager
                 LogHelper.w(
                     "AppManagerImpl",
                     "getApplicationInfo",
@@ -645,7 +643,7 @@ class AppManagerProviderImpl(
                     proxy.loadLabel(packageName, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通 PackageManager
+                // 降级到\u666e\u901aPackageManager
                 LogHelper.w(
                     "AppManagerImpl",
                     "loadLabel",
@@ -754,7 +752,7 @@ class AppManagerProviderImpl(
 
         private fun isDeviceOwnerOrProfileOwner(dpm: DevicePolicyManager): Boolean {
             return try {
-                dpm.isDeviceOwnerApp(hostContext.packageName) || dpm.isProfileOwnerApp(hostContext.packageName)
+                dpm.isDeviceOwnerApp(context.packageName) || dpm.isProfileOwnerApp(context.packageName)
             } catch (e: Exception) {
                 false
             }
@@ -763,12 +761,12 @@ class AppManagerProviderImpl(
         override fun isInstalled(packageName: String?, userId: Int): Boolean {
             if (packageName == null) return false
             return try {
-                // 使用 RootService 检查应用是否安装
+                // 使用 RootService 检查应用\u662f\u5426\u5b89\u88c5
                 runBlocking {
                     proxy.isInstalled(packageName, userId)
                 }
             } catch (e: Exception) {
-                // 降级到普通 PackageManager
+                // 降级到\u666e\u901aPackageManager
                 LogHelper.w(
                     "AppManagerImpl",
                     "isInstalled",
@@ -1020,7 +1018,12 @@ class AppManagerProviderImpl(
                     proxy.isPackageRunning(packageName, userId)
                 }
             } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "isPackageRunning", "Failed to check if package is running", e)
+                LogHelper.e(
+                    "AppManagerImpl",
+                    "isPackageRunning",
+                    "Failed to check if package is running",
+                    e
+                )
                 false
             }
         }

@@ -246,16 +246,23 @@ public abstract class IServiceClient<I extends IInterface> {
             onFetched(context, i);
             return i;
         } catch (TimeoutException e) {
-            Log.e(getLogTag(), "Timeout waiting for service binding: " + this);
-            if (!isConnected()) {
-//                unbindService(context);
+            Log.w(getLogTag(), "Timeout waiting for service binding, checking if connected: " + this);
+            // 超时后检查服务是否已经连接成功
+            // onServiceConnected 可能在超时后但返回前完成了
+            I cachedClient = client;
+            if (cachedClient != null && cachedClient.asBinder().isBinderAlive() && cachedClient.asBinder().pingBinder()) {
+                Log.i(getLogTag(), "Service connected after timeout, returning client");
+                return cachedClient;
             }
+            Log.e(getLogTag(), "Service not connected after timeout");
         } catch (CancellationException e) {
             Log.e(getLogTag(), "canceled: " + e.getMessage());
         } catch (Exception e) {
             Log.e(getLogTag(), "error: " + e.getMessage());
         } finally {
-            clientFuture = new CompletableFuture<>();
+            // 不要在这里重置 future，因为 onServiceConnected 可能还在使用它
+            // 如果服务已经连接成功，client 不为 null，后续调用可以通过 isConnected() 检测到
+            // clientFuture = new CompletableFuture<>();
         }
         long endTime = System.currentTimeMillis();
         Log.d(getLogTag(), "bindService time: " + (endTime - startTime));
@@ -385,6 +392,7 @@ public abstract class IServiceClient<I extends IInterface> {
         ServiceConnection conn = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder iBinder) {
+                Log.i(getLogTag(), "onServiceConnected: " + name);
                 I i;
                 CompletableFuture<I> future = clientFuture;
                 try {

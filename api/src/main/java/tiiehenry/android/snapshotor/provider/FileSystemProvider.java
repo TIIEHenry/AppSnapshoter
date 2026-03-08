@@ -5,12 +5,10 @@ import android.content.Context;
 import tiiehenry.android.snapshotor.file.IFileSystem;
 
 public abstract class FileSystemProvider implements IProvider<IFileSystem> {
-    protected Context hostContext;
-    protected Context pluginContext;
+    protected Context context;
 
-    public FileSystemProvider(Context hostContext, Context pluginContext) {
-        this.hostContext = hostContext;
-        this.pluginContext = pluginContext;
+    public FileSystemProvider(Context context) {
+        this.context = context;
     }
 
     @Override

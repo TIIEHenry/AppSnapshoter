@@ -44,6 +44,7 @@ public class SnapShotRootServiceClient extends IServiceClient<ISnapShotRootServi
     @Nullable
     @Override
     public ServiceConnection doBind(@NonNull Context context, Intent intent, ServiceConnection conn) {
+        android.util.Log.i(getLogTag(), "doBind");
         RootService.bind(intent, executor, conn);
         return conn;
     }

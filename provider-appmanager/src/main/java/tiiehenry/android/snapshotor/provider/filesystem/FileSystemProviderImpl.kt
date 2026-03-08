@@ -13,7 +13,7 @@ import com.topjohnwu.superuser.ipc.RootService
 import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.runBlocking
 import tiiehenry.android.snapshotor.provider.filesystem.root.fsm.FileSystemManagerRootService
-import tiiehenry.android.snapshotor.provider.filesystem.root.FileSystemRootServiceClient
+import tiiehenry.android.snapshotor.provider.appmanager.root.SnapShotRootServiceClient
 import tiiehenry.android.snapshotor.file.IFileCompressor
 import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.fs.IFileType
@@ -22,22 +22,23 @@ import java.io.File
 import java.util.concurrent.CompletableFuture
 
 class FileSystemProviderImpl(
-    hostContext: Context,
-    pluginContext: Context
-) : FileSystemProvider(hostContext, pluginContext) {
+    context: Context,
+    val serviceClient: SnapShotRootServiceClient
+) : FileSystemProvider(context) {
 
     private lateinit var fsmFuture: CompletableFuture<IBinder>
-    val serviceClient = FileSystemRootServiceClient.getInstance()
 
     override fun onInstall() {
+        Log.i("FileSystemProvider", "Binding to FileSystemManagerRootService")
         fsmFuture = CompletableFuture<IBinder>()
         RootService.bind(
-            Intent(pluginContext, FileSystemManagerRootService::class.java),
+            Intent(context, FileSystemManagerRootService::class.java),
             object : ServiceConnection {
                 override fun onServiceConnected(
                     name: ComponentName,
                     service: IBinder
                 ) {
+                    Log.i("FileSystemProvider", "Bound to FileSystemManagerRootService")
                     fsmFuture.complete(service)
                 }
 
@@ -45,19 +46,24 @@ class FileSystemProviderImpl(
                     fsmFuture.completeExceptionally(Exception("Service disconnected"))
                 }
             })
-        serviceClient.fetchRemote(pluginContext)
+        // SnapShotRootServiceClient 由外部 ProvidersImpl 统一初始化
     }
 
     override fun provide(): IFileSystem {
-        if (serviceClient.waitFetch(pluginContext) == null) {
-            throw Exception("FileSystemRootService is not available")
+        // 如果外部未提供 serviceClient，需要等待连接
+        if (serviceClient.waitFetch(context) == null) {
+            throw Exception("SnapShotRootService is not available")
+        }
+        // 如果已连接，直接使用
+        if (!serviceClient.isConnected) {
+            throw Exception("SnapShotRootService is not connected")
         }
         val fileSystemManager = FileSystemManager.getRemote(fsmFuture.get())
-        return FileSystemImpl(serviceClient, fileSystemManager, pluginContext)
+        return FileSystemImpl(serviceClient, fileSystemManager, context)
     }
 
     private inner class FileSystemImpl(
-        val rootServiceClient: FileSystemRootServiceClient,
+        val rootServiceClient: SnapShotRootServiceClient,
         val fileSystemManager: FileSystemManager,
         val context: Context
     ) :

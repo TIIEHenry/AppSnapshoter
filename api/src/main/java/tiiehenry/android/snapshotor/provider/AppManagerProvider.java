@@ -5,12 +5,10 @@ import android.content.Context;
 import tiiehenry.android.snapshotor.app.IAppManager;
 
 public abstract class AppManagerProvider implements IProvider<IAppManager> {
-    protected Context hostContext;
-    protected Context pluginContext;
+    protected Context context;
 
-    public AppManagerProvider(Context hostContext, Context pluginContext) {
-        this.hostContext = hostContext;
-        this.pluginContext = pluginContext;
+    public AppManagerProvider(Context context) {
+        this.context = context;
     }
 
     @Override
