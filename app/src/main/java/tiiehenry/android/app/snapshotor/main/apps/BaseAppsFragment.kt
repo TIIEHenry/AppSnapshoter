@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,7 +42,7 @@ class AppsListComponent<VB : ViewBinding>(
     interface Callbacks<VB : ViewBinding> {
         fun getRecyclerView(binding: VB): RecyclerView
         fun getUserTabLayout(binding: VB): TabLayout
-        fun getFilterSpinner(binding: VB): android.widget.Spinner
+        fun getFilterChipGroup(binding: VB): ChipGroup
         fun getTagsFilterLayout(binding: VB): TagsFilterLayout
         fun getSearchView(binding: VB): SearchView
         fun setupRecyclerViewAdapter(binding: VB)
@@ -55,8 +56,8 @@ class AppsListComponent<VB : ViewBinding>(
         callbacks.getRecyclerView(binding).layoutManager = LinearLayoutManager(fragment.requireContext())
         callbacks.setupRecyclerViewAdapter(binding)
 
-        // 设置 Spinner
-        setupFilterSpinner()
+        // 设置 Filter ChipGroup
+        setupFilterChips()
 
         // 设置 Tags Filter
         setupTagsFilter()
@@ -134,9 +135,9 @@ class AppsListComponent<VB : ViewBinding>(
         tabs.firstOrNull()?.select()
     }
 
-    private fun setupFilterSpinner() {
-        AppFilterHelper.setupFilterSpinner(
-            callbacks.getFilterSpinner(binding),
+    private fun setupFilterChips() {
+        AppFilterHelper.setupFilterChips(
+            callbacks.getFilterChipGroup(binding),
             fragment.requireContext()
         ) { filterType ->
             viewModel.setFilterType(filterType)
@@ -192,9 +193,9 @@ abstract class BaseAppsFragment<VB : ViewBinding> : Fragment(), AppsListComponen
     abstract override fun getUserTabLayout(binding: VB): TabLayout
 
     /**
-     * 获取 FilterSpinner 实例，由子类实现
+     * 获取 FilterChipGroup 实例，由子类实现
      */
-    abstract override fun getFilterSpinner(binding: VB): android.widget.Spinner
+    abstract override fun getFilterChipGroup(binding: VB): ChipGroup
 
     /**
      * 获取 TagsFilterLayout 实例，由子类实现

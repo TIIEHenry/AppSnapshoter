@@ -20,17 +20,17 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:text="长按并拖动以调整分组顺序"
-        android:textSize="14sp"
-        android:textColor="?android:textColorSecondary" />
+        android:textColor="?android:textColorSecondary"
+        android:textSize="14sp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_groups"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginBottom="16dp"
         android:layout_weight="1"
-        android:minHeight="200dp"
         android:maxHeight="400dp"
-        android:layout_marginBottom="16dp" />
+        android:minHeight="200dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -48,6 +48,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save"
+            style="@style/Widget.Material3.Button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

@@ -1,10 +1,10 @@
 package tiiehenry.android.app.snapshotor.app
 
 import android.content.Context
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Spinner
+import android.view.ContextThemeWrapper
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.R as MaterialR
 import tiiehenry.android.app.snapshotor.R
 
 /**
@@ -23,39 +23,46 @@ enum class AppFilterType {
 object AppFilterHelper {
 
     /**
-     * 设置筛选 Spinner
-     * @param spinner Spinner 控件
+     * 设置筛选 ChipGroup
+     * @param chipGroup ChipGroup 控件
      * @param context Context
      * @param onFilterTypeSelected 筛选类型选择回调
      */
-    fun setupFilterSpinner(
-        spinner: Spinner,
+    fun setupFilterChips(
+        chipGroup: ChipGroup,
         context: Context,
         onFilterTypeSelected: (AppFilterType) -> Unit
     ) {
-        val filterOptions = arrayOf(
-            context.getString(R.string.app_filter_all),
-            context.getString(R.string.app_filter_system_only),
-            context.getString(R.string.app_filter_user_only)
+        val filterOptions = listOf(
+            context.getString(R.string.app_filter_all) to AppFilterType.ALL,
+            context.getString(R.string.app_filter_system_only) to AppFilterType.SYSTEM_ONLY,
+            context.getString(R.string.app_filter_user_only) to AppFilterType.USER_ONLY
         )
 
-        val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, filterOptions)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
+        chipGroup.removeAllViews()
 
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val filterType = when (position) {
-                    0 -> AppFilterType.ALL
-                    1 -> AppFilterType.SYSTEM_ONLY
-                    2 -> AppFilterType.USER_ONLY
-                    else -> AppFilterType.ALL
-                }
-                onFilterTypeSelected(filterType)
+        filterOptions.forEachIndexed { index, (label, filterType) ->
+            val contextWithStyle = ContextThemeWrapper(context, MaterialR.style.Widget_Material3_Chip_Filter)
+            val chip = Chip(contextWithStyle).apply {
+                text = label
+                isCheckable = true
+                id = android.view.View.generateViewId()
+                // 默认选中第一个
+                isChecked = index == 0
             }
+            chipGroup.addView(chip)
+        }
 
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                // Do nothing
+        // 设置单选模式
+        chipGroup.isSingleSelection = true
+        chipGroup.isSelectionRequired = true
+
+        // 监听选择变化
+        chipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
+            if (checkedIds.isNotEmpty()) {
+                val checkedIndex = group.indexOfChild(group.findViewById(checkedIds[0]))
+                val filterType = filterOptions.getOrNull(checkedIndex)?.second ?: AppFilterType.ALL
+                onFilterTypeSelected(filterType)
             }
         }
     }

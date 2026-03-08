@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.chip.ChipGroup
 import tiiehenry.android.app.snapshotor.R
 import tiiehenry.android.app.snapshotor.SnapShotApp
 import tiiehenry.android.app.snapshotor.app.AppFilterHelper
@@ -49,7 +50,7 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
-        setupFilterSpinner()
+        setupFilterChips()
         setupSearchView()
         setupFab()
 
@@ -74,8 +75,8 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
         binding.appsRecyclerView.adapter = adapter
     }
 
-    private fun setupFilterSpinner() {
-        AppFilterHelper.setupFilterSpinner(binding.spinnerAppFilter, requireContext()) { filterType ->
+    private fun setupFilterChips() {
+        AppFilterHelper.setupFilterChips(binding.chipGroupAppFilter, requireContext()) { filterType ->
             currentFilterType = filterType
             filterApps(binding.searchView.query.toString())
         }

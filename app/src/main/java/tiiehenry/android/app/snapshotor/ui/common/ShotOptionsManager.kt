@@ -1,5 +1,8 @@
 package tiiehenry.android.app.snapshotor.ui.common
 
+import android.view.ContextThemeWrapper
+import com.google.android.material.chip.Chip
+import com.google.android.material.R as MaterialR
 import tiiehenry.android.app.snapshotor.config.CompressItems
 import tiiehenry.android.app.snapshotor.config.ShotConfig
 import tiiehenry.android.app.snapshotor.databinding.IncludeShotOptionsBinding
@@ -8,6 +11,7 @@ class ShotOptionsManager(
     private val binding: IncludeShotOptionsBinding,
     private var shotConfig: ShotConfig
 ) {
+    private var algorithmChips = mutableMapOf<String, Chip>()
 
     init {
         setupListeners()
@@ -15,7 +19,6 @@ class ShotOptionsManager(
 
     fun loadConfig() {
         setAutoSnapshot(shotConfig.autoSnapshot)
-        setPermission(shotConfig.permission)
         setUninstallArchived(shotConfig.uninstallArchived)
         setCompressItems(shotConfig.compressItems.toSet())
         setCompressAlgorithm(shotConfig.compressAlgorithm)
@@ -24,10 +27,6 @@ class ShotOptionsManager(
     private fun setupListeners() {
         binding.cbAutoSnapshot.setOnCheckedChangeListener { _, isChecked ->
             // 当自动存档选项改变时的处理
-        }
-
-        binding.cbSavePermission.setOnCheckedChangeListener { _, isChecked ->
-            // 当保存权限选项改变时的处理
         }
 
         binding.cbUninstallArchived.setOnCheckedChangeListener { _, isChecked ->
@@ -71,10 +70,6 @@ class ShotOptionsManager(
         binding.cbAutoSnapshot.isChecked = enabled
     }
 
-    fun setPermission(enabled: Boolean) {
-        binding.cbSavePermission.isChecked = enabled
-    }
-
     fun setUninstallArchived(enabled: Boolean) {
         binding.cbUninstallArchived.isChecked = enabled
     }
@@ -89,16 +84,14 @@ class ShotOptionsManager(
     }
 
     fun setCompressAlgorithm(algorithm: String) {
-        binding.autoCompleteCompressAlgorithm.setText(algorithm)
+        algorithmChips[algorithm]?.isChecked = true
     }
 
     fun getAutoSnapshot(): Boolean {
         return binding.cbAutoSnapshot.isChecked
     }
 
-    fun getPermission(): Boolean {
-        return binding.cbSavePermission.isChecked
-    }
+    fun getPermission(): Boolean = true  // 默认保存权限
 
     fun getUninstallArchived(): Boolean {
         return binding.cbUninstallArchived.isChecked
@@ -116,15 +109,28 @@ class ShotOptionsManager(
     }
 
     fun getCompressAlgorithm(): String {
-        return binding.autoCompleteCompressAlgorithm.text.toString()
+        return algorithmChips.entries.find { it.value.isChecked }?.key ?: ""
     }
 
     fun setCompressAlgorithmOptions(options: Array<String>) {
-        val adapter = android.widget.ArrayAdapter(
-            binding.autoCompleteCompressAlgorithm.context,
-            android.R.layout.simple_dropdown_item_1line,
-            options
-        )
-        binding.autoCompleteCompressAlgorithm.setAdapter(adapter)
+        binding.chipGroupCompressAlgorithm.removeAllViews()
+        algorithmChips.clear()
+        
+        val context = binding.chipGroupCompressAlgorithm.context
+        for (option in options) {
+            val chip = Chip(ContextThemeWrapper(context, MaterialR.style.Widget_Material3_Chip_Filter)).apply {
+                text = option.uppercase()
+                isCheckable = true
+                isCheckedIconVisible = true
+                id = android.view.View.generateViewId()
+            }
+            binding.chipGroupCompressAlgorithm.addView(chip)
+            algorithmChips[option] = chip
+        }
+        
+        // 默认选中第一个
+        if (options.isNotEmpty()) {
+            algorithmChips[options.first()]?.isChecked = true
+        }
     }
 }

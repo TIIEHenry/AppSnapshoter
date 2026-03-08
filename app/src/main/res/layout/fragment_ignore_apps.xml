@@ -15,11 +15,12 @@
         android:textSize="20sp"
         android:textStyle="bold" />
 
-    <Spinner
-        android:id="@+id/spinner_app_filter"
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_group_app_filter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp" />
+        app:singleSelection="true"
+        app:selectionRequired="true" />
 
     <SearchView
         android:id="@+id/search_view"
@@ -49,26 +50,26 @@
             android:textSize="16sp"
             android:visibility="gone" />
 
-    </FrameLayout>
 
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:contentDescription="@string/add_ignore_app"
+            app:srcCompat="@android:drawable/ic_input_add" />
+
+    </FrameLayout>
     <!-- 提示文本 -->
     <TextView
         android:id="@+id/tv_hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
+        android:layout_gravity="bottom"
+        android:layout_marginTop="16dp"
         android:gravity="center"
         android:text="@string/long_press_to_remove"
         android:textColor="?android:textColorSecondary"
         android:textSize="12sp" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_add"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:layout_margin="16dp"
-        android:contentDescription="@string/add_ignore_app"
-        app:srcCompat="@android:drawable/ic_input_add" />
-
 </LinearLayout>

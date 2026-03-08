@@ -4,11 +4,11 @@
     <item
         android:id="@+id/menu_add_group"
         android:title="添加分组"
-        android:icon="@drawable/group_add"
+        android:icon="@drawable/folder_add"
         app:showAsAction="always" />
     <item
         android:id="@+id/menu_sort_groups"
         android:title="分组排序"
-        android:icon="@drawable/group_sort"
+        android:icon="@drawable/group_sort_1"
         app:showAsAction="always" />
 </menu>

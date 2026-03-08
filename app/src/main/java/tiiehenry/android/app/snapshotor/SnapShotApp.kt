@@ -12,7 +12,6 @@ import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.snapshotor.provider.Providers
 import tiiehenry.android.snapshotor.provider.appmanager.ProvidersImpl
 
-import tiiehenry.android.snapshotor.sync.IDataSyncer
 import java.io.File
 
 class SnapShotApp : Application() {
@@ -29,8 +28,6 @@ class SnapShotApp : Application() {
 
     val fileSystem: IFileSystem get() = _providers.fileSystem
     val appManager: IAppManager get() = _providers.appManager
-
-    lateinit var dataSyncer: IDataSyncer
 
     override fun onCreate() {
         super.onCreate()

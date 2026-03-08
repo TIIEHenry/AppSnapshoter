@@ -13,18 +13,13 @@
         app:tabMode="scrollable"
         app:tabGravity="start" />
 
-    <Spinner
-        android:id="@+id/spinner_app_filter"
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_group_app_filter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp" />
-
-    <!-- Tags Filter Layout -->
-    <tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
-        android:id="@+id/tags_filter_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="8dp" />
+        android:layout_margin="8dp"
+        app:singleSelection="true"
+        app:selectionRequired="true" />
 
     <SearchView
         android:id="@+id/search_view"
@@ -32,6 +27,13 @@
         android:layout_height="wrap_content"
         android:iconifiedByDefault="false"
         android:queryHint="搜索应用..." />
+
+    <!-- Tags Filter Layout -->
+    <tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
+        android:id="@+id/tags_filter_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="8dp" />
 
     <FrameLayout
         android:layout_width="match_parent"

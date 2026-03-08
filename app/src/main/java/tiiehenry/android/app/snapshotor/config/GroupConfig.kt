@@ -11,8 +11,8 @@ class GroupConfig(val groupId: String) {
     companion object {
         const val KEY_ROOT_PATH = "rootPath"
         private const val SHOT_CONFIG_FILE = "shot_config.json"
-        private const val SYNC_CONFIG_FILE = "sync_config.json"
         private const val SORT_CONFIG_FILE = "sort_config.json"
+        private const val GROUP_CONFIG_FILE = "group.json"
     }
 
     val mmkv = MMKV.mmkvWithID("group:" + groupId)
@@ -26,17 +26,17 @@ class GroupConfig(val groupId: String) {
         }
 
     private val shotConfigFile by lazy { File(rootPath, SHOT_CONFIG_FILE) }
-    private val syncConfigFile by lazy { File(rootPath, SYNC_CONFIG_FILE) }
     private val sortConfigFile by lazy { File(rootPath, SORT_CONFIG_FILE) }
+    private val groupConfigFile by lazy { File(rootPath, GROUP_CONFIG_FILE) }
 
     // 配置对象
     var shotConfig: ShotConfig = ShotConfig()
         private set
 
-    var syncConfig: SyncConfig = SyncConfig()
+    var sortConfig: SortConfig = SortConfig()
         private set
 
-    var sortConfig: SortConfig = SortConfig()
+    var groupConfigData: GroupConfigData = GroupConfigData()
         private set
 
     init {
@@ -48,8 +48,8 @@ class GroupConfig(val groupId: String) {
      */
     fun load() {
         shotConfig = loadConfigFromFile(shotConfigFile) { ShotConfig.fromJson(it) } ?: ShotConfig()
-        syncConfig = loadConfigFromFile(syncConfigFile) { SyncConfig.fromJson(it) } ?: SyncConfig()
         sortConfig = loadConfigFromFile(sortConfigFile) { SortConfig.fromJson(it) } ?: SortConfig()
+        groupConfigData = loadConfigFromFile(groupConfigFile) { GroupConfigData.fromJson(it) } ?: GroupConfigData()
     }
 
     /**
@@ -57,8 +57,8 @@ class GroupConfig(val groupId: String) {
      */
     fun save() {
         saveConfigToFile(shotConfigFile, shotConfig.toJson())
-        saveConfigToFile(syncConfigFile, syncConfig.toJson())
         saveConfigToFile(sortConfigFile, sortConfig.toJson())
+        saveConfigToFile(groupConfigFile, groupConfigData.toJson())
     }
 
     /**
@@ -66,11 +66,11 @@ class GroupConfig(val groupId: String) {
      */
     fun reset() {
         shotConfig = ShotConfig()
-        syncConfig = SyncConfig()
         sortConfig = SortConfig()
+        groupConfigData = GroupConfigData()
         shotConfigFile.delete()
-        syncConfigFile.delete()
         sortConfigFile.delete()
+        groupConfigFile.delete()
     }
 
     private fun <T> loadConfigFromFile(file: File, parser: (String) -> T): T? {

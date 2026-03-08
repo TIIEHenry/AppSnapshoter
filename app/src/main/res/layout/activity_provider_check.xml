@@ -137,47 +137,6 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/item_data_syncer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="16dp">
-
-        <ImageView
-            android:id="@+id/icon_data_syncer"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:contentDescription="状态"
-            android:src="@android:drawable/ic_popup_sync" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:text="数据同步服务"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/status_data_syncer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="等待中"
-            android:textColor="?android:textColorSecondary"
-            android:textSize="14sp" />
-
-        <ProgressBar
-            android:id="@+id/progress_data_syncer"
-            style="?android:attr/progressBarStyleSmall"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginStart="8dp"
-            android:visibility="gone" />
-    </LinearLayout>
-
     <TextView
         android:id="@+id/tv_error_message"
         android:layout_width="wrap_content"

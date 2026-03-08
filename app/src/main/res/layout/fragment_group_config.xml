@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout 
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -23,18 +23,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:hint="根路径">
+            android:hint="根路径"
+            app:endIconContentDescription="选择路径"
+            app:endIconDrawable="@drawable/ic_folder_open"
+            app:endIconMode="custom">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_root_path"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="false"
+                android:inputType="text" />
 
         </com.google.android.material.textfield.TextInputLayout>
-
-        <include
-            android:id="@+id/include_shot_options"
-            layout="@layout/include_shot_options" />
 
         <!-- 排序类型选择 -->
         <TextView
@@ -53,8 +55,8 @@
             android:layout_marginBottom="8dp" />
 
         <include
-            android:id="@+id/includeSyncOptions"
-            layout="@layout/include_group_sync_options" />
+            android:id="@+id/include_shot_options"
+            layout="@layout/include_shot_options" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -62,32 +64,35 @@
             android:layout_marginTop="16dp"
             android:orientation="horizontal">
 
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_delete_group"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/design_default_color_error"
+                android:text="删除分组" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_reset"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:text="重置" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_save"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="保存" />
+                android:text="重置" />
 
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_delete_group"
+            android:id="@+id/btn_save"
+            style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:backgroundTint="@color/design_default_color_error"
-            android:text="删除分组"
+            android:text="保存"
             android:textColor="@android:color/white" />
 
     </LinearLayout>

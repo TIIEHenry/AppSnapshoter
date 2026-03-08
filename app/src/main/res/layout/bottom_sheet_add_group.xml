@@ -34,17 +34,17 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:hint="分组路径"
-        app:endIconMode="custom"
+        app:endIconContentDescription="选择路径"
         app:endIconDrawable="@drawable/ic_folder_open"
-        app:endIconContentDescription="选择路径">
+        app:endIconMode="custom">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_group_path"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
+            android:clickable="true"
             android:focusable="false"
-            android:clickable="true" />
+            android:inputType="text" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -64,6 +64,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_confirm"
+            style="@style/Widget.Material3.Button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

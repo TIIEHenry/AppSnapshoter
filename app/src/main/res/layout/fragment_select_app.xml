@@ -9,9 +9,9 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_marginBottom="16dp"
         android:gravity="center_vertical"
-        android:layout_marginBottom="16dp">
+        android:orientation="horizontal">
 
         <TextView
             android:layout_width="0dp"
@@ -34,21 +34,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        app:tabMode="scrollable"
-        app:tabGravity="start" />
+        app:tabGravity="start"
+        app:tabMode="scrollable" />
 
-    <Spinner
-        android:id="@+id/spinner_app_filter"
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_group_app_filter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Tags Filter Layout -->
-    <tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
-        android:id="@+id/tags_filter_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="8dp"
+        app:selectionRequired="true"
+        app:singleSelection="true" />
 
     <SearchView
         android:id="@+id/search_view"
@@ -56,6 +51,13 @@
         android:layout_height="wrap_content"
         android:iconifiedByDefault="false"
         android:queryHint="搜索应用..." />
+
+    <!-- Tags Filter Layout -->
+    <tiiehenry.android.app.snapshotor.ui.common.TagsFilterLayout
+        android:id="@+id/tags_filter_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" />
 
     <!-- 多选工具栏 -->
     <include

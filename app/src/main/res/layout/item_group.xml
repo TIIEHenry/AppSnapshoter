@@ -6,9 +6,9 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/round_white_background"
         android:orientation="vertical"
-        android:layout_marginBottom="8dp"
         android:padding="8dp">
 
         <LinearLayout
@@ -28,25 +28,26 @@
                 android:textStyle="bold" />
 
             <ImageButton
-                android:id="@+id/btn_add"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="添加"
-                android:padding="10dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/plus" />
-
-            <ImageButton
                 android:id="@+id/btn_move"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_margin="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="移动"
-                android:padding="10dp"
-                android:src="@drawable/app_sort" />
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/group_sort" />
+
+            <ImageButton
+                android:id="@+id/btn_add"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="添加"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/app_add" />
 
             <ImageButton
                 android:id="@+id/btn_tune"
@@ -55,7 +56,7 @@
                 android:layout_margin="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="设置"
-                android:padding="10dp"
+                android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/tune" />
 
@@ -66,7 +67,7 @@
                 android:layout_margin="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="刷新"
-                android:padding="10dp"
+                android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/refresh" />
 
@@ -81,7 +82,7 @@
                 android:id="@+id/expand_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground">
+                android:background="@drawable/pressed_background">
 
                 <ImageView
                     android:layout_width="40dp"
@@ -95,7 +96,7 @@
                 android:id="@+id/empty_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
+                android:background="@drawable/pressed_background"
                 android:visibility="gone">
 
                 <ImageView
@@ -116,7 +117,7 @@
                     android:layout_width="60dp"
                     android:layout_height="60dp"
                     android:layout_gravity="center"
-                    android:layout_margin="10dp" />
+                    android:layout_margin="8dp" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/group_recycler_view"

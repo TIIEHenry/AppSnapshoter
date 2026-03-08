@@ -10,7 +10,6 @@ import java.io.File
 class AppConfig(val packageName: String) {
     companion object {
         private const val SHOT_CONFIG_FILE = "shot_config.json"
-        private const val SYNC_CONFIG_FILE = "sync_config.json"
     }
 
     // 获取应用配置存储目录（私有目录下的 app_configs/<packageName>/）
@@ -19,13 +18,9 @@ class AppConfig(val packageName: String) {
     }
 
     private val shotConfigFile by lazy { File(configDir, SHOT_CONFIG_FILE) }
-    private val syncConfigFile by lazy { File(configDir, SYNC_CONFIG_FILE) }
 
     // 配置对象
     var shotConfig: ShotConfig = ShotConfig()
-        private set
-
-    var syncConfig: SyncConfig = SyncConfig()
         private set
 
     init {
@@ -37,7 +32,6 @@ class AppConfig(val packageName: String) {
      */
     fun load() {
         shotConfig = loadConfigFromFile(shotConfigFile) { ShotConfig.fromJson(it) } ?: ShotConfig()
-        syncConfig = loadConfigFromFile(syncConfigFile) { SyncConfig.fromJson(it) } ?: SyncConfig()
     }
 
     /**
@@ -45,7 +39,6 @@ class AppConfig(val packageName: String) {
      */
     fun save() {
         saveConfigToFile(shotConfigFile, shotConfig.toJson())
-        saveConfigToFile(syncConfigFile, syncConfig.toJson())
     }
 
     /**
@@ -53,9 +46,7 @@ class AppConfig(val packageName: String) {
      */
     fun reset() {
         shotConfig = ShotConfig()
-        syncConfig = SyncConfig()
         shotConfigFile.delete()
-        syncConfigFile.delete()
     }
 
     private fun <T> loadConfigFromFile(file: File, parser: (String) -> T): T? {

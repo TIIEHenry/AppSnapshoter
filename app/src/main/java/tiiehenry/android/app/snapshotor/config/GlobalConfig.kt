@@ -9,8 +9,6 @@ object GlobalConfig {
     private const val KEY_ROOT_PATH = "rootPath"
     private const val KEY_FILE_SYSTEM_PROVIDER = "fileSystemProvider"
     private const val KEY_APP_MANAGER_PROVIDER = "appManagerProvider"
-    private const val KEY_DATA_SYNC_PROVIDER = "dataSyncProvider"
-    private const val KEY_SYNC_SYSTEMS = "syncSystems"
 
     private val mmkv: MMKV
         get() = MMKV.defaultMMKV()
@@ -49,12 +47,6 @@ object GlobalConfig {
             mmkv.encode(KEY_ROOT_PATH, value)
         }
 
-    var syncSystems: Set<String>
-        get() = mmkv.decodeStringSet(KEY_SYNC_SYSTEMS) ?: emptySet()
-        set(value) {
-            mmkv.encode(KEY_SYNC_SYSTEMS, value)
-        }
-
     var fileSystemProvider: String
         get() = mmkv.decodeString(KEY_FILE_SYSTEM_PROVIDER) ?: ""
         set(value) {
@@ -65,11 +57,5 @@ object GlobalConfig {
         get() = mmkv.decodeString(KEY_APP_MANAGER_PROVIDER) ?: ""
         set(value) {
             mmkv.encode(KEY_APP_MANAGER_PROVIDER, value)
-        }
-
-    var dataSyncProvider: String
-        get() = mmkv.decodeString(KEY_DATA_SYNC_PROVIDER) ?: ""
-        set(value) {
-            mmkv.encode(KEY_DATA_SYNC_PROVIDER, value)
         }
 }

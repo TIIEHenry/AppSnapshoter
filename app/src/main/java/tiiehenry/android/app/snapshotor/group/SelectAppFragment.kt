@@ -8,6 +8,7 @@ import android.widget.SearchView
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshotor.R
 import tiiehenry.android.app.snapshotor.app.AppInfo
@@ -89,7 +90,7 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     override fun getUserTabLayout(binding: FragmentSelectAppBinding): TabLayout = binding.userTabLayout
 
-    override fun getFilterSpinner(binding: FragmentSelectAppBinding): android.widget.Spinner = binding.spinnerAppFilter
+    override fun getFilterChipGroup(binding: FragmentSelectAppBinding): ChipGroup = binding.chipGroupAppFilter
 
     override fun getTagsFilterLayout(binding: FragmentSelectAppBinding): TagsFilterLayout = binding.tagsFilterLayout
 

@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.SearchView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshotor.app.AppConfigFragment
 import tiiehenry.android.app.snapshotor.app.AppInfo
@@ -22,7 +23,7 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
 
     override fun getUserTabLayout(binding: FragmentAppsBinding): TabLayout = binding.userTabLayout
 
-    override fun getFilterSpinner(binding: FragmentAppsBinding): android.widget.Spinner = binding.spinnerAppFilter
+    override fun getFilterChipGroup(binding: FragmentAppsBinding): ChipGroup = binding.chipGroupAppFilter
 
     override fun getTagsFilterLayout(binding: FragmentAppsBinding): TagsFilterLayout = binding.tagsFilterLayout
 

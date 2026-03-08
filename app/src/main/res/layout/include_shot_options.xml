@@ -14,25 +14,25 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <CheckBox
-        android:id="@+id/cb_auto_snapshot"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="自动存档" />
+        android:orientation="horizontal">
 
-    <CheckBox
-        android:id="@+id/cb_save_permission"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="保存权限" />
+        <CheckBox
+            android:id="@+id/cb_auto_snapshot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="自动存档" />
 
-    <CheckBox
-        android:id="@+id/cb_uninstall_archived"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="卸载已归档版本" />
+        <CheckBox
+            android:id="@+id/cb_uninstall_archived"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="卸载已归档版本" />
+
+    </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
@@ -100,11 +100,12 @@
         android:text="压缩算法"
         android:textSize="16sp" />
 
-    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-        android:id="@+id/auto_complete_compress_algorithm"
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chip_group_compress_algorithm"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:hint="选择压缩算法" />
+        app:selectionRequired="true"
+        app:singleSelection="true" />
 
 </LinearLayout>

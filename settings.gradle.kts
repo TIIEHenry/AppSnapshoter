@@ -30,7 +30,6 @@ include(":systemapi")
 include(":native")
 //include(":provider-filesystem")
 include(":provider-appmanager")
-include(":provider-datasyncer")
 
 //includeBuild("Android-DataBackup")
 //includeBuild("Android-DataBackup/source-next")
