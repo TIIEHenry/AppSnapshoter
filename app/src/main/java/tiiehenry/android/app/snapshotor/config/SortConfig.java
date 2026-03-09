@@ -15,6 +15,8 @@ public class SortConfig {
     public static final int SORT_TYPE_NAME_ASC = 1;     // 按名称排序（升序）
     public static final int SORT_TYPE_NAME_DESC = 2;    // 按名称排序（降序）
     public static final int SORT_TYPE_CUSTOM = 3;       // 自定义排序
+    public static final int SORT_TYPE_INSTALL_TIME_ASC = 4;  // 按安装时间排序（升序）
+    public static final int SORT_TYPE_INSTALL_TIME_DESC = 5; // 按安装时间排序（降序）
 
     // 配置字段，直接访问
     public int sortType = SORT_TYPE_DEFAULT;

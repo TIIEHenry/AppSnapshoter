@@ -22,7 +22,7 @@ object IgnoreAppsConfig {
      * 获取忽略应用列表文件路径
      */
     private fun getIgnoredAppsFilePath(): String {
-        return File(SnapShotApp.getInstance().defaultRootPath, IGNORED_APPS_FILE_NAME).absolutePath
+        return File(SnapShotApp.getInstance().globalRootPath, IGNORED_APPS_FILE_NAME).absolutePath
     }
 
     /**

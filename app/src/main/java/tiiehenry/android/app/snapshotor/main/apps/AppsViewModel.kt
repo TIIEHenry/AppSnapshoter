@@ -18,7 +18,7 @@ class AppsViewModel : ViewModel() {
     val filteredAppList = MutableLiveData<List<AppInfo>>()
     private var appsMap: Map<Int, List<AppInfo>> = emptyMap()
     private var currentQuery: String = ""
-    private var currentFilterType: AppFilterType = AppFilterType.ALL
+    private var currentFilterType: Set<AppFilterType> = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
     private var currentUserId: Int= 0
     private var selectedTagIds: Set<String> = emptySet()
 
@@ -53,7 +53,7 @@ class AppsViewModel : ViewModel() {
         }
     }
 
-    fun setFilterType(filterType: AppFilterType) {
+    fun setFilterType(filterType: Set<AppFilterType>) {
         currentFilterType = filterType
         applyFilter()
     }

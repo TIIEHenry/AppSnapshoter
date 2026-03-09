@@ -11,9 +11,8 @@ import tiiehenry.android.app.snapshotor.R
  * 应用筛选类型
  */
 enum class AppFilterType {
-    ALL,        // 全部应用
-    SYSTEM_ONLY, // 仅系统应用
-    USER_ONLY   // 仅用户应用
+    SYSTEM, // 系统应用
+    USER    // 用户应用
 }
 
 /**
@@ -31,38 +30,46 @@ object AppFilterHelper {
     fun setupFilterChips(
         chipGroup: ChipGroup,
         context: Context,
-        onFilterTypeSelected: (AppFilterType) -> Unit
+        onFilterTypeSelected: (Set<AppFilterType>) -> Unit
     ) {
         val filterOptions = listOf(
-            context.getString(R.string.app_filter_all) to AppFilterType.ALL,
-            context.getString(R.string.app_filter_system_only) to AppFilterType.SYSTEM_ONLY,
-            context.getString(R.string.app_filter_user_only) to AppFilterType.USER_ONLY
+            context.getString(R.string.app_filter_system) to AppFilterType.SYSTEM,
+            context.getString(R.string.app_filter_user) to AppFilterType.USER
         )
 
         chipGroup.removeAllViews()
+        chipGroup.isSingleSelection = false
 
-        filterOptions.forEachIndexed { index, (label, filterType) ->
+        val chips = mutableListOf<Chip>()
+        filterOptions.forEach { (label, _) ->
             val contextWithStyle = ContextThemeWrapper(context, MaterialR.style.Widget_Material3_Chip_Filter)
             val chip = Chip(contextWithStyle).apply {
                 text = label
                 isCheckable = true
+                isCheckedIconVisible = true
+                isChecked = true // 默认全部选中
                 id = android.view.View.generateViewId()
-                // 默认选中第一个
-                isChecked = index == 0
             }
             chipGroup.addView(chip)
+            chips.add(chip)
         }
 
-        // 设置单选模式
-        chipGroup.isSingleSelection = true
-        chipGroup.isSelectionRequired = true
-
-        // 监听选择变化
-        chipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
-            if (checkedIds.isNotEmpty()) {
-                val checkedIndex = group.indexOfChild(group.findViewById(checkedIds[0]))
-                val filterType = filterOptions.getOrNull(checkedIndex)?.second ?: AppFilterType.ALL
-                onFilterTypeSelected(filterType)
+        // 防止取消最后一个选中，并通知回调
+        var updating = false
+        chips.forEach { chip ->
+            chip.setOnCheckedChangeListener { _, isChecked ->
+                if (updating) return@setOnCheckedChangeListener
+                if (!isChecked && chips.none { it.isChecked }) {
+                    // 阻止取消最后一个选中项
+                    updating = true
+                    chip.isChecked = true
+                    updating = false
+                    return@setOnCheckedChangeListener
+                }
+                val selected = chips.mapIndexedNotNull { i, c ->
+                    if (c.isChecked) filterOptions[i].second else null
+                }.toSet()
+                onFilterTypeSelected(selected)
             }
         }
     }
@@ -77,13 +84,12 @@ object AppFilterHelper {
     fun filterApps(
         apps: List<AppInfo>,
         query: String,
-        filterType: AppFilterType
+        filterTypes: Set<AppFilterType>
     ): List<AppInfo> {
-        // 根据筛选类型过滤
-        var filtered = when (filterType) {
-            AppFilterType.ALL -> apps
-            AppFilterType.SYSTEM_ONLY -> apps.filter { it.isSystemApp }
-            AppFilterType.USER_ONLY -> apps.filter { !it.isSystemApp}
+        // 根据筛选类型过滤（多选：包含对应类型）
+        var filtered = apps.filter { app ->
+            (AppFilterType.SYSTEM in filterTypes && app.isSystemApp) ||
+            (AppFilterType.USER in filterTypes && !app.isSystemApp)
         }
 
         // 根据搜索关键词过滤
@@ -110,9 +116,9 @@ object AppFilterHelper {
         apps: List<AppInfo>,
         userId: Int,
         query: String,
-        filterType: AppFilterType
+        filterTypes: Set<AppFilterType>
     ): List<AppInfo> {
         val appsForUser = apps.filter { it.userId == userId }
-        return filterApps(appsForUser, query, filterType)
+        return filterApps(appsForUser, query, filterTypes)
     }
 }

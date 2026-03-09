@@ -2,9 +2,8 @@
     <string name="app_name">AppSnapShotor</string>
 
     <!-- 应用筛选 -->
-    <string name="app_filter_all">全部应用</string>
-    <string name="app_filter_system_only">仅系统应用</string>
-    <string name="app_filter_user_only">仅用户应用</string>
+    <string name="app_filter_system">系统应用</string>
+    <string name="app_filter_user">用户应用</string>
 
     <!-- 多选模式 -->
     <string name="selected_count">已选择 %d 项</string>

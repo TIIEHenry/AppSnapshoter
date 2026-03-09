@@ -48,24 +48,24 @@ data class AppInfo(
 
     var archiveIconFile: String? = null
     val icon: Bitmap by lazy {
-        android.util.Log.d(
+        Log.d(
             "AppInfo",
             "Loading icon for $packageName, archiveIconFile: $archiveIconFile"
         )
         loadIcon(appManager)?.also {
-            android.util.Log.d("AppInfo", "Loaded system icon for $packageName")
+            Log.d("AppInfo", "Loaded system icon for $packageName")
         } ?: archiveIconFile?.let {
-            android.util.Log.d("AppInfo", "Trying to load archive icon from: $it")
+            Log.d("AppInfo", "Trying to load archive icon from: $it")
             loadArchiveIcon(fs, it)
         }?.also {
-            android.util.Log.d("AppInfo", "Loaded archive icon for $packageName from: $it")
+            Log.d("AppInfo", "Loaded archive icon for $packageName from: $it")
         } ?: drawableToBitmap(
             AppCompatResources.getDrawable(
                 SnapShotApp.getContext(),
                 android.R.drawable.sym_def_app_icon
             )!!
         ).also {
-            android.util.Log.w("AppInfo", "Using default icon for $packageName")
+            Log.w("AppInfo", "Using default icon for $packageName")
         }
     }
 

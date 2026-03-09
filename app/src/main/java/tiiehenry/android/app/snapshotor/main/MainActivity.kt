@@ -1,6 +1,5 @@
 package tiiehenry.android.app.snapshotor.main
 
-import android.R as AndroidR
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -34,6 +33,7 @@ import tiiehenry.android.app.snapshotor.databinding.DialogProviderCheckBinding
 import tiiehenry.android.app.snapshotor.main.apps.AppsFragment
 import tiiehenry.android.app.snapshotor.main.launch.LauncherFragment
 import tiiehenry.android.app.snapshotor.main.settings.SettingsActivity
+import android.R as AndroidR
 
 class MainActivity : AppCompatActivity() {
 
@@ -261,6 +261,7 @@ class MainActivity : AppCompatActivity() {
                                 "服务连接失败: ${e.message}"
                             )
                         }
+                        providers.bindRootService()
                     }
                 } else {
                     rootPermissionOk = false
@@ -327,6 +328,13 @@ class MainActivity : AppCompatActivity() {
                     "未授权所有文件访问权限"
                 )
             }
+            // 打开所有文件访问权限设置页面
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val intent =
+                    Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.data = Uri.parse("package:$packageName")
+                startActivity(intent)
+            }
         }
         checkAllDone()
     }
@@ -347,18 +355,6 @@ class MainActivity : AppCompatActivity() {
             } else if (!allFilesAccessOk) {
                 binding.tvErrorMessage.text = "未授权所有文件访问权限，请授权后点击重试"
                 binding.tvErrorMessage.visibility = View.VISIBLE
-                // 可以引导用户去设置页面授权
-                binding.itemFileSystem.setOnClickListener {
-                    if (!allFilesAccessOk) {
-                        // 打开所有文件访问权限设置页面
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            val intent =
-                                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                            intent.data = Uri.parse("package:$packageName")
-                            startActivity(intent)
-                        }
-                    }
-                }
             } else {
                 binding.tvErrorMessage.visibility = View.GONE
             }

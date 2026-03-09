@@ -3,6 +3,8 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:background="@drawable/popup_menu_background"
+    android:clipToOutline="true"
+    android:elevation="16dp"
     android:orientation="vertical"
     android:padding="8dp">
 
@@ -59,13 +61,6 @@
             android:src="@drawable/delete_forever_outline" />
 
     </LinearLayout>
-
-    <!-- 分割线 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="4dp"
-        android:background="@android:color/darker_gray" />
 
     <!-- 下半部分：存档列表 -->
     <androidx.recyclerview.widget.RecyclerView

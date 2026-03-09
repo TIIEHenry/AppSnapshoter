@@ -1,6 +1,7 @@
 package tiiehenry.android.app.snapshotor.config
 
 import com.tencent.mmkv.MMKV
+import tiiehenry.android.app.snapshotor.SnapShotApp
 import java.io.File
 
 /**
@@ -17,17 +18,15 @@ class GroupConfig(val groupId: String) {
 
     val mmkv = MMKV.mmkvWithID("group:" + groupId)
 
-    fun getMMKV(): MMKV = mmkv
-
     var rootPath: String
-        get() = mmkv.decodeString(KEY_ROOT_PATH) ?: GlobalConfig.rootPath
+        get() = mmkv.decodeString(KEY_ROOT_PATH) ?: SnapShotApp.getInstance().globalRootPath
         set(value) {
             mmkv.encode(KEY_ROOT_PATH, value)
         }
 
-    private val shotConfigFile by lazy { File(rootPath, SHOT_CONFIG_FILE) }
-    private val sortConfigFile by lazy { File(rootPath, SORT_CONFIG_FILE) }
-    private val groupConfigFile by lazy { File(rootPath, GROUP_CONFIG_FILE) }
+    private val shotConfigFile get() = File(rootPath, SHOT_CONFIG_FILE)
+    private val sortConfigFile get() = File(rootPath, SORT_CONFIG_FILE)
+    private val groupConfigFile get() = File(rootPath, GROUP_CONFIG_FILE)
 
     // 配置对象
     var shotConfig: ShotConfig = ShotConfig()
@@ -37,7 +36,6 @@ class GroupConfig(val groupId: String) {
         private set
 
     var groupConfigData: GroupConfigData = GroupConfigData()
-        private set
 
     init {
         load()
@@ -49,7 +47,8 @@ class GroupConfig(val groupId: String) {
     fun load() {
         shotConfig = loadConfigFromFile(shotConfigFile) { ShotConfig.fromJson(it) } ?: ShotConfig()
         sortConfig = loadConfigFromFile(sortConfigFile) { SortConfig.fromJson(it) } ?: SortConfig()
-        groupConfigData = loadConfigFromFile(groupConfigFile) { GroupConfigData.fromJson(it) } ?: GroupConfigData()
+        groupConfigData = loadConfigFromFile(groupConfigFile) { GroupConfigData.fromJson(it) }
+            ?: GroupConfigData()
     }
 
     /**

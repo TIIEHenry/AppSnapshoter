@@ -10,7 +10,7 @@ import tiiehenry.android.snapshotor.fs.IFileType
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
-data class SnapedApp(val packageDir: String, val iconFile: String) {
+data class SnapedApp(val group: SnapGroup, val packageDir: String, val iconFile: String) {
 
     lateinit var appInfo: AppInfo
 
@@ -50,7 +50,7 @@ data class SnapedApp(val packageDir: String, val iconFile: String) {
                     fs,
                     appManager,
                     metaInfo.packageInfo.packageName,
-                    metaInfo.userId,
+                    group.userId,
                     metaInfo.packageInfo.versionName,
                     metaInfo.packageInfo.versionCode
                 )

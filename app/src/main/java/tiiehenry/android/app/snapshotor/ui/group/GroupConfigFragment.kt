@@ -1,29 +1,22 @@
 package tiiehenry.android.app.snapshotor.ui.group
 
-import android.app.Activity
 import android.app.AlertDialog
-import android.app.Dialog
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Spinner
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.documentfile.provider.DocumentFile
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import tiiehenry.android.app.snapshotor.SnapShotApp
-import tiiehenry.android.app.snapshotor.config.CompressItems
-import tiiehenry.android.app.snapshotor.config.CompressItems.COMPRESS_ITEM_APK
 import tiiehenry.android.app.snapshotor.config.GroupConfig
 import tiiehenry.android.app.snapshotor.databinding.FragmentGroupConfigBinding
-import tiiehenry.android.app.snapshotor.databinding.IncludeShotOptionsBinding
 import tiiehenry.android.app.snapshotor.group.SnapGroup
-import tiiehenry.android.app.snapshotor.ui.common.ShotOptionsManager
+import tiiehenry.android.app.snapshotor.util.GroupPathPickerHelper
 
 class GroupConfigFragment : BottomSheetDialogFragment() {
 
@@ -31,17 +24,20 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private lateinit var groupId: String
     private lateinit var groupConfig: GroupConfig
-    private lateinit var shotOptionsManager: ShotOptionsManager
-    private lateinit var sortTypeSpinner: Spinner
+    private var groupName: String = ""
+    private lateinit var userIdSpinner: Spinner
+    private val userInfoList = mutableListOf<tiiehenry.android.snapshotor.app.UserInfoParcelable>()
     private var onConfigSavedListener: (() -> Unit)? = null
 
-    private val openDocumentTreeLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                onPathSelected(uri)
-            }
+    private val pathPickerHelper = GroupPathPickerHelper(this) { absolutePath, uri ->
+        binding.etRootPath.setText(absolutePath)
+        GroupPathPickerHelper.takePersistablePermission(this, uri)
+        GroupPathPickerHelper.autoFillGroupName(this, uri, absolutePath, binding.etGroupName)
+        // 尝试从 group.json 自动解析 userId 并选中对应项
+        val configData = GroupPathPickerHelper.readGroupConfigData(this, uri)
+        if (configData != null) {
+            val idx = userInfoList.indexOfFirst { it.id == configData.userId }
+            if (idx >= 0) userIdSpinner.setSelection(idx)
         }
     }
 
@@ -54,6 +50,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             args.putString(ARG_GROUP_ID, group.id)
             fragment.arguments = args
             fragment.groupConfig = group.config
+            fragment.groupName = group.name
             fragment.onConfigSavedListener = onConfigSaved
             return fragment
         }
@@ -65,6 +62,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pathPickerHelper.register()
         arguments?.let {
             groupId =
                 it.getString(ARG_GROUP_ID) ?: throw IllegalArgumentException("groupId is required")
@@ -89,21 +87,6 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         loadConfig()
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return BottomSheetDialog(requireContext(), theme).apply {
-            // 设置全屏显示
-            setOnShowListener {
-                val bottomSheet =
-                    findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-                bottomSheet?.let {
-                    // 设置为全屏
-                    val layoutParams = it.layoutParams
-                    layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
-                    it.layoutParams = layoutParams
-                }
-            }
-        }
-    }
 
     private fun initViews() {
         binding.btnSave.setOnClickListener {
@@ -112,134 +95,71 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             dismiss()
         }
 
-        binding.btnReset.setOnClickListener {
-            loadConfig() // 重新加载配置，相当于重置
-        }
-
         binding.btnDeleteGroup.setOnClickListener {
             showDeleteConfirmDialog()
         }
 
-        // 设置排序类型Spinner
-        sortTypeSpinner = binding.spinnerSortType
-        val sortTypes = arrayOf("默认排序", "按名称升序", "按名称降序", "自定义排序")
-        val adapter =
-            ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, sortTypes)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        sortTypeSpinner.adapter = adapter
+        // 设置 userIdSpinner
 
-        // 初始化截图选项管理器
-        shotOptionsManager = ShotOptionsManager(
-            binding.includeShotOptions, groupConfig.shotConfig
-        )
-
-        // 设置压缩算法下拉框
-        val algorithms = SnapShotApp.getInstance().fileSystem.compressor.supportedAlgorithms()
-        shotOptionsManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
+        userIdSpinner = binding.spinnerUserId
+        lifecycleScope.launch {
+            val users = withContext(Dispatchers.IO) {
+                try {
+                    SnapShotApp.getInstance().appManager.users ?: emptyList()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    emptyList()
+                }
+            }
+            userInfoList.clear()
+            userInfoList.addAll(users)
+            val userLabels = userInfoList.map { "${it.name} (${it.id})" }.toTypedArray()
+            val userAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, userLabels)
+            userAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            userIdSpinner.adapter = userAdapter
+            // 填充完成后再同步选中项
+            val savedUserId = groupConfig.groupConfigData.userId
+            val userIndex = userInfoList.indexOfFirst { it.id == savedUserId }
+            if (userIndex >= 0) userIdSpinner.setSelection(userIndex)
+        }
 
         // 设置路径选择器点击监听
         binding.etRootPath.setOnClickListener {
-            openPathSelector()
+            pathPickerHelper.launch()
         }
 
         binding.etRootPath.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                openPathSelector()
+                pathPickerHelper.launch()
             }
         }
     }
 
     private fun loadConfig() {
+        binding.etGroupName.setText(groupName)
         binding.etRootPath.setText(groupConfig.rootPath)
 
-        // 使用截图选项管理器加载配置
-        shotOptionsManager.loadConfig()
-
-        // 设置排序类型Spinner的选中项
-        val sortType = groupConfig.sortConfig.sortType
-        if (sortType in 0..3) {
-            sortTypeSpinner.setSelection(sortType)
+        // 设置 userIdSpinner 的选中项
+        val savedUserId = groupConfig.groupConfigData.userId
+        val userIndex = userInfoList.indexOfFirst { it.id == savedUserId }
+        if (userIndex >= 0) {
+            userIdSpinner.setSelection(userIndex)
         }
     }
 
     private fun saveConfig() {
+        groupName = binding.etGroupName.text.toString()
+        groupConfig.groupConfigData.name = groupName
         groupConfig.rootPath = binding.etRootPath.text.toString()
 
-        // 使用截图选项管理器保存配置
-        groupConfig.shotConfig.autoSnapshot = shotOptionsManager.getAutoSnapshot()
-        groupConfig.shotConfig.permission = shotOptionsManager.getPermission()
-        groupConfig.shotConfig.uninstallArchived = shotOptionsManager.getUninstallArchived()
-        groupConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
-        groupConfig.shotConfig.compressAlgorithm = shotOptionsManager.getCompressAlgorithm()
-
-        // 保存排序类型
-        groupConfig.sortConfig.sortType = sortTypeSpinner.selectedItemPosition
+        // 保存 userId
+        val selectedUserIndex = userIdSpinner.selectedItemPosition
+        if (selectedUserIndex >= 0 && selectedUserIndex < userInfoList.size) {
+            groupConfig.groupConfigData.userId = userInfoList[selectedUserIndex].id
+        }
 
         // 保存所有配置到文件
         groupConfig.save()
-    }
-
-    private fun openPathSelector() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-            addFlags(
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-            )
-        }
-        openDocumentTreeLauncher.launch(intent)
-    }
-
-    private fun onPathSelected(uri: Uri) {
-        val absolutePath = uriToAbsolutePath(uri)
-        binding.etRootPath.setText(absolutePath)
-
-        try {
-            requireContext().contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
-    }
-
-    /**
-     * 将 URI 转换为绝对路径
-     */
-    private fun uriToAbsolutePath(uri: Uri): String {
-        val documentFile = DocumentFile.fromTreeUri(requireContext(), uri)
-        if (documentFile != null) {
-            // 尝试获取真实路径
-            val realPath = getRealPathFromUri(uri)
-            if (realPath.isNotEmpty()) {
-                return realPath
-            }
-        }
-        // 如果无法获取真实路径，返回 URI 字符串
-        return uri.toString()
-    }
-
-    /**
-     * 从 URI 获取真实文件路径
-     */
-    private fun getRealPathFromUri(uri: Uri): String {
-        val docId = DocumentsContract.getTreeDocumentId(uri)
-
-        // 处理 primary 存储（内部存储）
-        if (docId.startsWith("primary:")) {
-            val path = docId.substringAfter("primary:")
-            return "/storage/emulated/0/$path"
-        }
-
-        // 处理 SD 卡等外部存储
-        if (docId.contains(":")) {
-            val (storageId, path) = docId.split(":", limit = 2)
-            return "/storage/$storageId/$path"
-        }
-
-        // 如果无法解析，返回空字符串
-        return ""
     }
 
     private fun showDeleteConfirmDialog() {
@@ -250,9 +170,15 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             AlertDialog.Builder(context)
                 .setTitle("删除组")
                 .setMessage("确定要删除组 ${group.name}[${groupId}] 吗？\n此操作不可恢复。")
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    SnapShotApp.getViewModel().deleteGroup(groupId)
-                    dismiss() // 关闭对话框
+                .setPositiveButton("仅删除组") { _, _ ->
+                    // 仅删除组配置，不删除文件
+                    SnapShotApp.getViewModel().deleteGroup(groupId, deleteFiles = false)
+                    dismiss()
+                }
+                .setNeutralButton("包括文件") { _, _ ->
+                    // 删除组配置及关联文件
+                    SnapShotApp.getViewModel().deleteGroup(groupId, deleteFiles = true)
+                    dismiss()
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()

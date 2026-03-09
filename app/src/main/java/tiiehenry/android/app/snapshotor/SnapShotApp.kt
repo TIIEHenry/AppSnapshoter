@@ -16,7 +16,7 @@ import java.io.File
 
 class SnapShotApp : Application() {
 
-    lateinit var defaultRootPath: String
+    lateinit var globalRootPath: String
 
     lateinit var mmkv: MMKV
         private set
@@ -33,8 +33,8 @@ class SnapShotApp : Application() {
         super.onCreate()
         instance = this
 
-        defaultRootPath =
-            File(Environment.getExternalStorageDirectory(), "SnapShotApp").absolutePath
+        globalRootPath =
+            File(Environment.getExternalStorageDirectory(), "Android/snapshot").absolutePath
         // 初始化MMKV
         MMKV.initialize(this)
         mmkv = MMKV.defaultMMKV()
@@ -47,10 +47,14 @@ class SnapShotApp : Application() {
         // 初始化 Providers（统一管理 Service 和 Provider）
         _providers = ProvidersImpl(this)
 
-        val isRoot = Shell.getShell().isRoot
-        Log.i("SnapShotApp", "isRoot $isRoot")
-        if (isRoot) {
-            _providers.bindRootService()
+        try {
+            val isRoot = Shell.getShell().isRoot
+            Log.i("SnapShotApp", "isRoot $isRoot")
+            if (isRoot) {
+                _providers.bindRootService()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

@@ -1,19 +1,20 @@
 package tiiehenry.android.app.snapshotor.main.launch
 
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.documentfile.provider.DocumentFile
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import tiiehenry.android.app.snapshotor.SnapShotApp
 import tiiehenry.android.app.snapshotor.databinding.BottomSheetAddGroupBinding
+import tiiehenry.android.app.snapshotor.util.GroupPathPickerHelper
 
 class AddGroupBottomSheet : BottomSheetDialogFragment() {
 
@@ -21,14 +22,24 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private val viewModel: LauncherViewModel by activityViewModels()
 
-    private val openDocumentTreeLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                onPathSelected(uri)
-            }
+    private lateinit var userIdSpinner: Spinner
+    private val userInfoList = mutableListOf<tiiehenry.android.snapshotor.app.UserInfoParcelable>()
+
+    private val pathPickerHelper = GroupPathPickerHelper(this) { absolutePath, uri ->
+        binding.etGroupPath.setText(absolutePath)
+        GroupPathPickerHelper.takePersistablePermission(this, uri)
+        GroupPathPickerHelper.autoFillGroupName(this, uri, absolutePath, binding.etGroupName)
+        // 尝试从 group.json 自动解析 userId 并选中对应项
+        val configData = GroupPathPickerHelper.readGroupConfigData(this, uri)
+        if (configData != null) {
+            val idx = userInfoList.indexOfFirst { it.id == configData.userId }
+            if (idx >= 0) userIdSpinner.setSelection(idx)
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        pathPickerHelper.register()
     }
 
     override fun onCreateView(
@@ -43,13 +54,31 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        userIdSpinner = binding.spinnerUserId
+        lifecycleScope.launch {
+            val users = withContext(Dispatchers.IO) {
+                try {
+                    SnapShotApp.getInstance().appManager.users ?: emptyList()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    emptyList()
+                }
+            }
+            userInfoList.clear()
+            userInfoList.addAll(users)
+            val userLabels = userInfoList.map { "${it.name} (${it.id})" }.toTypedArray()
+            val userAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, userLabels)
+            userAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            userIdSpinner.adapter = userAdapter
+        }
+
         binding.etGroupPath.setOnClickListener {
-            openPathSelector()
+            pathPickerHelper.launch()
         }
 
         binding.etGroupPath.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                openPathSelector()
+                pathPickerHelper.launch()
             }
         }
 
@@ -62,7 +91,11 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             val groupPath = binding.etGroupPath.text.toString().trim()
 
             if (groupName.isNotEmpty() && groupPath.isNotEmpty()) {
-                SnapShotApp.getViewModel().addGroup(groupName, groupPath)
+                val selectedIndex = userIdSpinner.selectedItemPosition
+                val userId = if (selectedIndex >= 0 && selectedIndex < userInfoList.size) {
+                    userInfoList[selectedIndex].id
+                } else 0
+                SnapShotApp.getViewModel().addGroup(groupName, groupPath, userId)
                 dismiss()
             } else {
                 if (groupName.isEmpty()) {
@@ -73,67 +106,6 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
                 }
             }
         }
-    }
-
-    private fun openPathSelector() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        }
-        openDocumentTreeLauncher.launch(intent)
-    }
-
-    private fun onPathSelected(uri: Uri) {
-        val absolutePath = uriToAbsolutePath(uri)
-        binding.etGroupPath.setText(absolutePath)
-
-        try {
-            requireContext().contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
-    }
-
-    /**
-     * 将 URI 转换为绝对路径
-     */
-    private fun uriToAbsolutePath(uri: Uri): String {
-        val documentFile = DocumentFile.fromTreeUri(requireContext(), uri)
-        if (documentFile != null) {
-            // 尝试获取真实路径
-            val realPath = getRealPathFromUri(uri)
-            if (realPath.isNotEmpty()) {
-                return realPath
-            }
-        }
-        // 如果无法获取真实路径，返回 URI 字符串
-        return uri.toString()
-    }
-
-    /**
-     * 从 URI 获取真实文件路径
-     */
-    private fun getRealPathFromUri(uri: Uri): String {
-        val docId = DocumentsContract.getTreeDocumentId(uri)
-        
-        // 处理 primary 存储（内部存储）
-        if (docId.startsWith("primary:")) {
-            val path = docId.substringAfter("primary:")
-            return "/storage/emulated/0/$path"
-        }
-        
-        // 处理 SD 卡等外部存储
-        if (docId.contains(":")) {
-            val (storageId, path) = docId.split(":", limit = 2)
-            return "/storage/$storageId/$path"
-        }
-        
-        // 如果无法解析，返回空字符串
-        return ""
     }
 
     override fun onDestroyView() {

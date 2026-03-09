@@ -14,7 +14,7 @@ class AppConfig(val packageName: String) {
 
     // 获取应用配置存储目录（私有目录下的 app_configs/<packageName>/）
     private val configDir: String by lazy {
-        File(SnapShotApp.getInstance().defaultRootPath, "app_configs/$packageName").absolutePath
+        File(SnapShotApp.getInstance().globalRootPath, "app_configs/$packageName").absolutePath
     }
 
     private val shotConfigFile by lazy { File(configDir, SHOT_CONFIG_FILE) }

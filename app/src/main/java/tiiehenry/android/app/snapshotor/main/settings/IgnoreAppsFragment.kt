@@ -35,7 +35,7 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
 
     private var allApps: List<AppInfo> = emptyList()
     private var filteredApps: List<AppInfo> = emptyList()
-    private var currentFilterType: AppFilterType = AppFilterType.ALL
+    private var currentFilterType: Set<AppFilterType> = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -76,8 +76,8 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
     }
 
     private fun setupFilterChips() {
-        AppFilterHelper.setupFilterChips(binding.chipGroupAppFilter, requireContext()) { filterType ->
-            currentFilterType = filterType
+        AppFilterHelper.setupFilterChips(binding.chipGroupAppFilter, requireContext()) { filterTypes ->
+            currentFilterType = filterTypes
             filterApps(binding.searchView.query.toString())
         }
     }

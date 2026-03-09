@@ -107,15 +107,17 @@ class SnapShotViewModel : ViewModel() {
         }
     }
 
-    fun addGroup(name: String, path: String? = null) {
+    fun addGroup(name: String, path: String, userId: Int = 0) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 // 生成唯一ID
                 val groupId = UUID.randomUUID().toString().substring(0, 7)
 
                 val group = SnapGroup(groupId)
+                group.path = path
                 group.name = name
-                path?.let { group.path = it }
+                group.config.groupConfigData.userId = userId
+                group.config.save()
 
                 // 保存到全局配置
                 val currentGroups = GlobalConfig.groups.toMutableList()
@@ -196,15 +198,19 @@ class SnapShotViewModel : ViewModel() {
         }
     }
 
-    fun deleteGroup(groupId: String) {
+    fun deleteGroup(groupId: String, deleteFiles: Boolean = false) {
         viewModelScope.launch {
             try {
                 // 获取分组
+                val group = groupList.value?.find { it.id == groupId }
                 GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply {
                     remove(groupId)
                 }
-                groupList.value?.find { it.id == groupId }?.let {
-                    SnapShotApp.getInstance().fileSystem.delete(it.path)
+                group?.let {
+                    it.config.mmkv.clearAll()
+                    if (deleteFiles) {
+                        SnapShotApp.getInstance().fileSystem.delete(it.path)
+                    }
                 }
                 // 通知UI更新
                 loadGroups()

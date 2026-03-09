@@ -9,7 +9,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
-        android:text="服务检查"
+        android:text="权限检查"
         android:textSize="20sp"
         android:textStyle="bold" />
 

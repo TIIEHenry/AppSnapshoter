@@ -1,10 +1,10 @@
 package tiiehenry.android.app.snapshotor.main.launch
 
-import android.app.AlertDialog
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
@@ -23,6 +23,7 @@ import tiiehenry.android.app.snapshotor.group.SelectAppFragment
 import tiiehenry.android.app.snapshotor.group.SnapGroup
 import tiiehenry.android.app.snapshotor.group.SnapedApp
 import tiiehenry.android.app.snapshotor.ui.group.GroupConfigFragment
+import tiiehenry.android.app.snapshotor.ui.group.GroupShotConfigFragment
 
 class GroupsAdapter(
     private val viewModel: LauncherViewModel,
@@ -46,26 +47,6 @@ class GroupsAdapter(
 
         var isSortMode = false
         private var itemTouchHelper: ItemTouchHelper? = null
-
-        private fun showEditGroupDialog(group: SnapGroup) {
-            val context = binding.root.context
-            val input = android.widget.EditText(context)
-            // 使用应用名称作为默认值
-            input.setText(group.name)
-
-            AlertDialog.Builder(context)
-                .setTitle("编辑组名称")
-                .setView(input)
-                .setPositiveButton("确定") { _, _ ->
-                    val newName = input.text.toString().trim()
-                    if (newName.isNotEmpty()) {
-                        group.name = newName
-                    }
-                    binding.groupTitle.text = group.name
-                }
-                .setNegativeButton("取消", null)
-                .show()
-        }
 
         fun addNewApp(group: SnapGroup) {
             // 显示SelectAppFragment选择应用
@@ -95,7 +76,10 @@ class GroupsAdapter(
                 updateCollapseState(group.isCollapsed)
             }
             binding.groupTitle.setOnLongClickListener {
-                showEditGroupDialog(group)
+                // 显示GroupConfigFragment，保存后刷新列表
+                GroupConfigFragment.newInstance(group) {
+                    refresh(group, binding.groupRecyclerView)
+                }.show(fragmentManager, "GroupConfigFragment")
                 true
             }
 
@@ -142,52 +126,93 @@ class GroupsAdapter(
                 addNewApp(group)
             }
 
-            // 根据排序类型决定是否显示btnMove按钮
+            // 点击 btnMove 显示排序类型 PopupMenu，长按进入自定义拖拽排序模式
+            binding.btnMove.setOnClickListener { v ->
+                showSortTypePopupMenu(v, group, adapter)
+            }
             val sortType = group.config.sortConfig.sortType
-            if (sortType == SortConfig.SORT_TYPE_CUSTOM) { // 自定义排序模式下显示btnMove
-                binding.btnMove.visibility = View.VISIBLE
-                binding.btnMove.setOnClickListener {
-                    // 进入排序状态
+            if (sortType == SortConfig.SORT_TYPE_CUSTOM) { // 自定义排序模式下长按进入拖拽排序
+                binding.btnMove.setOnLongClickListener {
                     toggleSortMode(group, adapter)
+                    true
                 }
-            } else {
-                binding.btnMove.visibility = View.GONE
+            }
+            binding.btnConfirm.setOnClickListener {
+                toggleSortMode(group, adapter)
             }
 
             binding.btnTune.setOnClickListener {
                 // 显示GroupConfigFragment，保存后刷新列表
-                GroupConfigFragment.newInstance(group) {
+                GroupShotConfigFragment.newInstance(group) {
                     refresh(group, binding.groupRecyclerView)
-                }.show(fragmentManager, "GroupConfigFragment")
+                }.show(fragmentManager, "GroupShotConfigFragment")
             }
 
             updateButtonVisibility(!isSortMode)
         }
 
+        private fun showSortTypePopupMenu(anchor: View, group: SnapGroup, adapter: GroupItemAdapter) {
+            val popup = PopupMenu(anchor.context, anchor)
+            val menu = popup.menu
+            val sortTypes = listOf(
+                SortConfig.SORT_TYPE_DEFAULT to "默认排序",
+                SortConfig.SORT_TYPE_NAME_ASC to "按名称升序",
+                SortConfig.SORT_TYPE_NAME_DESC to "按名称降序",
+                SortConfig.SORT_TYPE_INSTALL_TIME_ASC to "按安装时间升序",
+                SortConfig.SORT_TYPE_INSTALL_TIME_DESC to "按安装时间降序",
+                SortConfig.SORT_TYPE_CUSTOM to "自定义排序"
+            )
+            val currentSortType = group.config.sortConfig.sortType
+            sortTypes.forEachIndexed { index, (type, label) ->
+                val item = menu.add(0, type, index, label)
+                item.isCheckable = true
+                item.isChecked = (type == currentSortType)
+            }
+            popup.setOnMenuItemClickListener { menuItem ->
+                val newSortType = menuItem.itemId
+                group.config.sortConfig.sortType = newSortType
+                group.config.save()
+                // 更新长按监听：只有自定义排序时才支持长按拖拽
+                if (newSortType == SortConfig.SORT_TYPE_CUSTOM) {
+                    binding.btnMove.setOnLongClickListener {
+                        toggleSortMode(group, adapter)
+                        true
+                    }
+                } else {
+                    binding.btnMove.setOnLongClickListener(null)
+                    // 如果当前在排序模式下，退出
+                    if (isSortMode) {
+                        toggleSortMode(group, adapter)
+                    }
+                }
+                refresh(group, binding.groupRecyclerView)
+                true
+            }
+            popup.show()
+        }
+
         private fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {
             isSortMode = !isSortMode
             if (isSortMode) {
-                // 进入排序模式
-                binding.btnMove.setImageResource(R.drawable.check) // 使用确认图标表示正在排序
+                // 进入排序模式：显示确认按钮，隐藏其他按钮，不修改 btnMove
                 startDragSortMode(adapter, group)
-                // 也可以考虑添加一些视觉提示表明现在是排序模式
                 binding.groupTitle.text = "${group.name} (排序模式)"
-                // 在排序模式下隐藏其他按钮
                 updateButtonVisibility(false)
             } else {
-                // 退出排序模式
-                binding.btnMove.setImageResource(R.drawable.app_sort) // 恢复原始图标
-                binding.groupTitle.text = group.name // 恢复正常标题
+                // 退出排序模式：隐藏确认按钮，恢复其他按钮
+                binding.groupTitle.text = group.name
                 stopDragSortMode(adapter)
-                // 恢复按钮显示
                 updateButtonVisibility(true)
             }
         }
 
         private fun updateButtonVisibility(show: Boolean) {
+            binding.btnMove.visibility = if (show) View.VISIBLE else View.GONE
             binding.btnAdd.visibility = if (show) View.VISIBLE else View.GONE
             binding.btnTune.visibility = if (show) View.VISIBLE else View.GONE
             binding.btnRefresh.visibility = if (show) View.VISIBLE else View.GONE
+            // 排序模式下显示确认按钮，普通模式下隐藏
+            binding.btnConfirm.visibility = if (show) View.GONE else View.VISIBLE
         }
 
 
@@ -296,7 +321,6 @@ class GroupsAdapter(
             val sortedApps = synchronized(group.apps) {
                 // 应用排序
                 applySorting(group.apps, group.config.sortConfig, group)
-
             }
             Log.i("GroupsAdapter", "refresh " + sortedApps)
             (recyclerView.adapter as GroupItemAdapter).submitList(sortedApps)
@@ -325,9 +349,6 @@ class GroupsAdapter(
             sortConfig: SortConfig,
             group: SnapGroup
         ): List<SnapedApp> {
-            binding.btnMove.visibility =
-                if (sortConfig.sortType == SortConfig.SORT_TYPE_CUSTOM) View.VISIBLE else View.GONE
-
             return when (sortConfig.sortType) {
                 SortConfig.SORT_TYPE_CUSTOM -> { // 自定义排序
                     val sortOrder = sortConfig.sortOrder.toMutableList()
@@ -356,6 +377,14 @@ class GroupsAdapter(
 
                 SortConfig.SORT_TYPE_NAME_ASC -> { // 按名称排序（升序）
                     apps.sortedBy { it.appInfo.label }
+                }
+
+                SortConfig.SORT_TYPE_INSTALL_TIME_ASC -> { // 按安装时间排序（升序）
+                    apps.sortedBy { it.appInfo.packageInfo?.firstInstallTime ?: 0L }
+                }
+
+                SortConfig.SORT_TYPE_INSTALL_TIME_DESC -> { // 按安装时间排序（降序）
+                    apps.sortedByDescending { it.appInfo.packageInfo?.firstInstallTime ?: 0L }
                 }
 
                 else -> { // 默认排序

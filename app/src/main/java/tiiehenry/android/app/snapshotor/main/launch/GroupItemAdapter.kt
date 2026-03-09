@@ -1,9 +1,12 @@
 package tiiehenry.android.app.snapshotor.main.launch
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
+import android.content.pm.LauncherApps
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.os.UserHandle
 import android.provider.Settings
 import android.text.format.Formatter
 import android.util.Log
@@ -121,7 +124,7 @@ class GroupItemAdapter(
 
                 if (isAppInstalled) {
                     // 应用已安装，启动应用
-                    launchApp(item.appInfo.packageName)
+                    launchApp(item.appInfo.packageName, item.appInfo.userId)
                 } else {
                     // 应用未安装，执行备份/恢复逻辑
                     viewModel.onGroupItemClicked(
@@ -266,6 +269,8 @@ class GroupItemAdapter(
             popupWindow.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
             popupWindow.isOutsideTouchable = true
             popupWindow.isFocusable = true
+            // 设置阴影，模拟 PopupMenu 的阴影效果
+            popupWindow.elevation = 16f * binding.root.resources.displayMetrics.density
 
             // 上半部分按钮功能
             popupBinding.btnEdit.setOnClickListener {
@@ -383,7 +388,7 @@ class GroupItemAdapter(
                 },
                 onRenameSuccess = { oldName, newName ->
                     item.loadArchives(item.appInfo.fs, SnapShotApp.getInstance().appManager, true)
-                    archiveAdapter.submitList(item.archives.values.toList())
+                    archiveAdapter.submitList(item.archives.values.toList().sortedByDescending { it.metaInfo.makeTime })
                 }
             )
 
@@ -395,7 +400,7 @@ class GroupItemAdapter(
                 item.loadArchives(item.appInfo.fs, SnapShotApp.getInstance().appManager, true)
             }
             // 设置存档列表数据
-            val archives = item.archives.values.toList()
+            val archives = item.archives.values.toList().sortedByDescending { it.metaInfo.makeTime }
             Log.i("GroupItemAdapter", "Archives: ${archives.size}")
             archiveAdapter.submitList(archives)
 
@@ -587,15 +592,52 @@ class GroupItemAdapter(
             }
         }
 
-        private fun launchApp(packageName: String) {
+        private fun launchApp(packageName: String, userId: Int) {
             try {
-                val intent =
-                    binding.root.context.packageManager.getLaunchIntentForPackage(packageName)
-                if (intent != null) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    binding.root.context.startActivity(intent)
+                val context = binding.root.context
+                val appManager = SnapShotApp.getInstance().appManager
+                val userHandle = appManager.getUserHandle(userId)
+
+                if (userHandle != null) {
+                    // 使用 LauncherApps 启动特定用户的应用
+                    val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+                    val activityInfoList = launcherApps.getActivityList(packageName, userHandle)
+
+                    if (activityInfoList.isNotEmpty()) {
+                        val info = activityInfoList[0]
+                        val intent = Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_LAUNCHER)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                            .setComponent(info.componentName)
+
+                        // Flyme 适配：反射赋值 userId 给 intent.mTargetUserId（仅当该字段存在时）
+                        runCatching {
+                            val field = Intent::class.java.getDeclaredField("mTargetUserId")
+                            field.isAccessible = true
+                            field.set(intent, userId)
+                        }
+                        intent.putExtra("flyme.intent.extra.NO_MULTI_OPEN_CHOOSE",true)
+
+                        context.startActivity(intent)
+                    } else {
+                        Toast.makeText(context, "无法启动应用：未找到可启动的Activity", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
-                    Toast.makeText(binding.root.context, "无法启动应用", Toast.LENGTH_SHORT).show()
+                    // 回退到默认方式启动
+                    val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+                    if (intent != null) {
+                        // Flyme 适配：反射赋值 userId 给 intent.mTargetUserId（仅当该字段存在时）
+                        runCatching {
+                            val field = Intent::class.java.getDeclaredField("mTargetUserId")
+                            field.isAccessible = true
+                            field.set(intent, userId)
+                        }
+                        intent.putExtra("flyme.intent.extra.NO_MULTI_OPEN_CHOOSE",true)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    } else {
+                        Toast.makeText(context, "无法启动应用", Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
                 Toast.makeText(

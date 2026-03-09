@@ -1,12 +1,11 @@
 package tiiehenry.android.app.snapshotor.group
 
 import android.util.Log
-import com.tencent.mmkv.MMKV
-import tiiehenry.android.snapshotor.fs.IFileType
-import tiiehenry.android.snapshotor.app.IAppManager
-import tiiehenry.android.snapshotor.file.IFileSystem
 import tiiehenry.android.app.snapshotor.app.AppInfo
 import tiiehenry.android.app.snapshotor.config.GroupConfig
+import tiiehenry.android.snapshotor.app.IAppManager
+import tiiehenry.android.snapshotor.file.IFileSystem
+import tiiehenry.android.snapshotor.fs.IFileType
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
@@ -14,15 +13,20 @@ data class SnapGroup(
     val id: String,
 ) {
     val config = GroupConfig(id)
-    val mmkv: MMKV get() = config.getMMKV()
+    val mmkv = config.mmkv
 
     var name: String
         get() {
-            return mmkv.decodeString("name", id) ?: id
+            return config.groupConfigData.name
         }
         set(value) {
-            Log.i("SnapGroup", "name: $value")
-            mmkv.encode("name", value)
+            config.groupConfigData.name = value
+        }
+
+    var userId: Int
+        get() = config.groupConfigData.userId
+        set(value) {
+            config.groupConfigData.userId = value
         }
 
     var path: String
@@ -44,9 +48,7 @@ data class SnapGroup(
     val apps: MutableList<SnapedApp> = mutableListOf()
 
     fun loadApps(
-        fs: IFileSystem,
-        appManager: IAppManager,
-        reload: Boolean
+        fs: IFileSystem, appManager: IAppManager, reload: Boolean
     ): MutableList<SnapedApp> {
         if (reload) {
             synchronized(apps) {
@@ -64,24 +66,27 @@ data class SnapGroup(
                 val fileType = fs.fileType(packageDir)
                 if (fileType == IFileType.TYPE_DIR) {
                     val iconFile = Paths.get(path, "$pkgName.png").absolutePathString()
-                    android.util.Log.d("SnapGroup", "Creating SnapedApp for $pkgName, iconFile: $iconFile, exists: ${fs.fileType(iconFile) != 0}")
-                    val app = SnapedApp(packageDir, iconFile)
+                    Log.d(
+                        "SnapGroup",
+                        "Creating SnapedApp for $pkgName, iconFile: $iconFile, exists: ${
+                            fs.fileType(iconFile) != 0
+                        }"
+                    )
+                    val app = SnapedApp(this, packageDir, iconFile)
                     try {
-                        val archives = app.loadArchives(fs, appManager, false)
+                        app.loadArchives(fs, appManager, false)
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
                     try {
                         val newAppInfo = app.latestArchive?.appInfo ?: AppInfo.from(
                             appManager.getPackageInfo(
-                                pkgName,
-                                0,
-                                0
+                                pkgName, 0, config.groupConfigData.userId
                             )
                         )
                         // 先设置存档图标文件路径，再赋值给 app.appInfo
                         newAppInfo.archiveIconFile = iconFile
-                        android.util.Log.d("SnapGroup", "Setting archiveIconFile for $pkgName: $iconFile")
+                        Log.d("SnapGroup", "Setting archiveIconFile for $pkgName: $iconFile")
                         app.appInfo = newAppInfo
                         apps.add(app)
                     } catch (e: Exception) {

@@ -6,9 +6,6 @@ import tiiehenry.android.app.snapshotor.SnapShotApp
 object GlobalConfig {
     private const val KEY_GROUPS = "groups"
     private const val KEY_GROUPS_ORDER = "groups_order"
-    private const val KEY_ROOT_PATH = "rootPath"
-    private const val KEY_FILE_SYSTEM_PROVIDER = "fileSystemProvider"
-    private const val KEY_APP_MANAGER_PROVIDER = "appManagerProvider"
 
     private val mmkv: MMKV
         get() = MMKV.defaultMMKV()
@@ -32,30 +29,5 @@ object GlobalConfig {
             mmkv.encode(KEY_GROUPS_ORDER, value.joinToString(","))
             // 同时保存到Set用于兼容
             mmkv.encode(KEY_GROUPS, value.toSet())
-        }
-    
-    /**
-     * 分组ID集合（无序，用于快速查找）
-     */
-    val groupsSet: Set<String>
-        get() = groups.toSet()
-
-    var rootPath: String
-        get() = mmkv.decodeString(KEY_ROOT_PATH, SnapShotApp.getInstance().defaultRootPath)
-            ?: SnapShotApp.getInstance().defaultRootPath
-        set(value) {
-            mmkv.encode(KEY_ROOT_PATH, value)
-        }
-
-    var fileSystemProvider: String
-        get() = mmkv.decodeString(KEY_FILE_SYSTEM_PROVIDER) ?: ""
-        set(value) {
-            mmkv.encode(KEY_FILE_SYSTEM_PROVIDER, value)
-        }
-
-    var appManagerProvider: String
-        get() = mmkv.decodeString(KEY_APP_MANAGER_PROVIDER) ?: ""
-        set(value) {
-            mmkv.encode(KEY_APP_MANAGER_PROVIDER, value)
         }
 }

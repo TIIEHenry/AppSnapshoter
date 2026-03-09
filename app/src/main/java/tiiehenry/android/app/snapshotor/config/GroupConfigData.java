@@ -10,6 +10,9 @@ public class GroupConfigData {
     // 用户ID
     public int userId = 0;
 
+    // 分组名称
+    public String name;
+
     /**
      * 从 JSON 字符串解析配置（静态工厂方法）
      */

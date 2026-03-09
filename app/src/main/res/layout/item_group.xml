@@ -28,15 +28,27 @@
                 android:textStyle="bold" />
 
             <ImageButton
-                android:id="@+id/btn_move"
+                android:id="@+id/btn_confirm"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_margin="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="移动"
+                android:contentDescription="确认排序"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/group_sort" />
+                android:src="@drawable/check"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btn_refresh"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="刷新"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/refresh" />
 
             <ImageButton
                 android:id="@+id/btn_add"
@@ -50,6 +62,17 @@
                 android:src="@drawable/app_add" />
 
             <ImageButton
+                android:id="@+id/btn_move"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="移动"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/group_sort" />
+
+            <ImageButton
                 android:id="@+id/btn_tune"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
@@ -59,17 +82,6 @@
                 android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/tune" />
-
-            <ImageButton
-                android:id="@+id/btn_refresh"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="刷新"
-                android:padding="8dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/refresh" />
 
         </LinearLayout>
 
