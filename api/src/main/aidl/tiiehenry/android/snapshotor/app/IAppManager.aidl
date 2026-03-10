@@ -45,4 +45,7 @@ interface IAppManager {
 
     // 检查应用是否正在运行
     boolean isPackageRunning(String packageName, int userId);
+
+    // 启动应用
+    boolean launchApp(String packageName, int userId);
 }

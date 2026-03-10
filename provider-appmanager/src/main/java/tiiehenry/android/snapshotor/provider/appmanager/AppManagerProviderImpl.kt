@@ -2,7 +2,9 @@ package tiiehenry.android.snapshotor.provider.appmanager
 
 import android.app.admin.DevicePolicyManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.LauncherApps
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -23,6 +25,7 @@ import tiiehenry.android.snapshotor.provider.appmanager.root.SnapShotRootService
 import tiiehenry.android.snapshotor.provider.appmanager.service.ISnapShotRootService
 import tiiehenry.android.snapshotor.provider.appmanager.util.LogHelper
 import tiiehenry.android.snapshotor.provider.appmanager.util.PathHelper
+import java.lang.reflect.Field
 
 class AppManagerProviderImpl(
     context: Context,
@@ -509,6 +512,21 @@ class AppManagerProviderImpl(
                         "SnapShotRootServiceProxy",
                         "isPackageRunning",
                         "Failed to check if package is running",
+                        e
+                    )
+                    false
+                }
+            }
+
+            suspend fun launchApp(packageName: String, userId: Int): Boolean {
+                val service = getRootService()
+                return try {
+                    service.launchApp(packageName, userId)
+                } catch (e: Exception) {
+                    LogHelper.e(
+                        "SnapShotRootServiceProxy",
+                        "launchApp",
+                        "Failed to launch app via root service",
                         e
                     )
                     false
@@ -1024,6 +1042,109 @@ class AppManagerProviderImpl(
                     "Failed to check if package is running",
                     e
                 )
+                false
+            }
+        }
+
+        /**
+         * Intent.mTargetUserId 字段缓存（Flyme 多用户适配）。
+         * 首次访问时尝试获取，字段不存在的设备上为 null。
+         */
+        val intentTargetUserIdField: Field? by lazy {
+            runCatching {
+                Intent::class.java.getDeclaredField("mTargetUserId").also { it.isAccessible = true }
+            }.getOrNull()
+        }
+
+        /**
+         * Flyme 多用户适配：通过 ReflectionCache 将 userId 写入 intent.mTargetUserId，
+         * 并附加 Flyme 专属 Extra，字段不存在时静默忽略。
+         */
+        private fun Intent.applyFlymeUserIdCompat(userId: Int) {
+            intentTargetUserIdField?.set(this, userId)
+            putExtra("flyme.intent.extra.NO_MULTI_OPEN_CHOOSE", true)
+        }
+
+        override fun launchApp(packageName: String, userId: Int): Boolean {
+            return try {
+                // 如果应用已在后台运行， Root Service 会内部处理 moveTaskToFront
+                // 内部 am moveTaskToFront 失败或未运行时，尝试优先使用 Root Service
+                val rootResult = runCatching {
+                    runBlocking { proxy.launchApp(packageName, userId) }
+                }
+                if (rootResult.getOrDefault(false)) {
+                    return true
+                }
+                LogHelper.w(
+                    "AppManagerImpl",
+                    "launchApp",
+                    "Root service launch failed for $packageName (userId=$userId), falling back to LauncherApps"
+                )
+
+                // 检测应用是否已在运行，若已在后台运行则加入 FLAG_ACTIVITY_REORDER_TO_FRONT
+                // 让系统将已有 Task 移至前台，而不是创建新的 Task
+                val isRunning = runCatching { isPackageRunning(packageName, userId) }.getOrDefault(false)
+
+                // 降级：使用 LauncherApps （支持多用户）
+                val userHandle = getUserHandle(userId)
+                if (userHandle != null) {
+                    val launcherApps =
+                        context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+                    val activityInfoList = launcherApps.getActivityList(packageName, userHandle)
+                    if (activityInfoList.isNotEmpty()) {
+                        val intent = Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_LAUNCHER)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                            .setComponent(activityInfoList[0].componentName)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        if (isRunning) {
+                            // 应用已在运行，将现有 Task 移至前台而不创建新 Task
+                            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                        }
+                        intent.applyFlymeUserIdCompat(userId)
+                        context.startActivity(intent)
+                        true
+                    } else {
+                        // 降级到普通方式
+                        val fallbackIntent = packageManager.getLaunchIntentForPackage(packageName)
+                        if (fallbackIntent != null) {
+                            fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            if (isRunning) {
+                                fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                            }
+                            context.startActivity(fallbackIntent)
+                            true
+                        } else {
+                            LogHelper.w(
+                                "AppManagerImpl",
+                                "launchApp",
+                                "No launchable activity found for $packageName"
+                            )
+                            false
+                        }
+                    }
+                } else {
+                    // 回退到默认方式启动
+                    val fallbackIntent = packageManager.getLaunchIntentForPackage(packageName)
+                    if (fallbackIntent != null) {
+                        fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        if (isRunning) {
+                            fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                        }
+                        fallbackIntent.applyFlymeUserIdCompat(userId)
+                        context.startActivity(fallbackIntent)
+                        true
+                    } else {
+                        LogHelper.w(
+                            "AppManagerImpl",
+                            "launchApp",
+                            "No launch intent found for $packageName"
+                        )
+                        false
+                    }
+                }
+            } catch (e: Exception) {
+                LogHelper.e("AppManagerImpl", "launchApp", "Failed to launch app: $packageName", e)
                 false
             }
         }

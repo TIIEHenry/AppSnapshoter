@@ -627,6 +627,97 @@ class SnapShotRootService : RootService() {
             }
         }
 
+        override fun launchApp(packageName: String, userId: Int): Boolean {
+            return try {
+                val shell = Shell.Builder.create()
+                    .setFlags(Shell.FLAG_MOUNT_MASTER)
+                    .setTimeout(30)
+                    .build()
+
+                // 优先检测应用是否已在后台运行，若是则通过 am moveTaskToFront 将其前台化
+                val isRunning = isPackageRunning(packageName, userId)
+                Log.i("SnapShotRootService", "launchApp App is running: $isRunning")
+                if (isRunning) {
+                    // 从 dumpsys activity tasks 中查找该包名且属于指定 userId 的 taskId
+                    //
+                    // 真实输出格式（Android 10+）：
+                    //   * Task{6e2c6b8 #42 visible=false mode=fullscreen translucent=false}
+                    //       userId=0 effectiveUid=u0a123 mCallingUid=u0a123 ...
+                    //       intent={...cmp=com.example.app/.MainActivity}
+                    //       realActivity=com.example.app/.MainActivity
+                    //
+                    // taskId 在 Task{} 中用 #<id> 表示，userId 在紧随其后的行
+                    val dumpsysResult = shell.newJob().to(null, null)
+                        .add("dumpsys activity tasks")
+                        .exec()
+                    val lines = dumpsysResult.out
+                    // 输出前50行用于调试
+                    LogHelper.d("SnapShotRootService", "launchApp",
+                        "dumpsys activity tasks (first 50 lines):\n" + lines.take(50).joinToString("\n"))
+                    var taskId: Int? = null
+                    var pendingTaskId: Int? = null   // 当前 Task 块解析到的 taskId
+                    var pendingUserId: Int? = null   // 当前 Task 块解析到的 userId
+                    for (line in lines) {
+                        // 匹配 Task 块头部："* Task{... #42 ...}" 或 "taskId=42"
+                        // 两种格式都尝试提取
+                        val taskHashMatch = Regex("\\* Task\\{[^}]* #(\\d+)").find(line)
+                        val taskIdFieldMatch = Regex("\\btaskId=(\\d+)").find(line)
+                        val newTaskId = (taskHashMatch?.groupValues?.get(1) ?: taskIdFieldMatch?.groupValues?.get(1))?.toIntOrNull()
+                        if (newTaskId != null) {
+                            pendingTaskId = newTaskId
+                            pendingUserId = null // 重置，等待后续行提供 userId
+                            // 有些版本 userId 和 taskId 在同一行，一并提取
+                            Regex("\\buserId=(\\d+)").find(line)?.groupValues?.get(1)?.toIntOrNull()?.let {
+                                pendingUserId = it
+                            }
+                        }
+                        // 匹配独立的 userId 行，格式："  userId=0 ..."
+                        if (pendingUserId == null) {
+                            Regex("\\buserId=(\\d+)").find(line)?.groupValues?.get(1)?.toIntOrNull()?.let {
+                                pendingUserId = it
+                            }
+                        }
+                        // 匹配含目标包名的 activity 行
+                        if (line.contains(packageName) &&
+                            (line.contains("baseActivity=") || line.contains("realActivity=") ||
+                             line.contains("origActivity=") || line.contains("cmp=$packageName"))) {
+                            LogHelper.d("SnapShotRootService", "launchApp",
+                                "Found package line: [$line], pendingTaskId=$pendingTaskId, pendingUserId=$pendingUserId")
+                            if (pendingTaskId != null && pendingUserId == userId) {
+                                taskId = pendingTaskId
+                                break
+                            }
+                        }
+                    }
+                    if (taskId != null) {
+                        val moveResult = shell.newJob().to(null, null)
+                            .add("am moveTaskToFront $taskId")
+                            .exec()
+                        shell.close()
+                        LogHelper.d(
+                            "SnapShotRootService", "launchApp",
+                            "moveTaskToFront taskId=$taskId output: ${moveResult.out.joinToString("\n")}\nExit code: ${moveResult.code}"
+                        )
+                        if (moveResult.isSuccess) return true
+                        // moveTaskToFront 失败则继续降级用 am start
+                        LogHelper.w("SnapShotRootService", "launchApp", "moveTaskToFront failed, falling back to am start")
+                    } else {
+                        LogHelper.w("SnapShotRootService", "launchApp", "App is running but taskId not found, falling back to am start")
+                    }
+                }
+
+                // 应用未在运行，或 moveTaskToFront 降级：通过 am start 命令行以 root 权限启动，支持多用户
+                val cmd = "am start --user $userId -a android.intent.action.MAIN -c android.intent.category.LAUNCHER $packageName"
+                val result = shell.newJob().to(null, null).add(cmd).exec()
+                shell.close()
+                LogHelper.d("SnapShotRootService", "launchApp", "Launch output: ${result.out.joinToString("\n")}\nExit code: ${result.code}")
+                result.isSuccess
+            } catch (e: Exception) {
+                LogHelper.e("SnapShotRootService", "launchApp", "Failed to launch app: $packageName", e)
+                false
+            }
+        }
+
         // ==================== 文件系统方法 ====================
 
         override fun readStatFs(path: String): StatFsParcelable {

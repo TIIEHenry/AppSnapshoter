@@ -62,6 +62,9 @@ interface ISnapShotRootService {
     // 检查应用是否正在运行
     boolean isPackageRunning(String packageName, int userId);
 
+    // 用命令行方式启动应用
+    boolean launchApp(String packageName, int userId);
+
     // ==================== 文件系统方法 ====================
     StatFsParcelable readStatFs(String path);
     List<FilePathParcelable> listFilePaths(String path, boolean listFiles, boolean listDirs);
