@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 压缩项目PopupMenu菜单项ID -->
+    <item name="menu_compress_apk" type="id"/>
+    <item name="menu_compress_data" type="id"/>
+    <item name="menu_compress_user" type="id"/>
+    <item name="menu_compress_user_de" type="id"/>
+    <item name="menu_compress_obb" type="id"/>
+    <item name="menu_compress_media" type="id"/>
+</resources>

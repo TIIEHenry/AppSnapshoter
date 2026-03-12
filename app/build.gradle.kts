@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "tiiehenry.android.app.snapshotor"
+    namespace = "tiiehenry.android.app.snapshot"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "tiiehenry.android.app.snapshotor"
+        applicationId = "tiiehenry.android.app.snapshot"
         minSdk = 28
         targetSdk = 36
         versionCode = 1
@@ -47,7 +47,7 @@ dependencies {
     implementation(project(":api"))
     
     // Provider implementations
-    implementation(project(":provider-appmanager"))
+    implementation(project(":provider"))
     implementation(project(":hiddenapi"))
 
     // AndroidX

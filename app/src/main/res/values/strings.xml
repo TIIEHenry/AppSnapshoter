@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AppSnapShotor</string>
+    <string name="app_name">AppSnapshot</string>
 
     <!-- 应用筛选 -->
     <string name="app_filter_system">系统应用</string>

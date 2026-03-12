@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "tiiehenry.android.snapshotor.api"
+    namespace = "tiiehenry.android.snapshot.api"
     compileSdk = 36
 
     defaultConfig {

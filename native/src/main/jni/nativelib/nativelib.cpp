@@ -46,7 +46,7 @@ namespace NativeNS {
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_xayah_libnative_NativeLib_calculateTreeSize(JNIEnv *env, jobject, jstring path) {
+Java_tiiehenry_android_compress_zstd_NativeLib_calculateTreeSize(JNIEnv *env, jobject, jstring path) {
     int64_t total_size = 0;
     int64_t *p_total_size = &total_size;
     const char *p_path = env->GetStringUTFChars(path, JNI_FALSE);
@@ -55,7 +55,7 @@ Java_com_xayah_libnative_NativeLib_calculateTreeSize(JNIEnv *env, jobject, jstri
 }
 
 extern "C" JNIEXPORT jintArray JNICALL
-Java_com_xayah_libnative_NativeLib_getUidGid(JNIEnv *env, jobject, jstring path) {
+Java_tiiehenry_android_compress_zstd_NativeLib_getUidGid(JNIEnv *env, jobject, jstring path) {
     struct stat file_stat{};
     jintArray result = env->NewIntArray(2); // result[0] - uid, result[1] - gid
     jint *p_result = env->GetIntArrayElements(result, nullptr);

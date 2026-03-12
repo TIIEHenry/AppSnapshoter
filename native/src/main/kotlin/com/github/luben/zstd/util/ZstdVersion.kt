@@ -1,6 +1,6 @@
 package com.github.luben.zstd.util
 
-import com.xayah.libnative.BuildConfig
+import tiiehenry.android.compress.zstd.BuildConfig
 
 object ZstdVersion {
     const val VERSION = BuildConfig.ZSTD_VERSION

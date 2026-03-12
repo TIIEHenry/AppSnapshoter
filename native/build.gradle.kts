@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.xayah.libnative"
+    namespace = "tiiehenry.android.compress.zstd"
     ndkVersion = libs.versions.ndkVersion.get()
     compileSdk = 36
 

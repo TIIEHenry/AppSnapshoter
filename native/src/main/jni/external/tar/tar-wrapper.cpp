@@ -23,7 +23,7 @@
 extern int main(int argc, char **argv);
 
 extern "C" JNIEXPORT jint JNICALL
-Java_com_xayah_libnative_TarWrapper_callCli(JNIEnv *env, jobject, jstring std_out, jstring std_err, jobjectArray j_argv) {
+Java_tiiehenry_android_compress_zstd_TarWrapper_callCli(JNIEnv *env, jobject, jstring std_out, jstring std_err, jobjectArray j_argv) {
     const char *out_path = env->GetStringUTFChars(std_out, nullptr);
     const char *err_path = env->GetStringUTFChars(std_err, nullptr);
 
