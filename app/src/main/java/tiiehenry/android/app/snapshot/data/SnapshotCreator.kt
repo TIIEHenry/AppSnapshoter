@@ -98,6 +98,11 @@ class SnapshotCreator(
                             // 重新加载应用数据
                             item.loadArchives(fs, appManager, true)
                             callback?.onSuccess()
+
+                            // 异步执行保留策略清理（不阻塞UI）
+                            launch {
+                                RetentionPolicyExecutor.applyPolicy(item, groupConfig, appConfig)
+                            }
                         }
                     }
                 } else {
