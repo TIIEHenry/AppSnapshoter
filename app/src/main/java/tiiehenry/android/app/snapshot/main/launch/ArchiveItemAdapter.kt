@@ -3,7 +3,9 @@ package tiiehenry.android.app.snapshot.main.launch
 import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LifecycleOwner
@@ -17,6 +19,7 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
+import tiiehenry.android.app.snapshot.data.MetaInfoHelper
 import tiiehenry.android.app.snapshot.databinding.ItemArchiveBinding
 import tiiehenry.android.app.snapshot.utils.ArchiveRenameHelper
 import java.text.SimpleDateFormat
@@ -52,9 +55,19 @@ class ArchiveItemAdapter(
         private val binding: ItemArchiveBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
+        private val btnLock: ImageView = binding.root.findViewById(R.id.btn_lock)
+
         fun bind(item: ArchiveItem) {
             binding.archiveName.text = item.name
             binding.archiveUserid.text = "u${item.metaInfo.userId}"
+
+            // 更新锁定按钮图标和颜色
+            updateLockButtonUI(item)
+
+            // 锁定按钮点击事件
+            btnLock.setOnClickListener {
+                toggleArchiveLock(item)
+            }
 
             // 根据删除模式更新UI
             if (deleteMode) {
@@ -62,6 +75,8 @@ class ArchiveItemAdapter(
                 binding.archiveIcon.setImageResource(R.drawable.delete_forever_outline)
                 binding.archiveIcon.setColorFilter(Color.RED)
                 binding.archiveName.setTextColor(Color.RED)
+                btnLock.setColorFilter(Color.GRAY)
+                btnLock.isEnabled = false
 
                 // 删除模式下：点击图标直接删除，无需弹框确认
                 binding.archiveIcon.setOnClickListener {
@@ -77,6 +92,7 @@ class ArchiveItemAdapter(
                 binding.archiveIcon.setImageResource(R.drawable.archive_arrow_up_outline)
                 binding.archiveIcon.setColorFilter(Color.BLACK)
                 binding.archiveName.setTextColor(Color.BLACK)
+                btnLock.isEnabled = true
 
                 binding.archiveIcon.setOnClickListener {
                     onItemClick.invoke(item, true)
@@ -90,6 +106,19 @@ class ArchiveItemAdapter(
             binding.root.setOnLongClickListener {
                 showArchiveInfoDialog(item, it.context)
                 true
+            }
+        }
+
+        /**
+         * 更新锁定按钮UI
+         */
+        private fun updateLockButtonUI(item: ArchiveItem) {
+            if (item.metaInfo.isLocked) {
+                btnLock.setImageResource(R.drawable.lock_outline)
+                btnLock.setColorFilter(Color.parseColor("#FF9800")) // 橙色表示已锁定
+            } else {
+                btnLock.setImageResource(R.drawable.lock_outline)
+                btnLock.setColorFilter(Color.GRAY) // 灰色表示未锁定
             }
         }
 
@@ -139,24 +168,17 @@ class ArchiveItemAdapter(
                 }
             }
 
-            val dialog = AlertDialog.Builder(context)
+            AlertDialog.Builder(context)
                 .setTitle("存档信息 - ${item.name}")
                 .setMessage(message)
                 .setNeutralButton("重命名") { _, _ ->
                     showRenameDialog(item, context)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton("高级恢复", null)
-                .create()
-            
-            dialog.setOnShowListener {
-                val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                positiveButton.setOnClickListener {
+                .setPositiveButton("高级恢复") { _, _ ->
                     showAdvancedRestoreDialog(item, context)
-                    dialog.dismiss()
                 }
-            }
-            dialog.show()
+                .show()
         }
 
         private fun formatFileSize(bytes: Long): String {
@@ -233,6 +255,46 @@ class ArchiveItemAdapter(
                 }
                 .setNegativeButton("取消", null)
                 .show()
+        }
+
+        /**
+         * 切换存档锁定状态
+         */
+        private fun toggleArchiveLock(item: ArchiveItem) {
+            val newLockState = !item.metaInfo.isLocked
+            val context = binding.root.context
+
+            (binding.root.context as? LifecycleOwner)?.lifecycleScope?.launch {
+                val success = withContext(Dispatchers.IO) {
+                    try {
+                        // 更新 MetaInfo 的锁定状态
+                        item.metaInfo.setLocked(newLockState)
+                        // 保存到文件
+                        MetaInfoHelper.writeToArchive(
+                            item.metaInfo,
+                            item.path,
+                            true
+                        )
+                        true
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        false
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        // 更新按钮UI
+                        updateLockButtonUI(item)
+                        val message = if (newLockState) "存档已锁定，不会被自动清理" else "存档已解锁"
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    } else {
+                        // 恢复原来的状态
+                        item.metaInfo.setLocked(!newLockState)
+                        Toast.makeText(context, "锁定状态保存失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
 
         /**

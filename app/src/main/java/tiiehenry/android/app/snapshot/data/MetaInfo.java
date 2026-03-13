@@ -27,25 +27,35 @@ public class MetaInfo {
     @JSONField(name = "makeTime")
     private long makeTime;
 
+    @JSONField(name = "locked")
+    private boolean locked;
+
     // 无参构造函数
     public MetaInfo() {
     }
 
     // 全参构造函数
     public MetaInfo(MetaPackageInfo packageInfo, int userId, String ssaid, List<String> dataItems,
-                    List<MetaPermission> permissions, long makeTime) {
+                    List<MetaPermission> permissions, long makeTime, boolean locked) {
         this.packageInfo = packageInfo;
         this.userId = userId;
         this.ssaid = ssaid;
         this.dataItems = dataItems;
         this.permissions = permissions;
         this.makeTime = makeTime;
+        this.locked = locked;
     }
 
-    // 兼容旧的构造函数（不含ssaid）
+    // 兼容旧的构造函数（不含ssaid和locked）
     public MetaInfo(MetaPackageInfo packageInfo, int userId, List<String> dataItems,
                     List<MetaPermission> permissions, long makeTime) {
-        this(packageInfo, userId, "", dataItems, permissions, makeTime);
+        this(packageInfo, userId, "", dataItems, permissions, makeTime, false);
+    }
+
+    // 兼容旧的构造函数（不含locked）
+    public MetaInfo(MetaPackageInfo packageInfo, int userId, String ssaid, List<String> dataItems,
+                    List<MetaPermission> permissions, long makeTime) {
+        this(packageInfo, userId, ssaid, dataItems, permissions, makeTime, false);
     }
 
     // Getter和Setter方法
@@ -97,6 +107,14 @@ public class MetaInfo {
         this.makeTime = makeTime;
     }
 
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
     @Override
     public String toString() {
         return "MetaInfo{" +
@@ -106,6 +124,7 @@ public class MetaInfo {
                ", dataItems=" + dataItems +
                ", permissions=" + permissions +
                ", makeTime=" + makeTime +
+               ", locked=" + locked +
                '}';
     }
 }

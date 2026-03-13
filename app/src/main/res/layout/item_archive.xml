@@ -33,4 +33,16 @@
         android:text="存档名称"
         android:textSize="14sp" />
 
+    <ImageView
+        android:id="@+id/btn_lock"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="4dp"
+        android:padding="4dp"
+        android:src="@drawable/lock_outline"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="锁定/解锁"
+        android:clickable="true"
+        android:focusable="true" />
+
 </LinearLayout>
