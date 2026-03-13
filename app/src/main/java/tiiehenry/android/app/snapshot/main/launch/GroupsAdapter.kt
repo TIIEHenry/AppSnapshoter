@@ -306,6 +306,9 @@ class GroupsAdapter(
             group: SnapGroup,
             recyclerView: RecyclerView
         ) {
+            // 更新分组标题
+            binding.groupTitle.text = group.name
+
             if (group.apps.isEmpty()) {
                 binding.progressBar.visibility = View.GONE
                 binding.groupRecyclerView.visibility = View.GONE

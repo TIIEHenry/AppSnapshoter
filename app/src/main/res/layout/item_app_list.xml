@@ -41,6 +41,7 @@
         android:text="com.example.app"
         android:textColor="?android:textColorSecondary"
         android:textSize="12sp"
+        app:layout_constraintBottom_toTopOf="@id/app_version"
         app:layout_constraintEnd_toStartOf="@id/app_checkbox"
         app:layout_constraintStart_toStartOf="@id/app_name"
         app:layout_constraintTop_toBottomOf="@id/app_name" />
@@ -55,6 +56,7 @@
         android:text="1.0.0 (1)"
         android:textColor="?android:textColorSecondary"
         android:textSize="12sp"
+        app:layout_constraintTop_toBottomOf="@id/app_package"
         app:layout_constraintBottom_toBottomOf="@id/app_icon"
         app:layout_constraintEnd_toStartOf="@id/app_checkbox"
         app:layout_constraintStart_toStartOf="@id/app_name" />
