@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.CoroutineScope
@@ -66,13 +67,19 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return BottomSheetDialog(requireContext(), theme).apply {
-            setOnShowListener {
-                val bottomSheet = findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            setOnShowListener { dialogInterface ->
+                val bottomSheet =
+                    findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
                 bottomSheet?.let {
                     val layoutParams = it.layoutParams
                     layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
                     it.layoutParams = layoutParams
                 }
+                // 获取 BottomSheetBehavior 并禁用拖动
+                val bottomSheetDialog = dialogInterface as BottomSheetDialog
+                val behavior = bottomSheetDialog.behavior
+                behavior.isDraggable = false
+                behavior.state = BottomSheetBehavior.STATE_COLLAPSED
             }
         }
     }
@@ -97,24 +104,29 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
         fileAdapter = FilePickerAdapter(
             onItemClick = { fileItem ->
                 if (fileItem.isDirectory) {
-                    // 进入目录
-                    currentPath = fileItem.path
-                    loadFiles()
+                    // 点击进入目录
+                    enterDirectory(fileItem)
                 } else {
-                    // 切换选中状态
+                    // 文件：点击切换选中状态
                     toggleSelection(fileItem)
                 }
             },
             onItemLongClick = { fileItem ->
-                // 长按切换选中状态
+                // 长按切换选中状态（文件和文件夹都支持）
                 toggleSelection(fileItem)
                 true
+            },
+            onFolderSelectClick = { fileItem ->
+                // 文件夹：点击选择按钮切换选中状态
+                toggleSelection(fileItem)
             }
         )
 
         binding.recyclerViewFiles.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = fileAdapter
+            setHasFixedSize(true) // 固定高度，提升性能
+            isNestedScrollingEnabled = false // 禁用嵌套滚动，避免与 BottomSheet 冲突
         }
 
         // 返回按钮
@@ -146,6 +158,14 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
         }
         updateSelectionUI()
         fileAdapter.setSelectedFiles(selectedFiles)
+    }
+
+    /**
+     * 进入目录
+     */
+    private fun enterDirectory(fileItem: FileItem) {
+        currentPath = fileItem.path
+        loadFiles()
     }
 
     /**
@@ -225,11 +245,13 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
             try {
                 val fileType = fileSystem.fileType(filePath)
                 val isDirectory = fileType == 1
-                fileItems.add(FileItem(
-                    name = fileName,
-                    path = filePath,
-                    isDirectory = isDirectory
-                ))
+                fileItems.add(
+                    FileItem(
+                        name = fileName,
+                        path = filePath,
+                        isDirectory = isDirectory
+                    )
+                )
             } catch (e: Exception) {
                 // 忽略无法访问的文件
             }
@@ -288,7 +310,8 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
      */
     inner class FilePickerAdapter(
         private val onItemClick: (FileItem) -> Unit,
-        private val onItemLongClick: (FileItem) -> Boolean
+        private val onItemLongClick: (FileItem) -> Boolean,
+        private val onFolderSelectClick: (FileItem) -> Unit
     ) : RecyclerView.Adapter<FilePickerAdapter.ViewHolder>() {
 
         private var fileList = listOf<FileItem>()
@@ -321,15 +344,28 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
                 )
 
                 // 设置选中状态
-                cbFileSelected.visibility = View.VISIBLE
                 cbFileSelected.isChecked = isSelected
 
-                // 点击事件
-                root.setOnClickListener {
-                    onItemClick(fileItem)
+                if (fileItem.isDirectory) {
+                    // 文件夹：显示选择按钮，点击选择按钮切换选中状态
+                    cbFileSelected.visibility = View.VISIBLE
+                    cbFileSelected.setOnClickListener {
+                        onFolderSelectClick(fileItem)
+                    }
+                    // 整个条目点击进入目录
+                    root.setOnClickListener {
+                        onItemClick(fileItem)
+                    }
+                } else {
+                    // 文件：显示选择按钮，点击整个条目切换选中状态
+                    cbFileSelected.visibility = View.VISIBLE
+                    cbFileSelected.setOnClickListener(null)
+                    root.setOnClickListener {
+                        onItemClick(fileItem)
+                    }
                 }
 
-                // 长按事件
+                // 长按事件（文件和文件夹都支持）
                 root.setOnLongClickListener {
                     onItemLongClick(fileItem)
                 }

@@ -12,6 +12,8 @@ import tiiehenry.android.app.snapshot.config.GroupConfig
 import tiiehenry.android.app.snapshot.databinding.FragmentGroupShotConfigBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.ui.common.ShotOptionsManager
+import tiiehenry.android.app.snapshot.ui.common.VersionRetentionManager
+import tiiehenry.android.app.snapshot.ui.common.ExcludePatternsManager
 
 class GroupShotConfigFragment : BottomSheetDialogFragment() {
 
@@ -20,6 +22,8 @@ class GroupShotConfigFragment : BottomSheetDialogFragment() {
     private lateinit var groupId: String
     private lateinit var groupConfig: GroupConfig
     private lateinit var shotOptionsManager: ShotOptionsManager
+    private lateinit var versionRetentionManager: VersionRetentionManager
+    private lateinit var excludePatternsManager: ExcludePatternsManager
     private var onConfigSavedListener: (() -> Unit)? = null
 
     companion object {
@@ -86,16 +90,34 @@ class GroupShotConfigFragment : BottomSheetDialogFragment() {
             onConfigSavedListener?.invoke()
             dismiss()
         }
+        binding.btnSave.contentDescription = "保存"
 
         binding.btnReset.setOnClickListener {
             loadConfig()
         }
 
-        // 初始化截图选项管理器
+        // 初始化截图选项管理器（分组配置不需要"启用单独控制"开关，始终启用）
         shotOptionsManager = ShotOptionsManager(
             binding.includeShotOptions,
             requireContext(),
-            groupConfig.shotConfig
+            groupConfig.shotConfig,
+            showEnabledSwitch = false
+        )
+
+        // 初始化排除模式管理器（分组配置需要）
+        excludePatternsManager = ExcludePatternsManager(
+            binding.includeExcludePatterns,
+            requireContext(),
+            "", // 分组配置不需要包名作为根路径
+            groupConfig.excludeConfig,
+            childFragmentManager
+        )
+
+        // 初始化版本保留配置管理器（分组配置不需要"启用单独控制"开关，始终启用）
+        versionRetentionManager = VersionRetentionManager(
+            binding.includeVersionRetention,
+            groupConfig.shotConfig.versionRetentionConfig,
+            showEnabledSwitch = false
         )
 
         // 设置压缩算法下拉框
@@ -105,6 +127,10 @@ class GroupShotConfigFragment : BottomSheetDialogFragment() {
 
     private fun loadConfig() {
         shotOptionsManager.loadConfig()
+        // 加载排除模式列表（从ExcludeConfig加载按压缩项目分类的排除模式）
+        excludePatternsManager.loadFromExcludeConfig(groupConfig.excludeConfig)
+        // 使用版本保留管理器加载配置
+        versionRetentionManager.loadConfig()
     }
 
     private fun saveConfig() {
@@ -113,6 +139,11 @@ class GroupShotConfigFragment : BottomSheetDialogFragment() {
         groupConfig.shotConfig.uninstallArchived = shotOptionsManager.getUninstallArchived()
         groupConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
         groupConfig.shotConfig.compressAlgorithm = shotOptionsManager.getCompressAlgorithm()
+        // 保存排除模式列表（保存按压缩项目分类的排除模式）
+        excludePatternsManager.saveToExcludeConfig(groupConfig.excludeConfig)
+
+        // 使用版本保留管理器保存配置
+        groupConfig.shotConfig.versionRetentionConfig = versionRetentionManager.saveToConfig()
 
         groupConfig.save()
     }

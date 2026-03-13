@@ -43,6 +43,15 @@
             app:iconTint="@color/material_on_surface_emphasis_medium"
             android:contentDescription="关闭" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_confirm"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/check"
+            app:iconTint="@color/material_on_surface_emphasis_medium"
+            android:contentDescription="确认" />
+
     </LinearLayout>
 
     <!-- 分隔线 -->
@@ -50,6 +59,18 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="?attr/dividerHorizontal" />
+
+    <!-- 已选择信息栏 -->
+    <TextView
+        android:id="@+id/tv_selected_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:text="已选择: 0"
+        android:textSize="14sp" />
 
     <!-- 文件列表 -->
     <androidx.recyclerview.widget.RecyclerView
@@ -72,31 +93,5 @@
         android:textColor="@color/material_on_surface_emphasis_medium"
         android:textSize="16sp"
         android:visibility="gone" />
-
-    <!-- 底部操作栏 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
-        android:elevation="4dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="16dp">
-
-        <TextView
-            android:id="@+id/tv_selected_count"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="已选择: 0"
-            android:textSize="14sp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_confirm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="确认" />
-
-    </LinearLayout>
 
 </LinearLayout>

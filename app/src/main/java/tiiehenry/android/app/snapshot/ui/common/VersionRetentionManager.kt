@@ -1,5 +1,6 @@
 package tiiehenry.android.app.snapshot.ui.common
 
+import android.view.View
 import tiiehenry.android.app.snapshot.config.VersionRetentionConfig
 import tiiehenry.android.app.snapshot.databinding.IncludeVersionRetentionBinding
 
@@ -9,15 +10,27 @@ import tiiehenry.android.app.snapshot.databinding.IncludeVersionRetentionBinding
  */
 class VersionRetentionManager(
     private val binding: IncludeVersionRetentionBinding,
-    private var config: VersionRetentionConfig
+    private var config: VersionRetentionConfig,
+    private val showEnabledSwitch: Boolean = true
 ) {
     init {
+        setupEnabledSwitch()
         setupListeners()
+    }
+
+    private fun setupEnabledSwitch() {
+        if (!showEnabledSwitch) {
+            binding.switchVersionRetentionEnabled.visibility = View.GONE
+            // 隐藏开关时，默认启用内容区域
+            binding.layoutVersionRetentionContent.visibility = View.VISIBLE
+            setEnabled(true)
+        }
     }
 
     private fun setupListeners() {
         // 总开关: 启用单独控制
         binding.switchVersionRetentionEnabled.setOnCheckedChangeListener { _, isChecked ->
+            binding.layoutVersionRetentionContent.visibility = if (isChecked) View.VISIBLE else View.GONE
             updateViewsEnabled(isChecked)
         }
 
@@ -59,7 +72,10 @@ class VersionRetentionManager(
     fun loadConfig() {
         // 总开关: 启用单独控制
         binding.switchVersionRetentionEnabled.isChecked = config.enabled
-        updateViewsEnabled(config.enabled)
+        // 当隐藏开关时，始终显示内容区域；否则根据 enabled 状态显示
+        val contentVisible = if (showEnabledSwitch) config.enabled else true
+        binding.layoutVersionRetentionContent.visibility = if (contentVisible) View.VISIBLE else View.GONE
+        updateViewsEnabled(contentVisible)
 
         // 条件A: 最大保留版本数
         val maxEnabled = config.isMaxVersionCountEnabled
@@ -90,8 +106,8 @@ class VersionRetentionManager(
      * 从 UI 保存到配置对象
      */
     fun saveToConfig(): VersionRetentionConfig {
-        // 总开关: 启用单独控制
-        config.enabled = binding.switchVersionRetentionEnabled.isChecked
+        // 总开关: 启用单独控制（当隐藏开关时，始终设为 true）
+        config.enabled = if (showEnabledSwitch) binding.switchVersionRetentionEnabled.isChecked else true
 
         // 条件A: 最大保留版本数
         config.maxVersionCount = if (binding.cbMaxVersionEnabled.isChecked) {

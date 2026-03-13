@@ -69,21 +69,28 @@ object SnapShotMaker {
                 "PackageInfo is null"
             )
             val handler =
-                createMetaInfoTask(appInfo, appManager, packageInfo, applicationInfo, compressItems, archiveDir)
+                createMetaInfoTask(
+                    appInfo,
+                    appManager,
+                    packageInfo,
+                    applicationInfo,
+                    compressItems,
+                    archiveDir
+                )
             tasks["meta-info"] = handler
             val compressor = fileSystem.compressor
             val algorithm = compressAlgorithm.ifEmpty {
                 compressor.supportedAlgorithms().first()
             }
             val dataItems = mutableListOf<MetaDataItem>()
-            
+
             // 获取排除模式映射（优先使用应用配置，否则使用组配置）
             val excludePatternsMap = if (appConfig.excludeConfig.hasExcludePatterns()) {
                 appConfig.excludeConfig.getItemExcludePatternsMap()
             } else {
                 groupConfig.excludeConfig.getItemExcludePatternsMap()
             }
-            
+
             for (item in compressItems) {
                 when (item) {
                     CompressItems.COMPRESS_ITEM_APK -> {
@@ -93,7 +100,8 @@ object SnapShotMaker {
                         )
                         val apkPath = applicationInfo.publicSourceDir
                         val extension = compressor.fileExtension(algorithm, item, apkPath)
-                        val id = ApkUtil.calculateInstalledApkSize(fileSystem, applicationInfo).toString()
+                        val id = ApkUtil.calculateInstalledApkSize(fileSystem, applicationInfo)
+                            .toString()
                         val fileName = "$id$extension"
                         //使用版本号作为文件夹名
                         //文件大小作为文件名唯一标识
@@ -101,7 +109,7 @@ object SnapShotMaker {
                         if (filePath.isRegularFile()) {
                             continue
                         }
-                        val apks=mutableListOf<String>()
+                        val apks = mutableListOf<String>()
                         apks.add(apkPath)
                         applicationInfo.splitPublicSourceDirs?.forEach { apks.add(it) }
                         val task = compressor.compressMultiple(
@@ -125,7 +133,8 @@ object SnapShotMaker {
                         if (fileSystem.fileType(dataPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, dataPath)
                             val fileName = "data$extension"
-                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_DATA] ?: arrayListOf()
+                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_DATA]
+                                ?: arrayListOf()
                             val task = compressor.compress(
                                 algorithm,
                                 dataPath,
@@ -150,7 +159,8 @@ object SnapShotMaker {
                         if (fileSystem.fileType(userPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, userPath)
                             val fileName = "user$extension"
-                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_USER] ?: arrayListOf()
+                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_USER]
+                                ?: arrayListOf()
                             val task = compressor.compress(
                                 algorithm,
                                 userPath,
@@ -176,7 +186,8 @@ object SnapShotMaker {
                             val extension =
                                 compressor.fileExtension(algorithm, item, userDePath)
                             val fileName = "user_de$extension"
-                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_USER_DE] ?: arrayListOf()
+                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_USER_DE]
+                                ?: arrayListOf()
                             val task = compressor.compress(
                                 algorithm,
                                 userDePath,
@@ -201,7 +212,8 @@ object SnapShotMaker {
                         if (fileSystem.fileType(obbPath) != IFileType.TYPE_NONE) {
                             val extension = compressor.fileExtension(algorithm, item, obbPath)
                             val fileName = "obb$extension"
-                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_OBB] ?: arrayListOf()
+                            val excludes =
+                                excludePatternsMap[CompressItems.COMPRESS_ITEM_OBB] ?: arrayListOf()
                             val task = compressor.compress(
                                 algorithm,
                                 obbPath,
@@ -227,7 +239,8 @@ object SnapShotMaker {
                             val extension =
                                 compressor.fileExtension(algorithm, item, externalDataPath)
                             val fileName = "media$extension"
-                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_MEDIA] ?: arrayListOf()
+                            val excludes = excludePatternsMap[CompressItems.COMPRESS_ITEM_MEDIA]
+                                ?: arrayListOf()
                             val task = compressor.compress(
                                 algorithm,
                                 externalDataPath,
@@ -294,7 +307,8 @@ object SnapShotMaker {
                     val dataItems = compressItems.map { "${it}.json" }
                     val uid = appManager.getPackageUid(appInfo.packageName, appInfo.userId)
                     val ssaid = try {
-                        appManager.getPackageSsaidAsUser(appInfo.packageName, uid, appInfo.userId) ?: ""
+                        appManager.getPackageSsaidAsUser(appInfo.packageName, uid, appInfo.userId)
+                            ?: ""
                     } catch (e: Exception) {
                         e.printStackTrace()
                         ""

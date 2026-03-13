@@ -29,6 +29,13 @@
 
     </LinearLayout>
 
+    <!-- 内容容器: 根据总开关显示/隐藏 -->
+    <LinearLayout
+        android:id="@+id/layout_version_retention_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
     <!-- 条件A: 最大保留版本数 -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -168,6 +175,8 @@
             </com.google.android.material.textfield.TextInputLayout>
 
         </LinearLayout>
+
+    </LinearLayout>
 
     </LinearLayout>
 

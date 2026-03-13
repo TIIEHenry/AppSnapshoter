@@ -86,6 +86,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             saveConfig()
             dismiss()
         }
+        binding.btnSave.contentDescription = "保存"
 
         binding.btnReset.setOnClickListener {
             resetConfig()

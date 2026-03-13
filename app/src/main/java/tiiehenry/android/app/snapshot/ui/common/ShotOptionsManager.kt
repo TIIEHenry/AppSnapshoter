@@ -12,12 +12,22 @@ import tiiehenry.android.app.snapshot.databinding.IncludeShotOptionsBinding
 class ShotOptionsManager(
     private val binding: IncludeShotOptionsBinding,
     private val context: Context,
-    private var shotConfig: ShotConfig
+    private var shotConfig: ShotConfig,
+    private val showEnabledSwitch: Boolean = true
 ) {
     private var algorithmChips = mutableMapOf<String, Chip>()
 
     init {
+        setupEnabledSwitch()
         setupListeners()
+    }
+
+    private fun setupEnabledSwitch() {
+        if (!showEnabledSwitch) {
+            binding.switchEnabled.visibility = android.view.View.GONE
+            // 隐藏开关时，默认启用所有选项
+            setEnabled(true)
+        }
     }
 
     fun loadConfig() {
@@ -86,16 +96,17 @@ class ShotOptionsManager(
     }
 
     private fun updateViewsEnabled(enabled: Boolean) {
-        // 启用/禁用所有选项视图
-        binding.cbAutoSnapshot.isEnabled = enabled
-        binding.cbUninstallArchived.isEnabled = enabled
-        binding.chipApk.isEnabled = enabled
-        binding.chipData.isEnabled = enabled
-        binding.chipUser.isEnabled = enabled
-        binding.chipUserDe.isEnabled = enabled
-        binding.chipObb.isEnabled = enabled
-        binding.chipMedia.isEnabled = enabled
-        binding.chipGroupCompressAlgorithm.children.forEach { it.isEnabled = enabled }
+        // 启用/禁用所有选项视图（当隐藏启用开关时，始终启用）
+        val effectiveEnabled = if (showEnabledSwitch) enabled else true
+        binding.cbAutoSnapshot.isEnabled = effectiveEnabled
+        binding.cbUninstallArchived.isEnabled = effectiveEnabled
+        binding.chipApk.isEnabled = effectiveEnabled
+        binding.chipData.isEnabled = effectiveEnabled
+        binding.chipUser.isEnabled = effectiveEnabled
+        binding.chipUserDe.isEnabled = effectiveEnabled
+        binding.chipObb.isEnabled = effectiveEnabled
+        binding.chipMedia.isEnabled = effectiveEnabled
+        binding.chipGroupCompressAlgorithm.children.forEach { it.isEnabled = effectiveEnabled }
     }
 
     fun setAutoSnapshot(enabled: Boolean) {
