@@ -7,6 +7,7 @@
 
     <!-- 多选模式 -->
     <string name="selected_count">已选择 %d 项</string>
+    <string name="please_select_apps">请选择要添加的应用</string>
 
     <!-- 设置 -->
     <string name="settings">设置</string>

@@ -121,6 +121,9 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
             if (selectedApps.isNotEmpty()) {
                 onAppsSelected?.invoke(selectedApps)
                 dismiss()
+            } else {
+                // 提示用户选择应用
+                android.widget.Toast.makeText(requireContext(), R.string.please_select_apps, android.widget.Toast.LENGTH_SHORT).show()
             }
         }
 

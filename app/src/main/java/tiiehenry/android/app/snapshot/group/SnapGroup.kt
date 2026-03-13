@@ -62,6 +62,10 @@ data class SnapGroup(
             val files = fs.listDir(path)
             Log.i("SnapGroup", "files: $files")
             for (pkgName in files) {
+                if (pkgName.startsWith(".")) {
+                    //ignore dir likes .stfolder
+                    continue
+                }
                 val packageDir = Paths.get(path, pkgName).absolutePathString()
                 val fileType = fs.fileType(packageDir)
                 if (fileType == IFileType.TYPE_DIR) {

@@ -59,7 +59,6 @@ class ArchiveItemAdapter(
 
         fun bind(item: ArchiveItem) {
             binding.archiveName.text = item.name
-            binding.archiveUserid.text = "u${item.metaInfo.userId}"
 
             // 更新锁定按钮图标和颜色
             updateLockButtonUI(item)

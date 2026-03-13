@@ -150,7 +150,11 @@ class GroupsAdapter(
             updateButtonVisibility(!isSortMode)
         }
 
-        private fun showSortTypePopupMenu(anchor: View, group: SnapGroup, adapter: GroupItemAdapter) {
+        private fun showSortTypePopupMenu(
+            anchor: View,
+            group: SnapGroup,
+            adapter: GroupItemAdapter
+        ) {
             val popup = PopupMenu(anchor.context, anchor)
             val menu = popup.menu
             val sortTypes = listOf(
@@ -325,8 +329,9 @@ class GroupsAdapter(
                 applySorting(group.apps, group.config.sortConfig, group)
             }
             Log.i("GroupsAdapter", "refresh " + sortedApps)
-            (recyclerView.adapter as GroupItemAdapter).submitList(sortedApps)
-            (recyclerView.adapter as GroupItemAdapter).notifyDataSetChanged()
+            val adapter = recyclerView.adapter as GroupItemAdapter
+            adapter.submitList(sortedApps)
+            adapter.notifyDataSetChanged()
             recyclerView.invalidate()
             recyclerView.requestLayout()
 

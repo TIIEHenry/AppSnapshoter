@@ -53,7 +53,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val startTime = System.currentTimeMillis()
-                restoreArchiveWithSelectedTypes(context, fs, appManager, snapedApp, archiveItem, loadingDialog, selectedTypes)
+                restoreArchiveWithSelectedTypes(
+                    context,
+                    fs,
+                    appManager,
+                    snapedApp,
+                    archiveItem,
+                    loadingDialog,
+                    selectedTypes
+                )
                 val endTime = System.currentTimeMillis()
                 Log.i("LauncherViewModel", "高级恢复存档耗时: ${endTime - startTime} ms")
             } catch (e: Exception) {
@@ -146,7 +154,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // 遍历数据项进行恢复
         val dataItems = archiveItem.dataItems
         var currentIndex = 0
-        val totalItems = dataItems.size
+        var totalItems = dataItems.size
 
         // 恢复前先清除应用数据
         withContext(Dispatchers.Main) {
@@ -196,6 +204,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 it.name = CompressItems.COMPRESS_ITEM_APK
                 toMutableList.remove(it)
                 toMutableList.add(0, it)
+                totalItems += 1
             }
         } else {
             Log.i("LauncherViewModel", "skip install apk")
@@ -383,7 +392,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (hasDataTypes && !installed && !needInstallApk) {
             withContext(Dispatchers.Main) {
                 loadingDialog.dismiss()
-                Toast.makeText(context, "应用未安装，请先恢复APK或安装应用", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "应用未安装，请先恢复APK或安装应用", Toast.LENGTH_LONG)
+                    .show()
             }
             return
         }
@@ -399,7 +409,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // 构建最终要恢复的数据项列表
         val toMutableList = dataItems.toMutableList()
         val apkDataItem = toMutableList.find { it.name == CompressItems.COMPRESS_ITEM_APK }
-        
+
         if (apkDataItem != null) {
             if (!needInstallApk) {
                 // 不需要安装APK，从列表中移除
