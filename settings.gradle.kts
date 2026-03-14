@@ -16,6 +16,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+//        maven("https://repo1.maven.org/maven2/") //zstd
         mavenLocal()
         maven("https://jitpack.io")
     }
@@ -27,9 +28,7 @@ include(":app")
 include(":api")
 include(":hiddenapi")
 include(":systemapi")
-include(":native")
-//include(":provider-filesystem")
+include(":io-nativefs")
+include(":io-zstd")
+include(":io-tar")
 include(":provider")
-
-//includeBuild("Android-DataBackup")
-//includeBuild("Android-DataBackup/source-next")

@@ -14,16 +14,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -61,7 +51,9 @@ dependencies {
     implementation("tiiehenry.nota.toolkit:android-common:+")
 
     // Native library
-    implementation(project(":native"))
+    implementation(project(":io-nativefs"))
+    implementation(project(":io-tar"))
+    implementation(project(":io-zstd"))
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
@@ -70,7 +62,4 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-
-    // Compression
-    implementation(libs.zstd.jni)
 }

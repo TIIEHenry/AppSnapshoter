@@ -39,7 +39,7 @@ import com.github.luben.zstd.ZstdOutputStream
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ipc.RootService
 import com.xayah.hiddenapi.castTo
-import tiiehenry.android.compress.zstd.NativeLib
+import nota.android.io.NativeFileSystem
 import nota.lang.reflect.ReflectionCache
 import tiiehenry.android.snapshot.app.AppPermission
 import tiiehenry.android.snapshot.fs.IFileType
@@ -55,7 +55,7 @@ import tiiehenry.android.snapshot.provider.appmanager.service.ISnapShotRootServi
 import tiiehenry.android.snapshot.provider.appmanager.util.CountingOutputStream
 import tiiehenry.android.snapshot.provider.appmanager.util.LogHelper
 import tiiehenry.android.snapshot.provider.appmanager.util.PathHelper
-import tiiehenry.android.compress.zstd.TarWrapper
+import tiiehenry.android.compress.zstd.TarJNI
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -64,7 +64,6 @@ import java.security.MessageDigest
 class SnapshotRootService : RootService() {
 
     init {
-        System.loadLibrary("nativelib")
         System.loadLibrary("tar-wrapper")
     }
 
@@ -179,21 +178,21 @@ class SnapshotRootService : RootService() {
                 storages.addAll(packages.map { (userId, item) ->
                     val apkBytes = runCatching {
                         item.applicationInfo?.sourceDir?.let { path -> File(path).parent }
-                            ?.let { path -> NativeLib.calculateTreeSize(path) }
+                            ?.let { path -> NativeFileSystem.calculateTreeSize(path) }
                     }.getOrNull() ?: 0
-                    val userBytes = NativeLib.calculateTreeSize(
+                    val userBytes = NativeFileSystem.calculateTreeSize(
                         PathHelper.getAppUserDir(userId, item.packageName)
                     )
-                    val userDeBytes = NativeLib.calculateTreeSize(
+                    val userDeBytes = NativeFileSystem.calculateTreeSize(
                         PathHelper.getAppUserDeDir(userId, item.packageName)
                     )
-                    val dataBytes = NativeLib.calculateTreeSize(
+                    val dataBytes = NativeFileSystem.calculateTreeSize(
                         PathHelper.getAppDataDir(userId, item.packageName)
                     )
-                    val obbBytes = NativeLib.calculateTreeSize(
+                    val obbBytes = NativeFileSystem.calculateTreeSize(
                         PathHelper.getAppObbDir(userId, item.packageName)
                     )
-                    val mediaBytes = NativeLib.calculateTreeSize(
+                    val mediaBytes = NativeFileSystem.calculateTreeSize(
                         PathHelper.getAppMediaDir(userId, item.packageName)
                     )
                     AppStorage(
@@ -751,11 +750,11 @@ class SnapshotRootService : RootService() {
         }
 
         override fun calculateTreeSize(path: String): Long {
-            return NativeLib.calculateTreeSize(path)
+            return NativeFileSystem.calculateTreeSize(path)
         }
 
         override fun callTarCli(stdOut: String, stdErr: String, argv: Array<String>): Int {
-            return TarWrapper.callCli(stdOut, stdErr, argv)
+            return TarJNI.callCli(stdOut, stdErr, argv)
         }
 
         override fun compress(level: Int, inputPath: String, outputPath: String, callback: IBinaryCallback?): String? {

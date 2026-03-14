@@ -31,7 +31,7 @@ import android.util.Xml;
 
 import androidx.annotation.GuardedBy;
 
-import com.xayah.core.common.util.BuildConfigUtil;
+import tiiehenry.android.app.snapshot.BuildConfigUtil;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;

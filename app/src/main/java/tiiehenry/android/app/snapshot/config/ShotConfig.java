@@ -24,8 +24,8 @@ public class ShotConfig {
     public boolean autoSnapshot = false;
     public boolean uninstallArchived = false;
 
-    // 版本保留配置 (JSON 字符串)
-    public String versionRetention = "";
+    // 版本保留配置
+    public VersionRetentionConfig versionRetention = new VersionRetentionConfig();
 
     /**
      * 从 JSON 字符串解析配置（静态工厂方法）
@@ -91,19 +91,16 @@ public class ShotConfig {
     }
 
     /**
-     * 获取版本保留配置对象
+     * 获取版本保留配置对象 (兼容旧代码，直接返回对象)
      */
     public VersionRetentionConfig getVersionRetentionConfig() {
-        if (versionRetention == null || versionRetention.isEmpty()) {
-            return new VersionRetentionConfig();
-        }
-        return VersionRetentionConfig.fromJson(versionRetention);
+        return versionRetention != null ? versionRetention : new VersionRetentionConfig();
     }
 
     /**
      * 设置版本保留配置对象
      */
     public void setVersionRetentionConfig(VersionRetentionConfig config) {
-        this.versionRetention = config != null ? config.toJson() : "";
+        this.versionRetention = config != null ? config : new VersionRetentionConfig();
     }
 }

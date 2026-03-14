@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.xayah.core.systemapi"
+    namespace = "tiiehenry.android.app.snapshot.systemapi"
     compileSdk = 36
 
     defaultConfig {
