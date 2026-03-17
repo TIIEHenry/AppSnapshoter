@@ -15,6 +15,8 @@ import tiiehenry.android.app.snapshot.databinding.FragmentAppConfigBinding
 import tiiehenry.android.app.snapshot.ui.common.ShotOptionsManager
 import tiiehenry.android.app.snapshot.ui.common.VersionRetentionManager
 import tiiehenry.android.app.snapshot.ui.common.ExcludePatternsManager
+import tiiehenry.android.app.snapshot.ui.common.ExtraItemsManager
+import tiiehenry.android.app.snapshot.ui.common.ActionConfigManager
 
 class AppConfigFragment : BottomSheetDialogFragment() {
 
@@ -27,6 +29,8 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     private lateinit var shotOptionsManager: ShotOptionsManager
     private lateinit var versionRetentionManager: VersionRetentionManager
     private lateinit var excludePatternsManager: ExcludePatternsManager
+    private lateinit var extraItemsManager: ExtraItemsManager
+    private lateinit var actionConfigManager: ActionConfigManager
 
 
     companion object {
@@ -82,15 +86,14 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     }
 
     private fun initViews() {
+        // 初始化 TabLayout
+        setupTabLayout()
+        
         binding.btnSave.setOnClickListener {
             saveConfig()
             dismiss()
         }
         binding.btnSave.contentDescription = "保存"
-
-        binding.btnReset.setOnClickListener {
-            resetConfig()
-        }
 
         // 初始化截图选项管理器
         shotOptionsManager = ShotOptionsManager(
@@ -113,33 +116,88 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             binding.includeVersionRetention, appConfig.shotConfig.versionRetentionConfig
         )
 
-        // 设置压缩算法下拉框
+        // 初始化额外项目管理器
+        extraItemsManager = ExtraItemsManager(
+            binding.includeExtraItems,
+            requireContext(),
+            appConfig,
+            childFragmentManager
+        )
+
+        // 初始化动作配置管理器
+        actionConfigManager = ActionConfigManager(
+            binding.includeActionConfig,
+            requireContext(),
+            appConfig.action
+        )
+        
+        // 设置压缩算法选项
         val algorithms = SnapshotApp.getInstance().fileSystem.compressor.supportedAlgorithms()
-        shotOptionsManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
+        actionConfigManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
+    }
+
+    private fun setupTabLayout() {
+        binding.tabLayout.apply {
+            addTab(newTab().setText("项目"))
+            addTab(newTab().setText("行为"))
+            addTab(newTab().setText("保留"))
+            
+            addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                    when (tab.position) {
+                        0 -> {
+                            binding.tabBasic.visibility = View.VISIBLE
+                            binding.tabAction.visibility = View.GONE
+                            binding.tabRetention.visibility = View.GONE
+                        }
+                        1 -> {
+                            binding.tabBasic.visibility = View.GONE
+                            binding.tabAction.visibility = View.VISIBLE
+                            binding.tabRetention.visibility = View.GONE
+                        }
+                        2 -> {
+                            binding.tabBasic.visibility = View.GONE
+                            binding.tabAction.visibility = View.GONE
+                            binding.tabRetention.visibility = View.VISIBLE
+                        }
+                    }
+                }
+
+                override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab) {}
+                override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab) {}
+            })
+        }
     }
 
     private fun loadConfig() {
         // 使用截图选项管理器加载配置
         shotOptionsManager.loadConfig()
-        // 加载排除模式列表（从ExcludeConfig加载按压缩项目分类的排除模式）
+        // 加载排除模式列表（从 ExcludeConfig 加载按压缩项目分类的排除模式）
         excludePatternsManager.loadFromExcludeConfig(appConfig.excludeConfig)
         // 使用版本保留管理器加载配置
         versionRetentionManager.loadConfig()
+        // 加载额外项目列表
+        extraItemsManager.loadConfig()
+        // 加载动作配置
+        actionConfigManager.loadConfig()
     }
 
     private fun saveConfig() {
         // 使用截图选项管理器保存配置
         appConfig.shotConfig.enabled = shotOptionsManager.getEnabled()
-        appConfig.shotConfig.autoSnapshot = shotOptionsManager.getAutoSnapshot()
         appConfig.shotConfig.permission = shotOptionsManager.getPermission()
-        appConfig.shotConfig.uninstallArchived = shotOptionsManager.getUninstallArchived()
         appConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
-        appConfig.shotConfig.compressAlgorithm = shotOptionsManager.getCompressAlgorithm()
         // 保存排除模式列表（保存按压缩项目分类的排除模式）
         excludePatternsManager.saveToExcludeConfig(appConfig.excludeConfig)
         
+        // 使用动作配置管理器保存配置
+        actionConfigManager.saveToActionConfig(appConfig.action)
+        
         // 使用版本保留管理器保存配置
         appConfig.shotConfig.versionRetentionConfig = versionRetentionManager.saveToConfig()
+        
+        // 保存额外项目列表
+        extraItemsManager.saveToConfig()
 
         // 保存所有配置到文件
         appConfig.save()

@@ -7,7 +7,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -27,31 +27,11 @@
 
     </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <CheckBox
-            android:id="@+id/cb_auto_snapshot"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="自动存档" />
-
-        <CheckBox
-            android:id="@+id/cb_uninstall_archived"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="卸载已归档版本" />
-
-    </LinearLayout>
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="压缩项目"
+        android:text="存档项目"
         android:textSize="16sp" />
 
     <com.google.android.material.chip.ChipGroup
@@ -105,20 +85,5 @@
             android:text="MEDIA" />
 
     </com.google.android.material.chip.ChipGroup>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="压缩算法"
-        android:textSize="16sp" />
-
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group_compress_algorithm"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        app:selectionRequired="true"
-        app:singleSelection="true" />
 
 </LinearLayout>

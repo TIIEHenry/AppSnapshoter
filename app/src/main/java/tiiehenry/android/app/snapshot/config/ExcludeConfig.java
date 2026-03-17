@@ -17,10 +17,10 @@ import java.util.Set;
  * 管理按压缩项目分类的排除模式
  */
 public class ExcludeConfig {
-    // 按压缩项目分类的排除模式映射 (JSON 字符串)
+    // 按压缩项目分类的排除模式映射
     // key: 压缩项目类型 (如 "data", "user" 等)
     // value: 该压缩项目的排除模式列表
-    private String itemExcludePatterns = "";
+    private Map<String, List<String>> itemExcludePatterns = new HashMap<>();
 
     /**
      * 从 JSON 字符串解析配置（静态工厂方法）
@@ -38,25 +38,25 @@ public class ExcludeConfig {
 
     /**
      * 获取按压缩项目分类的排除模式映射
-     * @return Map<压缩项目类型, 排除模式列表>
+     * @return Map<压缩项目类型，排除模式列表>
      */
     public Map<String, List<String>> getItemExcludePatternsMap() {
-        if (itemExcludePatterns == null || itemExcludePatterns.isEmpty()) {
+        if (itemExcludePatterns == null) {
             return new HashMap<>();
         }
-        try {
-            return JSON.parseObject(itemExcludePatterns, new TypeReference<Map<String, List<String>>>() {});
-        } catch (Exception e) {
-            return new HashMap<>();
-        }
+        return new HashMap<>(itemExcludePatterns);
     }
 
     /**
      * 设置按压缩项目分类的排除模式映射
-     * @param patterns Map<压缩项目类型, 排除模式列表>
+     * @param patterns Map<压缩项目类型，排除模式列表>
      */
     public void setItemExcludePatternsMap(Map<String, List<String>> patterns) {
-        this.itemExcludePatterns = JSON.toJSONString(patterns);
+        if (patterns == null || patterns.isEmpty()) {
+            this.itemExcludePatterns = new HashMap<>();
+        } else {
+            this.itemExcludePatterns = new HashMap<>(patterns);
+        }
     }
 
     /**
@@ -119,6 +119,15 @@ public class ExcludeConfig {
      * 清除所有排除模式
      */
     public void clearExcludePatterns() {
-        this.itemExcludePatterns = "";
+        this.itemExcludePatterns = new HashMap<>();
+    }
+
+    /**
+     * 复制当前对象
+     */
+    public ExcludeConfig copy() {
+        ExcludeConfig copy = new ExcludeConfig();
+        copy.setItemExcludePatternsMap(this.getItemExcludePatternsMap());
+        return copy;
     }
 }

@@ -14,6 +14,9 @@ public class GroupConfigData {
     // 分组名称
     public String name;
 
+    // 排序配置
+    public SortConfig sortConfig = new SortConfig();
+
     /**
      * 从 JSON 字符串解析配置（静态工厂方法）
      */

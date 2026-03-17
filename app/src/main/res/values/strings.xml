@@ -18,4 +18,8 @@
     <string name="remove_ignore_app_confirm">确定要从忽略列表中移除 %s 吗？</string>
     <string name="no_ignored_apps">暂无忽略的应用</string>
     <string name="long_press_to_remove">长按可移除应用</string>
+
+    <!-- 额外项目 -->
+    <string name="extra_item_excludes_count">%d 个排除模式</string>
+    <string name="extra_item_no_excludes">无排除模式</string>
 </resources>

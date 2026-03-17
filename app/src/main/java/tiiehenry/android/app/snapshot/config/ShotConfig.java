@@ -2,11 +2,8 @@ package tiiehenry.android.app.snapshot.config;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
-import com.alibaba.fastjson2.TypeReference;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 
@@ -17,12 +14,8 @@ import java.util.Set;
 public class ShotConfig {
     // 配置字段，直接访问
     public boolean enabled = false; // 是否启用应用单独配置
-    public String compressAlgorithm = "";
     public Set<String> compressItems = new HashSet<>(CompressItems.getAll());
     public boolean permission = true;
-    public String extraItems = "";
-    public boolean autoSnapshot = false;
-    public boolean uninstallArchived = false;
 
     // 版本保留配置
     public VersionRetentionConfig versionRetention = new VersionRetentionConfig();
@@ -39,48 +32,6 @@ public class ShotConfig {
      */
     public String toJson() {
         return JSON.toJSONString(this, JSONWriter.Feature.PrettyFormat);
-    }
-
-    /**
-     * 获取解析后的额外压缩项列表
-     */
-    public List<ExtraCompressItem> getExtraItemsList() {
-        if (extraItems == null || extraItems.isEmpty()) {
-            return new ArrayList<>();
-        }
-        try {
-            return JSON.parseObject(extraItems, new TypeReference<List<ExtraCompressItem>>() {});
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
-    }
-
-    /**
-     * 设置额外压缩项列表
-     */
-    public void setExtraItemsList(List<ExtraCompressItem> items) {
-        this.extraItems = JSON.toJSONString(items);
-    }
-
-    /**
-     * 是否有压缩算法配置
-     */
-    public boolean hasCompressAlgorithm() {
-        return compressAlgorithm != null && !compressAlgorithm.isEmpty();
-    }
-
-    /**
-     * 获取压缩项集合（FastJSON2 反序列化使用）
-     */
-    public Set<String> getCompressItems() {
-        return compressItems;
-    }
-
-    /**
-     * 设置压缩项集合（FastJSON2 反序列化使用）
-     */
-    public void setCompressItems(Set<String> compressItems) {
-        this.compressItems = compressItems != null ? new HashSet<>(compressItems) : new HashSet<>();
     }
 
     /**

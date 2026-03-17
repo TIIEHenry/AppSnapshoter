@@ -30,7 +30,6 @@ class VersionRetentionManager(
     private fun setupListeners() {
         // 总开关: 启用单独控制
         binding.switchVersionRetentionEnabled.setOnCheckedChangeListener { _, isChecked ->
-            binding.layoutVersionRetentionContent.visibility = if (isChecked) View.VISIBLE else View.GONE
             updateViewsEnabled(isChecked)
         }
 
@@ -72,9 +71,7 @@ class VersionRetentionManager(
     fun loadConfig() {
         // 总开关: 启用单独控制
         binding.switchVersionRetentionEnabled.isChecked = config.enabled
-        // 当隐藏开关时，始终显示内容区域；否则根据 enabled 状态显示
         val contentVisible = if (showEnabledSwitch) config.enabled else true
-        binding.layoutVersionRetentionContent.visibility = if (contentVisible) View.VISIBLE else View.GONE
         updateViewsEnabled(contentVisible)
 
         // 条件A: 最大保留版本数

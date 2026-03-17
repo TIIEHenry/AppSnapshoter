@@ -11,10 +11,6 @@ import java.io.File
 class GroupConfig(val groupId: String) {
     companion object {
         const val KEY_ROOT_PATH = "rootPath"
-        private const val SHOT_CONFIG_FILE = "shot_config.json"
-        private const val EXCLUDE_CONFIG_FILE = "exclude_config.json"
-        private const val SORT_CONFIG_FILE = "sort_config.json"
-        private const val GROUP_CONFIG_FILE = "group.json"
     }
 
     val mmkv = MMKV.mmkvWithID("group:" + groupId)
@@ -25,10 +21,10 @@ class GroupConfig(val groupId: String) {
             mmkv.encode(KEY_ROOT_PATH, value)
         }
 
-    private val shotConfigFile get() = File(rootPath, SHOT_CONFIG_FILE)
-    private val excludeConfigFile get() = File(rootPath, EXCLUDE_CONFIG_FILE)
-    private val sortConfigFile get() = File(rootPath, SORT_CONFIG_FILE)
-    private val groupConfigFile get() = File(rootPath, GROUP_CONFIG_FILE)
+    private val shotConfigFile get() = File(rootPath, ConfigFiles.SHOT_CONFIG_FILE)
+    private val excludeConfigFile get() = File(rootPath, ConfigFiles.EXCLUDE_CONFIG_FILE)
+    private val actionConfigFile get() = File(rootPath, ConfigFiles.ACTION_CONFIG_FILE)
+    private val groupConfigFile get() = File(rootPath, ConfigFiles.GROUP_CONFIG_FILE)
 
     // 配置对象
     var shotConfig: ShotConfig = ShotConfig()
@@ -37,8 +33,12 @@ class GroupConfig(val groupId: String) {
     var excludeConfig: ExcludeConfig = ExcludeConfig()
         private set
 
-    var sortConfig: SortConfig = SortConfig()
+    var actionConfig: ActionConfig = ActionConfig()
         private set
+
+    var sortConfig: SortConfig
+        get() = groupConfigData.sortConfig
+        set(value) { groupConfigData.sortConfig = value }
 
     var groupConfigData: GroupConfigData = GroupConfigData()
 
@@ -52,7 +52,7 @@ class GroupConfig(val groupId: String) {
     fun load() {
         shotConfig = loadConfigFromFile(shotConfigFile) { ShotConfig.fromJson(it) } ?: ShotConfig()
         excludeConfig = loadConfigFromFile(excludeConfigFile) { ExcludeConfig.fromJson(it) } ?: ExcludeConfig()
-        sortConfig = loadConfigFromFile(sortConfigFile) { SortConfig.fromJson(it) } ?: SortConfig()
+        actionConfig = loadConfigFromFile(actionConfigFile) { ActionConfig.fromJson(it) } ?: ActionConfig()
         groupConfigData = loadConfigFromFile(groupConfigFile) { GroupConfigData.fromJson(it) }
             ?: GroupConfigData()
     }
@@ -63,7 +63,7 @@ class GroupConfig(val groupId: String) {
     fun save() {
         saveConfigToFile(shotConfigFile, shotConfig.toJson())
         saveConfigToFile(excludeConfigFile, excludeConfig.toJson())
-        saveConfigToFile(sortConfigFile, sortConfig.toJson())
+        saveConfigToFile(actionConfigFile, actionConfig.toJson())
         saveConfigToFile(groupConfigFile, groupConfigData.toJson())
     }
 
@@ -73,11 +73,11 @@ class GroupConfig(val groupId: String) {
     fun reset() {
         shotConfig = ShotConfig()
         excludeConfig = ExcludeConfig()
-        sortConfig = SortConfig()
+        actionConfig = ActionConfig()
         groupConfigData = GroupConfigData()
         shotConfigFile.delete()
         excludeConfigFile.delete()
-        sortConfigFile.delete()
+        actionConfigFile.delete()
         groupConfigFile.delete()
     }
 

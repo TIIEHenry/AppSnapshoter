@@ -32,10 +32,7 @@ class ShotOptionsManager(
 
     fun loadConfig() {
         setEnabled(shotConfig.enabled)
-        setAutoSnapshot(shotConfig.autoSnapshot)
-        setUninstallArchived(shotConfig.uninstallArchived)
         setCompressItems(shotConfig.compressItems)
-        setCompressAlgorithm(shotConfig.compressAlgorithm)
     }
 
     private fun setupListeners() {
@@ -43,15 +40,7 @@ class ShotOptionsManager(
             updateViewsEnabled(isChecked)
         }
 
-        binding.cbAutoSnapshot.setOnCheckedChangeListener { _, isChecked ->
-            // 当自动存档选项改变时的处理
-        }
-
-        binding.cbUninstallArchived.setOnCheckedChangeListener { _, isChecked ->
-            // 当卸载已归档版本选项改变时的处理
-        }
-
-        // 为压缩项目ChipGroup设置监听器
+        // 为压缩项目 ChipGroup 设置监听器
         setupCompressItemListeners()
     }
 
@@ -98,23 +87,12 @@ class ShotOptionsManager(
     private fun updateViewsEnabled(enabled: Boolean) {
         // 启用/禁用所有选项视图（当隐藏启用开关时，始终启用）
         val effectiveEnabled = if (showEnabledSwitch) enabled else true
-        binding.cbAutoSnapshot.isEnabled = effectiveEnabled
-        binding.cbUninstallArchived.isEnabled = effectiveEnabled
         binding.chipApk.isEnabled = effectiveEnabled
         binding.chipData.isEnabled = effectiveEnabled
         binding.chipUser.isEnabled = effectiveEnabled
         binding.chipUserDe.isEnabled = effectiveEnabled
         binding.chipObb.isEnabled = effectiveEnabled
         binding.chipMedia.isEnabled = effectiveEnabled
-        binding.chipGroupCompressAlgorithm.children.forEach { it.isEnabled = effectiveEnabled }
-    }
-
-    fun setAutoSnapshot(enabled: Boolean) {
-        binding.cbAutoSnapshot.isChecked = enabled
-    }
-
-    fun setUninstallArchived(enabled: Boolean) {
-        binding.cbUninstallArchived.isChecked = enabled
     }
 
     fun setCompressItems(items: Set<String>) {
@@ -130,15 +108,7 @@ class ShotOptionsManager(
         algorithmChips[algorithm]?.isChecked = true
     }
 
-    fun getAutoSnapshot(): Boolean {
-        return binding.cbAutoSnapshot.isChecked
-    }
-
     fun getPermission(): Boolean = true  // 默认保存权限
-
-    fun getUninstallArchived(): Boolean {
-        return binding.cbUninstallArchived.isChecked
-    }
 
     fun getCompressItems(): Set<String> {
         val items = mutableSetOf<String>()
@@ -152,28 +122,10 @@ class ShotOptionsManager(
     }
 
     fun getCompressAlgorithm(): String {
-        return algorithmChips.entries.find { it.value.isChecked }?.key ?: ""
+        return ""  // ShotOptionsManager 不再管理压缩算法
     }
 
     fun setCompressAlgorithmOptions(options: Array<String>) {
-        binding.chipGroupCompressAlgorithm.removeAllViews()
-        algorithmChips.clear()
-        
-        val context = binding.chipGroupCompressAlgorithm.context
-        for (option in options) {
-            val chip = Chip(ContextThemeWrapper(context, MaterialR.style.Widget_Material3_Chip_Filter)).apply {
-                text = option.uppercase()
-                isCheckable = true
-                isCheckedIconVisible = true
-                id = android.view.View.generateViewId()
-            }
-            binding.chipGroupCompressAlgorithm.addView(chip)
-            algorithmChips[option] = chip
-        }
-        
-        // 默认选中第一个
-        if (options.isNotEmpty()) {
-            algorithmChips[options.first()]?.isChecked = true
-        }
+        // ShotOptionsManager 不再管理压缩算法
     }
 }

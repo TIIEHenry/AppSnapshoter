@@ -8,8 +8,7 @@
     <!-- 总开关: 启用单独控制 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_height="50dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -36,79 +35,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-    <!-- 条件A: 最大保留版本数 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/cb_max_version_enabled"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="最大保留版本数" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_max_version_count"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
-            android:layout_width="96dp"
-            android:layout_height="wrap_content"
-            android:enabled="false"
-            app:suffixText="个">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_max_version_count"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:text="10" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-    </LinearLayout>
-
-    <!-- 条件B: 同版本最低保留数 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/cb_min_same_version_enabled"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="同版本最低保留" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_min_same_version_count"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
-            android:layout_width="96dp"
-            android:layout_height="wrap_content"
-            android:enabled="false"
-            app:suffixText="个">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_min_same_version_count"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:text="1" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-    </LinearLayout>
-
-    <!-- 条件C: 额外保留 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-
-        <!-- 条件C 首行: 开关 + 数量 -->
+        <!-- 条件A: 最大保留版本数 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -116,14 +43,14 @@
             android:orientation="horizontal">
 
             <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cb_extra_retention_enabled"
+                android:id="@+id/cb_max_version_enabled"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="同版本额外保留" />
+                android:text="最大保留版本数" />
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_extra_retention_count"
+                android:id="@+id/til_max_version_count"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
                 android:layout_width="96dp"
                 android:layout_height="wrap_content"
@@ -131,52 +58,124 @@
                 app:suffixText="个">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_extra_retention_count"
+                    android:id="@+id/et_max_version_count"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="number"
-                    android:text="5" />
+                    android:text="10" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
         </LinearLayout>
 
-        <!-- 条件C 次行: 过期天数 (缩进对齐) -->
+        <!-- 条件B: 同版本最低保留数 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="34dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cb_min_same_version_enabled"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="过期时间"
-                android:textAppearance="?attr/textAppearanceBodyMedium" />
+                android:text="同版本最低保留" />
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_extra_retention_days"
+                android:id="@+id/til_min_same_version_count"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
                 android:layout_width="96dp"
                 android:layout_height="wrap_content"
                 android:enabled="false"
-                app:helperText="0 = 不过期"
-                app:suffixText="天">
+                app:suffixText="个">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_extra_retention_days"
+                    android:id="@+id/et_min_same_version_count"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="number"
-                    android:text="0" />
+                    android:text="1" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
         </LinearLayout>
 
-    </LinearLayout>
+        <!-- 条件C: 额外保留 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 条件C 首行: 开关 + 数量 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_extra_retention_enabled"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="同版本额外保留" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_extra_retention_count"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+                    android:layout_width="96dp"
+                    android:layout_height="wrap_content"
+                    android:enabled="false"
+                    app:suffixText="个">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_extra_retention_count"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:text="5" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
+            <!-- 条件C 次行: 过期天数 (缩进对齐) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="34dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="过期时间"
+                    android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_extra_retention_days"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+                    android:layout_width="96dp"
+                    android:layout_height="wrap_content"
+                    android:enabled="false"
+                    app:helperText="0 = 不过期"
+                    app:suffixText="天">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_extra_retention_days"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:text="0" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
 
     </LinearLayout>
 

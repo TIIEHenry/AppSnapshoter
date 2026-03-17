@@ -36,36 +36,86 @@
 
     </LinearLayout>
 
+    <!-- TabLayout -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        app:tabIndicatorFullWidth="true"/>
+
+    <!-- Tab 内容 -->
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="24dp">
+            android:layout_height="wrap_content">
 
-            <include
-                android:id="@+id/include_shot_options"
-                layout="@layout/include_shot_options" />
-
-            <include
-                android:id="@+id/include_version_retention"
-                layout="@layout/include_version_retention" />
-
-            <include
-                android:id="@+id/include_exclude_patterns"
-                layout="@layout/include_exclude_patterns" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_reset"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+            <!-- Tab 1: 基础 -->
+            <LinearLayout
+                android:id="@+id/tab_basic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="重置" />
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:visibility="visible">
 
-        </LinearLayout>
+                <include
+                    android:id="@+id/include_shot_options"
+                    layout="@layout/include_shot_options" />
+
+                <include
+                    android:id="@+id/include_exclude_patterns"
+                    layout="@layout/include_exclude_patterns" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_reset"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="24dp"
+                    android:text="重置" />
+
+            </LinearLayout>
+
+            <!-- Tab 2: 行为 -->
+            <LinearLayout
+                android:id="@+id/tab_action"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingBottom="24dp"
+                android:visibility="gone">
+
+                <include
+                    android:id="@+id/include_action_config"
+                    layout="@layout/include_action_config" />
+
+            </LinearLayout>
+
+            <!-- Tab 3: 保留策略 -->
+            <LinearLayout
+                android:id="@+id/tab_retention"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingBottom="24dp"
+                android:visibility="gone">
+
+                <include
+                    android:id="@+id/include_version_retention"
+                    layout="@layout/include_version_retention" />
+
+            </LinearLayout>
+
+        </FrameLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

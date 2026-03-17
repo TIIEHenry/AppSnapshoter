@@ -55,10 +55,10 @@ object SnapShotMaker {
             } else {
                 groupConfig.shotConfig.compressItems
             }
-            val compressAlgorithm = if (appConfig.shotConfig.hasCompressAlgorithm()) {
-                appConfig.shotConfig.compressAlgorithm
+            val compressAlgorithm = if (appConfig.actionConfig.hasCompressAlgorithm()) {
+                appConfig.actionConfig.compressAlgorithm
             } else {
-                groupConfig.shotConfig.compressAlgorithm
+                groupConfig.actionConfig.compressAlgorithm
             }
             val tasks = LinkedHashMap<String, ITaskHandler>()
             val applicationInfo =

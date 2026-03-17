@@ -9,11 +9,11 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingStart="24dp"
-        android:paddingEnd="16dp"
         android:paddingTop="16dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="8dp">
 
         <TextView
@@ -21,51 +21,90 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="应用配置"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btn_save"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/check"
             android:contentDescription="保存"
+            android:src="@drawable/check"
             app:tint="?attr/colorPrimary" />
 
     </LinearLayout>
 
-    <androidx.core.widget.NestedScrollView
+    <!-- TabLayout -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tab_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        app:tabGravity="fill"
+        app:tabIndicatorFullWidth="true"
+        app:tabMode="fixed" />
 
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Tab 1: 基础 -->
         <LinearLayout
+            android:id="@+id/tab_basic"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp">
+            android:paddingHorizontal="24dp"
+            android:visibility="visible">
 
             <include
                 android:id="@+id/include_shot_options"
                 layout="@layout/include_shot_options" />
 
             <include
-                android:id="@+id/include_version_retention"
-                layout="@layout/include_version_retention" />
-
-            <include
                 android:id="@+id/include_exclude_patterns"
                 layout="@layout/include_exclude_patterns" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_reset"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="重置" />
+            <include
+                android:id="@+id/include_extra_items"
+                layout="@layout/include_extra_items" />
+
 
         </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+
+        <!-- Tab 2: 行为 -->
+        <LinearLayout
+            android:id="@+id/tab_action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="24dp"
+            android:visibility="gone">
+
+            <include
+                android:id="@+id/include_action_config"
+                layout="@layout/include_action_config" />
+
+        </LinearLayout>
+
+        <!-- Tab 3: 保留策略 -->
+        <LinearLayout
+            android:id="@+id/tab_retention"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="24dp"
+            android:visibility="gone">
+
+            <include
+                android:id="@+id/include_version_retention"
+                layout="@layout/include_version_retention" />
+
+        </LinearLayout>
+
+    </FrameLayout>
 </LinearLayout>
