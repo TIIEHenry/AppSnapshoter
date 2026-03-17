@@ -26,14 +26,17 @@ public class ExcludeConfig {
      * 从 JSON 字符串解析配置（静态工厂方法）
      */
     public static ExcludeConfig fromJson(String jsonString) {
-        return JSON.parseObject(jsonString, ExcludeConfig.class);
+        Map<String, List<String>> patterns = JSON.parseObject(jsonString, new TypeReference<Map<String, List<String>>>() {});
+        ExcludeConfig config = new ExcludeConfig();
+        config.setItemExcludePatternsMap(patterns);
+        return config;
     }
 
     /**
      * 将配置转换为 JSON 字符串
      */
     public String toJson() {
-        return JSON.toJSONString(this, JSONWriter.Feature.PrettyFormat);
+        return JSON.toJSONString(itemExcludePatterns, JSONWriter.Feature.PrettyFormat);
     }
 
     /**

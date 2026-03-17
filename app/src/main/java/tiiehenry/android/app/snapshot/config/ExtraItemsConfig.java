@@ -11,8 +11,9 @@ import java.util.List;
  * 额外压缩项目配置
  */
 public class ExtraItemsConfig {
-    // 额外压缩项目列表 (JSON 字符串)
-    private String itemsJson = "";
+    // 额外压缩项目列表
+    private List<ExtraCompressItem> items = new ArrayList<>();
+
 
     /**
      * 从 JSON 字符串解析配置（静态工厂方法）
@@ -32,14 +33,10 @@ public class ExtraItemsConfig {
      * 获取额外压缩项目列表
      */
     public List<ExtraCompressItem> getItems() {
-        if (itemsJson == null || itemsJson.isEmpty()) {
+        if (items == null) {
             return new ArrayList<>();
         }
-        try {
-            return JSON.parseArray(itemsJson, ExtraCompressItem.class);
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+        return new ArrayList<>(items);
     }
 
     /**
@@ -47,9 +44,9 @@ public class ExtraItemsConfig {
      */
     public void setItems(List<ExtraCompressItem> items) {
         if (items == null || items.isEmpty()) {
-            this.itemsJson = "";
+            this.items = new ArrayList<>();
         } else {
-            this.itemsJson = JSON.toJSONString(items);
+            this.items = new ArrayList<>(items);
         }
     }
 
@@ -58,27 +55,13 @@ public class ExtraItemsConfig {
      */
     @JSONField(serialize = false, deserialize = false)
     public boolean hasItems() {
-        return itemsJson != null && !itemsJson.isEmpty();
+        return items != null && !items.isEmpty();
     }
 
     /**
      * 清除所有配置项
      */
     public void clear() {
-        this.itemsJson = "";
-    }
-
-    /**
-     * 获取 itemsJson
-     */
-    public String getItemsJson() {
-        return itemsJson;
-    }
-
-    /**
-     * 设置 itemsJson
-     */
-    public void setItemsJson(String itemsJson) {
-        this.itemsJson = itemsJson;
+        this.items = new ArrayList<>();
     }
 }

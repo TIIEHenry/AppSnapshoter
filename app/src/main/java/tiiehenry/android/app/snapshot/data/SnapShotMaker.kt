@@ -60,6 +60,7 @@ object SnapShotMaker {
             } else {
                 groupConfig.actionConfig.compressAlgorithm
             }
+
             val tasks = LinkedHashMap<String, ITaskHandler>()
             val applicationInfo =
                 appInfo.getApplicationInfo(appManager) ?: throw IllegalStateException(
@@ -68,27 +69,61 @@ object SnapShotMaker {
             val packageInfo = appInfo.getPackageInfo(appManager) ?: throw IllegalStateException(
                 "PackageInfo is null"
             )
-            val handler =
-                createMetaInfoTask(
-                    appInfo,
-                    appManager,
-                    packageInfo,
-                    applicationInfo,
-                    compressItems,
-                    archiveDir
-                )
-            tasks["meta-info"] = handler
             val compressor = fileSystem.compressor
             val algorithm = compressAlgorithm.ifEmpty {
                 compressor.supportedAlgorithms().first()
             }
             val dataItems = mutableListOf<MetaDataItem>()
+            val extraItemsMap = mutableMapOf<String, String>()
 
             // 获取排除模式映射（优先使用应用配置，否则使用组配置）
             val excludePatternsMap = if (appConfig.excludeConfig.hasExcludePatterns()) {
                 appConfig.excludeConfig.getItemExcludePatternsMap()
             } else {
                 groupConfig.excludeConfig.getItemExcludePatternsMap()
+            }
+
+            val realCompressItems = mutableSetOf<String>()
+            val handler =
+                createMetaInfoTask(
+                    appInfo,
+                    appManager,
+                    packageInfo,
+                    applicationInfo,
+                    realCompressItems,
+                    extraItemsMap,
+                    archiveDir
+                )
+            tasks["meta-info"] = handler
+            // 处理额外压缩项目
+            appConfig.extraItems.forEach { extraItem ->
+                if (extraItem.isEnabled()) {
+                    val name = extraItem.getName()
+                    val path = extraItem.getPath()
+                    val excludes = extraItem.getExcludePatterns()
+
+                    if (fileSystem.fileType(path) != IFileType.TYPE_NONE) {
+                        val extension = compressor.fileExtension(algorithm, name, path)
+                        val fileName = "$name$extension"
+                        val task = compressor.compress(
+                            algorithm,
+                            path,
+                            Paths.get(archiveDir, fileName).absolutePathString(),
+                            excludes,
+                            arrayListOf(),
+                            createCompressCallback(
+                                callback,
+                                dataItems,
+                                algorithm,
+                                fileName,
+                                name,
+                                archiveDir
+                            )
+                        )
+                        tasks[name] = task
+                        extraItemsMap["$name.json"] = path
+                    }
+                }
             }
 
             for (item in compressItems) {
@@ -126,6 +161,7 @@ object SnapShotMaker {
                             )
                         )
                         tasks[item] = task
+                        realCompressItems.add(item)
                     }
 
                     CompressItems.COMPRESS_ITEM_DATA -> {
@@ -151,6 +187,7 @@ object SnapShotMaker {
                                 )
                             )
                             tasks[item] = task
+                            realCompressItems.add(item)
                         }
                     }
 
@@ -177,6 +214,7 @@ object SnapShotMaker {
                                 )
                             )
                             tasks[item] = task
+                            realCompressItems.add(item)
                         }
                     }
 
@@ -204,6 +242,7 @@ object SnapShotMaker {
                                 )
                             )
                             tasks[item] = task
+                            realCompressItems.add(item)
                         }
                     }
 
@@ -230,6 +269,7 @@ object SnapShotMaker {
                                 )
                             )
                             tasks[item] = task
+                            realCompressItems.add(item)
                         }
                     }
 
@@ -257,6 +297,7 @@ object SnapShotMaker {
                                 )
                             )
                             tasks[item] = task
+                            realCompressItems.add(item)
                         }
                     }
                 }
@@ -274,6 +315,7 @@ object SnapShotMaker {
         packageInfo: PackageInfo,
         applicationInfo: ApplicationInfo,
         compressItems: Set<String>,
+        extraItemsMap: Map<String, String>,
         archiveDir: String
     ): ITaskHandler.Stub {
         val makeTime = System.currentTimeMillis()
@@ -318,8 +360,10 @@ object SnapShotMaker {
                         appInfo.userId,
                         ssaid,
                         dataItems,
+                        extraItemsMap,
                         permissions,
-                        makeTime
+                        makeTime,
+                        false
                     )
 
                     // 分别保存 meta-info.json（使用compressItems）、permissions.json 和各个 data-item.json

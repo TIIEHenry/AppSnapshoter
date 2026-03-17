@@ -3,6 +3,7 @@ package tiiehenry.android.app.snapshot.data;
 import com.alibaba.fastjson2.annotation.JSONField;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 存档元信息数据类
@@ -21,6 +22,10 @@ public class MetaInfo {
     @JSONField(name = "dataItems")
     private List<String> dataItems;
 
+
+    @JSONField(name = "extraItems")
+    private Map<String, String> extraItems;
+
     @JSONField(name = "permissions", serialize = false)
     private List<MetaPermission> permissions;
 
@@ -36,26 +41,21 @@ public class MetaInfo {
 
     // 全参构造函数
     public MetaInfo(MetaPackageInfo packageInfo, int userId, String ssaid, List<String> dataItems,
-                    List<MetaPermission> permissions, long makeTime, boolean locked) {
+                    Map<String, String> extraItems, List<MetaPermission> permissions, long makeTime, boolean locked) {
         this.packageInfo = packageInfo;
         this.userId = userId;
         this.ssaid = ssaid;
         this.dataItems = dataItems;
+        this.extraItems = extraItems;
         this.permissions = permissions;
         this.makeTime = makeTime;
         this.locked = locked;
     }
 
-    // 兼容旧的构造函数（不含ssaid和locked）
-    public MetaInfo(MetaPackageInfo packageInfo, int userId, List<String> dataItems,
-                    List<MetaPermission> permissions, long makeTime) {
-        this(packageInfo, userId, "", dataItems, permissions, makeTime, false);
-    }
-
-    // 兼容旧的构造函数（不含locked）
+    // 兼容旧的构造函数（不含 locked）
     public MetaInfo(MetaPackageInfo packageInfo, int userId, String ssaid, List<String> dataItems,
                     List<MetaPermission> permissions, long makeTime) {
-        this(packageInfo, userId, ssaid, dataItems, permissions, makeTime, false);
+        this(packageInfo, userId, ssaid, dataItems, null, permissions, makeTime, false);
     }
 
     // Getter和Setter方法
@@ -91,6 +91,14 @@ public class MetaInfo {
         this.dataItems = dataItems;
     }
 
+    public Map<String, String> getExtraItems() {
+        return extraItems;
+    }
+
+    public void setExtraItems(Map<String, String> extraItems) {
+        this.extraItems = extraItems;
+    }
+
     public List<MetaPermission> getPermissions() {
         return permissions;
     }
@@ -122,6 +130,7 @@ public class MetaInfo {
                ", userId=" + userId +
                ", ssaid='" + ssaid + '\'' +
                ", dataItems=" + dataItems +
+               ", extraItems=" + extraItems +
                ", permissions=" + permissions +
                ", makeTime=" + makeTime +
                ", locked=" + locked +
