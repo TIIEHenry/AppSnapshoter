@@ -210,9 +210,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             Log.i("LauncherViewModel", "skip install apk")
         }
         Log.i("LauncherViewModel", "toMutableList: $toMutableList")
+        
+        // 恢复标准数据项
         for (dataItem in toMutableList) {
             currentIndex++
-            val progress = (currentIndex * 100) / (totalItems)
+            val progress = (currentIndex * 100) / totalItems
             val itemName = dataItem.name
 
             withContext(Dispatchers.Main) {
@@ -237,6 +239,37 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     loadingDialog.dismiss()
                 }
                 return
+            }
+        }
+
+        // 恢复额外项目
+        if (archiveItem.extraItems.isNotEmpty()) {
+            Log.i("LauncherViewModel", "开始恢复 ${archiveItem.extraItems.size} 个额外项目")
+            for ((extraDataItem, extraPath) in archiveItem.extraItems) {
+                currentIndex++
+                val progress = (currentIndex * 100) / totalItems
+                val itemName = extraDataItem.name
+
+                withContext(Dispatchers.Main) {
+                    loadingDialog.setCurrentItem("$itemName (额外)")
+                    loadingDialog.setProgress(progress)
+                }
+
+                val shouldContinue = restoreExtraItem(
+                    fs,
+                    appManager,
+                    archiveItem,
+                    extraDataItem,
+                    extraPath,
+                    callback,
+                    loadingDialog
+                )
+                if (!shouldContinue) {
+                    withContext(Dispatchers.Main) {
+                        loadingDialog.dismiss()
+                    }
+                    return
+                }
             }
         }
 
@@ -317,7 +350,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val appInfo = archiveItem.appInfo
         val packageName = appInfo.packageName
         val userId = appInfo.userId
-
+    
         // 回调用于更新进度
         val callback = object : ICompressCallback.Stub() {
             override fun onStart() {
@@ -325,30 +358,34 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     loadingDialog.setMessage("开始恢复...")
                 }
             }
-
+    
             override fun onProgress(bytesWritten: Long, kbPerS: Long) {
                 loadingDialog.post {
                     val progress = (bytesWritten / 1024).toInt()
                     loadingDialog.setProgress(progress)
                 }
             }
-
+    
             override fun onDone(originSize: Long, targetSize: Long, md5: String) {
             }
-
+    
             override fun onError(msg: String?) {
                 Log.e("LauncherViewModel", "Error: $msg")
                 loadingDialog.post {
-                    loadingDialog.setMessage("错误: $msg")
+                    loadingDialog.setMessage("错误：$msg")
                 }
             }
         }
-
+    
         // 过滤出选中的数据项
         val allDataItems = archiveItem.dataItems.toMutableList()
         val dataItems = allDataItems.filter { selectedTypes.contains(it.name) }
+    
+        // 处理 extraItems：根据用户选择过滤
+        val selectedExtraItems = archiveItem.extraItems.filterKeys { selectedTypes.contains(it.name) }
+        Log.i("LauncherViewModel", "高级恢复：选中 ${selectedExtraItems.size} 个额外项目")
 
-        if (dataItems.isEmpty()) {
+        if (dataItems.isEmpty() && selectedExtraItems.isEmpty()) {
             withContext(Dispatchers.Main) {
                 loadingDialog.dismiss()
                 Toast.makeText(context, "没有选中的数据项", Toast.LENGTH_SHORT).show()
@@ -357,7 +394,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
 
         var currentIndex = 0
-        val totalItems = dataItems.size
+        val totalItems = dataItems.size + selectedExtraItems.size
 
         // 检查是否需要恢复APK
         val needRestoreApk = selectedTypes.contains(CompressItems.COMPRESS_ITEM_APK)
@@ -431,17 +468,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
-        Log.i("LauncherViewModel", "高级恢复: toMutableList: $toMutableList")
+        Log.i("LauncherViewModel", "高级恢复：toMutableList: $toMutableList")
+                
+        // 恢复标准数据项
         for (dataItem in toMutableList) {
             currentIndex++
-            val progress = (currentIndex * 100) / (toMutableList.size)
+            val progress = (currentIndex * 100) / totalItems
             val itemName = dataItem.name
-
+        
             withContext(Dispatchers.Main) {
                 loadingDialog.setCurrentItem("$itemName")
                 loadingDialog.setProgress(progress)
             }
-
+        
             val shouldContinue = restoreDataItem(
                 fs,
                 appManager,
@@ -459,6 +498,37 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     loadingDialog.dismiss()
                 }
                 return
+            }
+        }
+        
+        // 恢复额外项目
+        if (selectedExtraItems.isNotEmpty()) {
+            Log.i("LauncherViewModel", "开始恢复 ${selectedExtraItems.size} 个额外项目")
+            for ((extraDataItem, extraPath) in selectedExtraItems) {
+                currentIndex++
+                val progress = (currentIndex * 100) / totalItems
+                val itemName = extraDataItem.name
+        
+                withContext(Dispatchers.Main) {
+                    loadingDialog.setCurrentItem("$itemName (额外)")
+                    loadingDialog.setProgress(progress)
+                }
+        
+                val shouldContinue = restoreExtraItem(
+                    fs,
+                    appManager,
+                    archiveItem,
+                    extraDataItem,
+                    extraPath,
+                    callback,
+                    loadingDialog
+                )
+                if (!shouldContinue) {
+                    withContext(Dispatchers.Main) {
+                        loadingDialog.dismiss()
+                    }
+                    return
+                }
             }
         }
 
@@ -741,6 +811,76 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * 恢复额外项目
+     */
+    private suspend fun restoreExtraItem(
+        fs: IFileSystem,
+        appManager: IAppManager,
+        archiveItem: ArchiveItem,
+        dataItem: MetaDataItem,
+        targetPath: String,
+        callback: ICompressCallback,
+        loadingDialog: LoadingDialog
+    ): Boolean {
+        // 查找数据文件
+        val archiveDir = archiveItem.path
+        val dataFile = Paths.get(archiveDir, dataItem.file).toString()
+    
+        if (!fs.exists(dataFile)) {
+            callback.onError("数据文件不存在：$dataFile")
+            return true // 返回 true 以继续处理其他数据项
+        }
+    
+        try {
+            // Get the SELinux context of the path.
+            val pathContext: String
+            SELinux.getContext(path = targetPath).also { result ->
+                pathContext = if (result.isSuccess) result.outString else ""
+            }
+    
+            Log.i("LauncherViewModel", "额外项目原始 SELinux context: $pathContext.")
+                
+            // 确保目标目录的父目录存在
+            val parentDir = fs.getParent(targetPath) ?: ""
+            if (parentDir.isNotEmpty()) {
+                fs.mkdirs(parentDir)
+            }
+    
+            // 解压数据
+            val decompressor = fs.compressor
+            val algorithm = dataItem.algorithm.ifEmpty { decompressor.detectAlgorithm(dataFile) }
+            val task = decompressor.decompress(algorithm, dataFile, targetPath, callback)
+            task?.start()
+    
+            // 等待解压完成
+            var state = task?.state() ?: CompressState.COMPRESS_STATE_ERROR
+            while (state == CompressState.COMPRESS_STATE_RUNNING || state == CompressState.COMPRESS_STATE_NONE) {
+                Thread.sleep(100)
+                state = task?.state() ?: CompressState.COMPRESS_STATE_ERROR
+            }
+            var isSuccess = state == CompressState.COMPRESS_STATE_COMPLETE
+    
+            if (!isSuccess) {
+                callback.onError("额外项目解压失败：${dataItem.file}")
+            } else {
+                // Restore SELinux context.
+                val out = mutableListOf<String>()
+                SELinux.chcon(context = pathContext, path = targetPath).also { result ->
+                    isSuccess = isSuccess && result.isSuccess
+                    out.addAll(result.out)
+                }
+                Log.i("LauncherViewModel", "恢复额外项目 SELinux context: ${out.joinToString(", ")}")
+            }
+    
+            return isSuccess
+        } catch (e: Exception) {
+            callback.onError("恢复额外项目出错：${e.message}")
+            e.printStackTrace()
+            return true
+        }
+    }
+    
     private suspend fun restoreData(
         fs: IFileSystem,
         appManager: IAppManager,
@@ -752,9 +892,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // 查找数据文件
         val archiveDir = archiveItem.path
         val dataFile = Paths.get(archiveDir, dataItem.file).toString()
-
+    
         if (!fs.exists(dataFile)) {
-            callback.onError("数据文件不存在: $dataFile")
+            callback.onError("数据文件不存在：$dataFile")
             return true // 返回 true 以继续处理其他数据项
         }
 

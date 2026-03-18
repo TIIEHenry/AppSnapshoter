@@ -153,7 +153,7 @@ class ArchiveItemAdapter(
 
                 if (item.dataItems.isNotEmpty()) {
                     append("数据项详情:\n")
-                    item.dataItems.take(5).forEachIndexed { index, dataItem ->
+                    item.dataItems.forEachIndexed { index, dataItem ->
                         append("${index + 1}. ${dataItem.name}: ${formatFileSize(dataItem.targetSize)}")
                         if (dataItem.algorithm.isNotBlank()) {
                             append(" [${dataItem.algorithm}]\n")
@@ -161,8 +161,18 @@ class ArchiveItemAdapter(
                             append("\n")
                         }
                     }
-                    if (item.dataItems.size > 5) {
-                        append("... 还有 ${item.dataItems.size - 5} 项\n")
+                }
+
+                if (item.extraItems.isNotEmpty()) {
+                    append("\n额外数据项:\n")
+                    item.extraItems.toList().forEachIndexed { index, (key, value) ->
+                        append("${index + 1}. ${key.name}: ${formatFileSize(key.targetSize)}")
+                        if (key.algorithm.isNotBlank()) {
+                            append(" [${key.algorithm}]\n")
+                        } else {
+                            append("\n")
+                        }
+                        append("$value\n")
                     }
                 }
             }
@@ -304,33 +314,52 @@ class ArchiveItemAdapter(
                 Toast.makeText(context, "高级恢复功能未配置", Toast.LENGTH_SHORT).show()
                 return
             }
-
-            val dataItems = item.dataItems
-            if (dataItems.isEmpty()) {
+        
+            // 合并标准数据项和额外项目
+            val allRestoreOptions = mutableListOf<Pair<tiiehenry.android.app.snapshot.data.MetaDataItem, String?>>()
+                    
+            // 添加标准数据项
+            item.dataItems.forEach { dataItem ->
+                allRestoreOptions.add(Pair(dataItem, null))
+            }
+                    
+            // 添加额外项目
+            item.extraItems.forEach { (dataItem, path) ->
+                allRestoreOptions.add(Pair(dataItem, path))
+            }
+        
+            if (allRestoreOptions.isEmpty()) {
                 Toast.makeText(context, "没有可恢复的数据项", Toast.LENGTH_SHORT).show()
                 return
             }
-
+        
             // 数据类型名称映射
             val dataTypeNames = mapOf(
-                "apk" to "APK安装包",
-                "data" to "应用数据(data)",
-                "user" to "用户数据(user)",
-                "user_de" to "用户DE数据(user_de)",
-                "obb" to "OBB数据",
-                "media" to "外部媒体数据(media)"
+                "apk" to "APK 安装包",
+                "data" to "应用数据 (data)",
+                "user" to "用户数据 (user)",
+                "user_de" to "用户 DE 数据 (user_de)",
+                "obb" to "OBB 数据",
+                "media" to "外部媒体数据 (media)"
             )
-
+        
             // 构建选项列表
-            val options = dataItems.map { dataItem ->
-                val displayName = dataTypeNames[dataItem.name] ?: dataItem.name
+            val options = allRestoreOptions.map { (dataItem, extraPath) ->
+                var displayName = dataTypeNames[dataItem.name] ?: dataItem.name
                 val sizeStr = formatFileSize(dataItem.targetSize)
-                "$displayName ($sizeStr)"
+                        
+                // 如果是额外项目，添加路径信息
+                if (extraPath != null) {
+                    val shortPath = extraPath.substringAfterLast("/").take(20)
+                    "$displayName [$shortPath] ($sizeStr)"
+                } else {
+                    "$displayName ($sizeStr)"
+                }
             }.toTypedArray()
-
+        
             // 默认全部选中
             val checkedItems = BooleanArray(options.size) { true }
-
+        
             AlertDialog.Builder(context)
                 .setTitle("选择要恢复的数据")
                 .setMultiChoiceItems(options, checkedItems) { _, which, isChecked ->
@@ -341,10 +370,10 @@ class ArchiveItemAdapter(
                     val selectedTypes = mutableSetOf<String>()
                     checkedItems.forEachIndexed { index, isChecked ->
                         if (isChecked) {
-                            selectedTypes.add(dataItems[index].name)
+                            selectedTypes.add(allRestoreOptions[index].first.name)
                         }
                     }
-
+        
                     if (selectedTypes.isEmpty()) {
                         Toast.makeText(context, "请至少选择一项数据", Toast.LENGTH_SHORT).show()
                     } else {

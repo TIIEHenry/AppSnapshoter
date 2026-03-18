@@ -57,10 +57,11 @@ data class SnapedApp(val group: SnapGroup, val packageDir: String, val iconFile:
                 appInfo.archiveLabel = metaInfo.packageInfo.label
                 appInfo.archiveIconFile = iconFile
                 val dataItems = MetaInfoHelper.readDataItems(
-                    metaInfo.dataItems.filter { it != "apk.json" },
+                    metaInfo.dataItems,
                     archiveDir
                 )
-                val archiveItem = ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems)
+                val extraItems = metaInfo.extraItems.mapKeys { MetaInfoHelper.readDataItem(it.key, archiveDir) }
+                val archiveItem = ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems, extraItems)
                 synchronized(archives) {
                     archives[archiveName] = archiveItem
                 }

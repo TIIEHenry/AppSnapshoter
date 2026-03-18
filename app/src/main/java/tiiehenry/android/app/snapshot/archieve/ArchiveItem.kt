@@ -9,5 +9,6 @@ data class ArchiveItem(
     val appInfo: AppInfo,
     val name: String,
     val path: String,
-    val dataItems: List<MetaDataItem>
+    val dataItems: List<MetaDataItem>,
+    val extraItems: Map<MetaDataItem, String> = emptyMap()
 )

@@ -30,7 +30,7 @@
             android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="编辑"
+            android:contentDescription="锁定"
             android:src="@drawable/text_box_edit_outline" />
 
         <ImageButton
