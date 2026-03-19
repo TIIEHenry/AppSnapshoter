@@ -21,9 +21,9 @@ import tiiehenry.android.app.snapshot.data.SnapshotCreator
 import tiiehenry.android.app.snapshot.databinding.ItemAppBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.model.PackageStatus
 import tiiehenry.android.app.snapshot.ui.ArchiveItemPopupMenu
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
-import tiiehenry.android.app.snapshot.model.PackageStatus
 
 /**
  * 分组应用列表适配器
@@ -65,7 +65,7 @@ class GroupItemAdapter(
         private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit,
         private val adapter: GroupItemAdapter
     ) : RecyclerView.ViewHolder(binding.root) {
-    
+
         fun bind(item: SnapedApp) {
             val appInfo = item.appInfo
             binding.appName.text = appInfo.label
@@ -75,7 +75,7 @@ class GroupItemAdapter(
             updateLockIndicator(item)
             setupClickListeners(item)
         }
-    
+
         /**
          * 加载应用图标
          */
@@ -84,7 +84,7 @@ class GroupItemAdapter(
                 .load(appInfo)
                 .into(binding.appIcon)
         }
-    
+
         /**
          * 设置点击监听器
          */
@@ -92,13 +92,13 @@ class GroupItemAdapter(
             binding.root.setOnClickListener { handleItemClick(item) }
             binding.root.setOnLongClickListener { handleItemLongClick(item) }
         }
-    
+
         /**
          * 处理点击事件
          */
         private fun handleItemClick(item: SnapedApp) {
             if (groupsHolder.isSortMode) return
-    
+
             if (AppStatusHelper.isAppInstalled(item)) {
                 launchApp(item.appInfo.packageName, item.appInfo.userId)
             } else {
@@ -111,7 +111,7 @@ class GroupItemAdapter(
                 )
             }
         }
-    
+
         /**
          * 处理长按事件
          */
@@ -193,10 +193,11 @@ class GroupItemAdapter(
                 override fun onArchiveItemClick(
                     item: SnapedApp,
                     archiveItem: ArchiveItem,
-                    needConfirm: Boolean
+                    needConfirm: Boolean,
+                    archiveAdapter: ArchiveItemAdapter
                 ) {
                     if (needConfirm) {
-                        showRestoreConfirmDialog(item, archiveItem)
+                        showRestoreConfirmDialog(item, archiveItem, archiveAdapter)
                     } else {
                         viewModel.onGroupItemClicked(
                             binding.root.context,
@@ -205,6 +206,53 @@ class GroupItemAdapter(
                             item.appInfo.packageName,
                             item
                         )
+                    }
+                }
+
+                private fun showRestoreConfirmDialog(
+                    item: SnapedApp,
+                    archiveItem: ArchiveItem,
+                    archiveAdapter: ArchiveItemAdapter
+                ) {
+                    androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
+                        .setTitle("确认操作")
+                        .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
+                        .setPositiveButton("确认") { _, _ ->
+                            viewModel.onGroupItemClicked(
+                                binding.root.context,
+                                group.id,
+                                group.mmkv,
+                                item.appInfo.packageName,
+                                item
+                            )
+                        }
+                        .setNegativeButton("取消", null)
+                        .setNeutralButton("删除") { _, _ ->
+                            deleteArchive(item, archiveItem, archiveAdapter)
+                        }
+                        .show()
+                }
+
+                override fun deleteArchive(
+                    item: SnapedApp,
+                    archiveItem: ArchiveItem,
+                    archiveAdapter: ArchiveItemAdapter
+                ) {
+                    viewModel.viewModelScope.launch {
+                        val success = ArchiveManager.deleteArchive(item, archiveItem)
+                        if (success) {
+                            // 删除成功后从列表中移除该项
+                            val currentList = archiveAdapter.currentList.toMutableList()
+                            currentList.removeAll { it.name == archiveItem.name }
+                            archiveAdapter.submitList(currentList) {
+                                archiveAdapter.notifyDataSetChanged()
+                            }
+                            Toast.makeText(binding.root.context, "存档删除成功", Toast.LENGTH_SHORT)
+                                .show()
+                        } else {
+                            Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT)
+                                .show()
+                        }
                     }
                 }
 
@@ -223,7 +271,11 @@ class GroupItemAdapter(
 
                 override fun onCreateSnapshot(item: SnapedApp) {
                     if (!AppStatusHelper.isAppInstalled(item)) {
-                        Toast.makeText(binding.root.context, "应用未安装，无法创建快照", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            binding.root.context,
+                            "应用未安装，无法创建快照",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return
                     }
                     createSnapshot(item)
@@ -244,29 +296,14 @@ class GroupItemAdapter(
             }
         }
 
-        private fun showRestoreConfirmDialog(item: SnapedApp, archiveItem: ArchiveItem) {
-            androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
-                .setTitle("确认操作")
-                .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
-                .setPositiveButton("确认") { _, _ ->
-                    viewModel.onGroupItemClicked(
-                        binding.root.context,
-                        group.id,
-                        group.mmkv,
-                        item.appInfo.packageName,
-                        item
-                    )
-                }
-                .setNegativeButton("取消", null)
-                .show()
-        }
 
         private fun clearAllArchives(item: SnapedApp, onComplete: () -> Unit) {
             viewModel.viewModelScope.launch {
                 val success = ArchiveManager.clearAllArchives(item)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除存档成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(binding.root.context, "删除存档成功", Toast.LENGTH_SHORT)
+                            .show()
                     } else {
                         Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
                     }
@@ -281,7 +318,8 @@ class GroupItemAdapter(
                 val success = ArchiveManager.deleteAppCompletely(item, group)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除应用成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(binding.root.context, "删除应用成功", Toast.LENGTH_SHORT)
+                            .show()
                     } else {
                         Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
                     }

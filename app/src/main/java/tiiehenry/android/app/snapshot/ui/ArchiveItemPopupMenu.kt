@@ -38,7 +38,12 @@ class ArchiveItemPopupMenu(
      * 弹出菜单回调接口
      */
     interface Callback {
-        fun onArchiveItemClick(item: SnapedApp, archiveItem: ArchiveItem, needConfirm: Boolean)
+        fun onArchiveItemClick(
+            item: SnapedApp,
+            archiveItem: ArchiveItem,
+            needConfirm: Boolean,
+            archiveAdapter: ArchiveItemAdapter
+        )
         fun onAdvancedRestoreClick(
             item: SnapedApp,
             archiveItem: ArchiveItem,
@@ -49,6 +54,11 @@ class ArchiveItemPopupMenu(
         fun onClearAllArchives(item: SnapedApp, onComplete: () -> Unit)
         fun onDeleteApp(item: SnapedApp, onComplete: () -> Unit)
         fun onLockStateChanged(item: SnapedApp, isLocked: Boolean)
+        fun deleteArchive(
+            item: SnapedApp,
+            archiveItem: ArchiveItem,
+            archiveAdapter: ArchiveItemAdapter
+        )
     }
 
     /**
@@ -189,11 +199,11 @@ class ArchiveItemPopupMenu(
 
         archiveAdapter = ArchiveItemAdapter(
             onItemClick = { archiveItem, needConfirm ->
-                callback.onArchiveItemClick(item, archiveItem, needConfirm)
+                callback.onArchiveItemClick(item, archiveItem, needConfirm,archiveAdapter)
                 popupWindow.dismiss()
             },
             onDeleteClick = { archiveItem ->
-                deleteArchive(item, archiveItem, archiveAdapter)
+                callback.deleteArchive(item, archiveItem, archiveAdapter)
             },
             onRenameSuccess = { _, _ ->
                 coroutineScope.launch {
@@ -220,30 +230,6 @@ class ArchiveItemPopupMenu(
         // 设置存档列表数据
         archiveAdapter.submitList(ArchiveManager.getSortedArchives(item))
         return archiveAdapter
-    }
-
-    /**
-     * 删除存档
-     */
-    private fun deleteArchive(
-        item: SnapedApp,
-        archiveItem: ArchiveItem,
-        archiveAdapter: ArchiveItemAdapter
-    ) {
-        coroutineScope.launch {
-            val success = ArchiveManager.deleteArchive(item, archiveItem)
-            if (success) {
-                // 删除成功后从列表中移除该项
-                val currentList = archiveAdapter.currentList.toMutableList()
-                currentList.removeAll { it.name == archiveItem.name }
-                archiveAdapter.submitList(currentList) {
-                    archiveAdapter.notifyDataSetChanged()
-                }
-                Toast.makeText(context, "存档删除成功", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "删除失败", Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 
     /**
@@ -294,7 +280,6 @@ class ArchiveItemPopupMenu(
             .setNeutralButton("删除全部") { _, _ ->
                 callback.onDeleteApp(item, onDismiss)
             }
-            .setOnDismissListener { onDismiss() }
             .show()
     }
 }
