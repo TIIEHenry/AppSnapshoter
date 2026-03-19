@@ -337,16 +337,7 @@ class AppManagerProviderImpl(
                 user: android.os.UserHandle
             ) {
                 val service = getRootService()
-                try {
-                    service.grantRuntimePermission(packageName, permName, user)
-                } catch (e: Exception) {
-                    LogHelper.e(
-                        "SnapShotRootServiceProxy",
-                        "grantRuntimePermission",
-                        "Failed to grant runtime permission",
-                        e
-                    )
-                }
+                service.grantRuntimePermission(packageName, permName, user)
             }
 
             suspend fun revokeRuntimePermission(
@@ -355,16 +346,7 @@ class AppManagerProviderImpl(
                 user: android.os.UserHandle
             ) {
                 val service = getRootService()
-                try {
-                    service.revokeRuntimePermission(packageName, permName, user)
-                } catch (e: Exception) {
-                    LogHelper.e(
-                        "SnapShotRootServiceProxy",
-                        "revokeRuntimePermission",
-                        "Failed to revoke runtime permission",
-                        e
-                    )
-                }
+                service.revokeRuntimePermission(packageName, permName, user)
             }
 
             suspend fun getPermissionFlags(
@@ -568,52 +550,29 @@ class AppManagerProviderImpl(
         //原方法\u5b9e\u73b0\.\.
 
         override fun getUsers(): List<tiiehenry.android.snapshot.app.UserInfoParcelable> {
-            return try {
-                runBlocking {
-                    proxy.getUsers().map { userInfo ->
-                        tiiehenry.android.snapshot.app.UserInfoParcelable(
-                            userInfo.id,
-                            userInfo.name ?: ""
-                        )
-                    }
+            return runBlocking {
+                proxy.getUsers().map { userInfo ->
+                    tiiehenry.android.snapshot.app.UserInfoParcelable(
+                        userInfo.id,
+                        userInfo.name ?: ""
+                    )
                 }
-            } catch (e: Exception) {
-                LogHelper.w(
-                    "AppManagerImpl",
-                    "getUsers",
-                    "Failed to get users, falling back to current user",
-                    e
-                )
-                // 降级到返回当前用户
-                listOf(tiiehenry.android.snapshot.app.UserInfoParcelable(0, "主用户"))
             }
         }
 
         override fun getInstalledPackages(flags: Int, userId: Int): List<String> {
-            return try {
-                // 使用RootService获取系统级应用信息
-                runBlocking {
-                    proxy.fetchInstalledAppInfos()
-                    proxy.getInstalledAppInfos().map { it.packageName }
-                }
-            } catch (e: Exception) {
-                // 降级到普通PackageManager
-                LogHelper.w(
-                    "AppManagerImpl",
-                    "getInstalledPackages",
-                    "Failed to use root service, falling back to PackageManager",
-                    e
-                )
-                packageManager.getInstalledPackages(flags).map { it.packageName }
+            // 使用 RootService 获取系统级应用信息
+            return runBlocking {
+                proxy.fetchInstalledAppInfos()
+                proxy.getInstalledAppInfos().map { it.packageName }
             }
         }
 
         override fun getPackageInfo(
-            packageName: String?,
+            packageName: String,
             flags: Int,
             userId: Int
         ): PackageInfo? {
-            if (packageName == null) return null
             return try {
                 // 使用 RootService 获取系统级包信息
                 runBlocking {
@@ -636,44 +595,16 @@ class AppManagerProviderImpl(
             flags: Int,
             userId: Int
         ): ApplicationInfo? {
-            return try {
-                // 使用 RootService 获取系统级应用信息
-                runBlocking {
-                    proxy.getApplicationInfo(packageName, flags, userId)
-                }
-            } catch (e: Exception) {
-                // 降级到\u666e\u901aPackageManager
-                LogHelper.w(
-                    "AppManagerImpl",
-                    "getApplicationInfo",
-                    "Failed to use root service, falling back to PackageManager",
-                    e
-                )
-                packageManager.getApplicationInfo(packageName, flags)
+            // 使用 RootService 获取系统级应用信息
+            return runBlocking {
+                proxy.getApplicationInfo(packageName, flags, userId)
             }
         }
 
-        override fun loadLabel(packageName: String?, userId: Int): String? {
-            if (packageName == null) return null
-            return try {
-                // 使用 RootService 获取应用标签
-                runBlocking {
-                    proxy.loadLabel(packageName, userId)
-                }
-            } catch (e: Exception) {
-                // 降级到\u666e\u901aPackageManager
-                LogHelper.w(
-                    "AppManagerImpl",
-                    "loadLabel",
-                    "Failed to use root service, falling back to PackageManager",
-                    e
-                )
-                try {
-                    val appInfo = packageManager.getApplicationInfo(packageName, 0)
-                    packageManager.getApplicationLabel(appInfo).toString()
-                } catch (ex: Exception) {
-                    packageName
-                }
+        override fun loadLabel(packageName: String, userId: Int): String? {
+            // 使用 RootService 获取应用标签
+            return runBlocking {
+                proxy.loadLabel(packageName, userId)
             }
         }
 
@@ -709,8 +640,7 @@ class AppManagerProviderImpl(
 //            }
         }
 
-        override fun getDir(packageName: String?, userId: Int, type: Int): String? {
-            if (packageName == null) return null
+        override fun getDir(packageName: String, userId: Int, type: Int): String? {
             return try {
                 when (type) {
                     DIR_TYPE_DATA -> PathHelper.getAppDataDir(userId, packageName)
@@ -725,43 +655,33 @@ class AppManagerProviderImpl(
         }
 
         override fun getPermissions(
-            packageName: String?,
+            packageName: String,
             userId: Int
         ): List<AppPermission?>? {
-            if (packageName == null) return null
-            return try {
-                // 使用 RootService 获取权限信息
-                runBlocking {
-                    proxy.getPermissions(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "getPermissions", "Failed to get permissions", e)
-                null
+            // 使用 RootService 获取权限信息
+            return runBlocking {
+                proxy.getPermissions(packageName, userId)
             }
         }
 
         override fun setAppPermission(
-            packageName: String?,
+            packageName: String,
             userId: Int,
             permission: AppPermission?
         ) {
-            if (packageName == null || permission == null) return
-            try {
-                // 使用 RootService 设置权限
-                runBlocking {
-                    proxy.setAppPermission(packageName, userId, permission)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "setAppPermission", "Failed to set permission", e)
+            if (permission == null) return
+            // 使用 RootService 设置权限
+            runBlocking {
+                proxy.setAppPermission(packageName, userId, permission)
             }
         }
 
         override fun setAppPermissions(
-            packageName: String?,
+            packageName: String,
             userId: Int,
             permissions: MutableList<AppPermission>?
         ) {
-            if (packageName == null || permissions == null) return
+            if (permissions == null) return
             // 使用 RootService 批量设置权限
             runBlocking {
                 proxy.setAppPermissions(packageName, userId, permissions)
@@ -776,273 +696,144 @@ class AppManagerProviderImpl(
             }
         }
 
-        override fun isInstalled(packageName: String?, userId: Int): Boolean {
-            if (packageName == null) return false
-            return try {
-                // 使用 RootService 检查应用\u662f\u5426\u5b89\u88c5
-                runBlocking {
-                    proxy.isInstalled(packageName, userId)
-                }
-            } catch (e: Exception) {
-                // 降级到\u666e\u901aPackageManager
-                LogHelper.w(
-                    "AppManagerImpl",
-                    "isInstalled",
-                    "Failed to use root service, falling back to PackageManager",
-                    e
-                )
-                try {
-                    packageManager.getPackageInfo(packageName, 0)
-                    true
-                } catch (ex: Exception) {
-                    false
-                }
+        override fun isInstalled(packageName: String, userId: Int): Boolean {
+            // 使用 RootService 检查应用是否安装
+            return runBlocking {
+                proxy.isInstalled(packageName, userId)
             }
         }
 
         override fun installApk(file: String, userId: Int): Boolean {
-            return try {
-                // 使用 RootService 安装 APK
-                runBlocking {
-                    proxy.installApk(file, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "installApk", "Failed to install APK", e)
-                false
+            // 使用 RootService 安装 APK
+            return runBlocking {
+                proxy.installApk(file, userId)
             }
         }
 
         override fun installApks(files: List<String>, userId: Int): Boolean {
             if (files.isEmpty()) return false
-            return try {
-                // 使用 RootService 安装多个 APK
-                runBlocking {
-                    proxy.installApks(files, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "installApks", "Failed to install APKs", e)
-                false
+            // 使用 RootService 安装多个 APK
+            return runBlocking {
+                proxy.installApks(files, userId)
             }
         }
 
         override fun uninstallApk(packageName: String, userId: Int): Boolean {
-            return try {
-                // 使用 RootService 卸载 APK
-                runBlocking {
-                    proxy.uninstallApk(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "uninstallApk", "Failed to uninstall APK", e)
-                false
+            // 使用 RootService 卸载 APK
+            return runBlocking {
+                proxy.uninstallApk(packageName, userId)
             }
         }
 
         override fun forceStopPackage(packageName: String, userId: Int) {
-            try {
-                runBlocking {
-                    proxy.forceStopPackage(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "forceStopPackage", "Failed to force-stop package", e)
+            runBlocking {
+                proxy.forceStopPackage(packageName, userId)
             }
         }
 
         override fun clearAppData(packageName: String, userId: Int) {
-            try {
-                runBlocking {
-                    proxy.clearAppData(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "clearAppData", "Failed to clear app data", e)
+            runBlocking {
+                proxy.clearAppData(packageName, userId)
             }
         }
 
-        override fun suspendPackage(packageName: String?, userId: Int) {
-            if (packageName == null) return
-            try {
-                runBlocking {
-                    proxy.suspendPackage(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "suspendPackage", "Failed to suspend package", e)
+        override fun suspendPackage(packageName: String, userId: Int) {
+            runBlocking {
+                proxy.suspendPackage(packageName, userId)
             }
         }
 
-        override fun unsuspendPackage(packageName: String?, userId: Int) {
-            if (packageName == null) return
-            try {
-                runBlocking {
-                    proxy.unsuspendPackage(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "unsuspendPackage", "Failed to unsuspend package", e)
+        override fun unsuspendPackage(packageName: String, userId: Int) {
+            runBlocking {
+                proxy.unsuspendPackage(packageName, userId)
             }
         }
 
         override fun grantRuntimePermission(
-            packageName: String?,
-            permName: String?,
+            packageName: String,
+            permName: String,
             user: android.os.UserHandle?
         ) {
-            if (packageName == null || permName == null || user == null) return
-            try {
-                runBlocking {
-                    proxy.grantRuntimePermission(packageName, permName, user)
-                }
-            } catch (e: Exception) {
-                LogHelper.e(
-                    "AppManagerImpl",
-                    "grantRuntimePermission",
-                    "Failed to grant runtime permission",
-                    e
-                )
+            if (user == null) return
+            runBlocking {
+                proxy.grantRuntimePermission(packageName, permName, user)
             }
         }
 
         override fun revokeRuntimePermission(
-            packageName: String?,
-            permName: String?,
+            packageName: String,
+            permName: String,
             user: android.os.UserHandle?
         ) {
-            if (packageName == null || permName == null || user == null) return
-            try {
-                runBlocking {
-                    proxy.revokeRuntimePermission(packageName, permName, user)
-                }
-            } catch (e: Exception) {
-                LogHelper.e(
-                    "AppManagerImpl",
-                    "revokeRuntimePermission",
-                    "Failed to revoke runtime permission",
-                    e
-                )
+            if (user == null) return
+            runBlocking {
+                proxy.revokeRuntimePermission(packageName, permName, user)
             }
         }
 
         override fun getPermissionFlags(
-            packageName: String?,
-            permName: String?,
+            packageName: String,
+            permName: String,
             user: android.os.UserHandle?
         ): Int {
-            if (packageName == null || permName == null || user == null) return 0
-            return try {
-                runBlocking {
-                    proxy.getPermissionFlags(packageName, permName, user)
-                }
-            } catch (e: Exception) {
-                LogHelper.e(
-                    "AppManagerImpl",
-                    "getPermissionFlags",
-                    "Failed to get permission flags",
-                    e
-                )
-                0
+            if (user == null) return 0
+            return runBlocking {
+                proxy.getPermissionFlags(packageName, permName, user)
             }
         }
 
         override fun updatePermissionFlags(
-            packageName: String?,
-            permName: String?,
+            packageName: String,
+            permName: String,
             user: android.os.UserHandle?,
             flagMask: Int,
             flagValues: Int
         ) {
-            if (packageName == null || permName == null || user == null) return
-            try {
-                runBlocking {
-                    proxy.updatePermissionFlags(packageName, permName, user, flagMask, flagValues)
-                }
-            } catch (e: Exception) {
-                LogHelper.e(
-                    "AppManagerImpl",
-                    "updatePermissionFlags",
-                    "Failed to update permission flags",
-                    e
-                )
+            if (user == null) return
+            runBlocking {
+                proxy.updatePermissionFlags(packageName, permName, user, flagMask, flagValues)
             }
         }
 
-        override fun getPackageUid(packageName: String?, userId: Int): Int {
-            if (packageName == null) return -1
-            return try {
-                runBlocking {
-                    proxy.getPackageUid(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "getPackageUid", "Failed to get package uid", e)
-                -1
+        override fun getPackageUid(packageName: String, userId: Int): Int {
+            return runBlocking {
+                proxy.getPackageUid(packageName, userId)
             }
         }
 
         override fun getUserHandle(userId: Int): android.os.UserHandle? {
-            return try {
-                runBlocking {
-                    proxy.getUserHandle(userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "getUserHandle", "Failed to get user handle", e)
-                null
+            return runBlocking {
+                proxy.getUserHandle(userId)
             }
         }
 
-        override fun setOpsMode(code: Int, uid: Int, packageName: String?, mode: Int) {
-            if (packageName == null) return
-            try {
-                runBlocking {
-                    proxy.setOpsMode(code, uid, packageName, mode)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "setOpsMode", "Failed to set ops mode", e)
+        override fun setOpsMode(code: Int, uid: Int, packageName: String, mode: Int) {
+            runBlocking {
+                proxy.setOpsMode(code, uid, packageName, mode)
             }
         }
 
-        override fun resetAppOps(userId: Int, packageName: String?) {
-            if (packageName == null) return
-            try {
-                runBlocking {
-                    proxy.resetAppOps(userId, packageName)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "resetAppOps", "Failed to reset appops", e)
+        override fun resetAppOps(userId: Int, packageName: String) {
+            runBlocking {
+                proxy.resetAppOps(userId, packageName)
             }
         }
 
-        override fun getPackageSsaidAsUser(packageName: String?, uid: Int, userId: Int): String? {
-            if (packageName == null) return null
-            return try {
-                runBlocking {
-                    proxy.getPackageSsaidAsUser(packageName, uid, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "getPackageSsaidAsUser", "Failed to get ssaid", e)
-                null
+        override fun getPackageSsaidAsUser(packageName: String, uid: Int, userId: Int): String? {
+            return runBlocking {
+                proxy.getPackageSsaidAsUser(packageName, uid, userId)
             }
         }
 
-        override fun setPackageSsaidAsUser(packageName: String?, userId: Int, ssaid: String?) {
-            if (packageName == null || ssaid == null) return
-            try {
-                runBlocking {
-                    proxy.setPackageSsaidAsUser(packageName, userId, ssaid)
-                }
-            } catch (e: Exception) {
-                LogHelper.e("AppManagerImpl", "setPackageSsaidAsUser", "Failed to set ssaid", e)
+        override fun setPackageSsaidAsUser(packageName: String, userId: Int, ssaid: String) {
+            runBlocking {
+                proxy.setPackageSsaidAsUser(packageName, userId, ssaid)
             }
         }
 
         override fun isPackageRunning(packageName: String, userId: Int): Boolean {
-            return try {
-                runBlocking {
-                    proxy.isPackageRunning(packageName, userId)
-                }
-            } catch (e: Exception) {
-                LogHelper.e(
-                    "AppManagerImpl",
-                    "isPackageRunning",
-                    "Failed to check if package is running",
-                    e
-                )
-                false
+            return runBlocking {
+                proxy.isPackageRunning(packageName, userId)
             }
         }
 
@@ -1083,7 +874,8 @@ class AppManagerProviderImpl(
 
                 // 检测应用是否已在运行，若已在后台运行则加入 FLAG_ACTIVITY_REORDER_TO_FRONT
                 // 让系统将已有 Task 移至前台，而不是创建新的 Task
-                val isRunning = runCatching { isPackageRunning(packageName, userId) }.getOrDefault(false)
+                val isRunning =
+                    runCatching { isPackageRunning(packageName, userId) }.getOrDefault(false)
 
                 // 降级：使用 LauncherApps （支持多用户）
                 val userHandle = getUserHandle(userId)

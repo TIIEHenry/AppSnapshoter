@@ -3,9 +3,11 @@ package tiiehenry.android.app.snapshot.main.launch
 import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LifecycleOwner
@@ -42,6 +44,12 @@ class ArchiveItemAdapter(
         notifyDataSetChanged()
     }
 
+    fun toggleDeleteMode(): Boolean {
+        deleteMode = !deleteMode
+        notifyDataSetChanged()
+        return deleteMode
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemArchiveBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
@@ -55,7 +63,7 @@ class ArchiveItemAdapter(
         private val binding: ItemArchiveBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        private val btnLock: ImageView = binding.root.findViewById(R.id.btn_lock)
+        private val btnLock: ImageView = binding.btnLock
 
         fun bind(item: ArchiveItem) {
             binding.archiveName.text = item.name
@@ -66,6 +74,10 @@ class ArchiveItemAdapter(
             // 锁定按钮点击事件
             btnLock.setOnClickListener {
                 toggleArchiveLock(item)
+            }
+            btnLock.setOnLongClickListener {
+                showRenameDialog(item, it.context)
+                true
             }
 
             // 根据删除模式更新UI
@@ -81,6 +93,7 @@ class ArchiveItemAdapter(
                 binding.archiveIcon.setOnClickListener {
                     onDeleteClick.invoke(item)
                 }
+                binding.archiveIcon.setOnLongClickListener(null)
 
                 // 删除模式下：点击item区域需要确认删除
                 binding.root.setOnClickListener {
@@ -94,11 +107,14 @@ class ArchiveItemAdapter(
                 btnLock.isEnabled = true
 
                 binding.archiveIcon.setOnClickListener {
-                    onItemClick.invoke(item, true)
-                }
-                // 正常模式下的点击事件
-                binding.root.setOnClickListener {
                     onItemClick.invoke(item, false)
+                }
+                binding.archiveIcon.setOnLongClickListener {
+                    showAdvancedRestoreDialog(item, it.context)
+                    true
+                }
+                binding.root.setOnClickListener {
+                    onItemClick.invoke(item, true)
                 }
             }
 
@@ -180,14 +196,36 @@ class ArchiveItemAdapter(
             AlertDialog.Builder(context)
                 .setTitle("存档信息 - ${item.name}")
                 .setMessage(message)
-                .setNeutralButton("重命名") { _, _ ->
-                    showRenameDialog(item, context)
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton("高级恢复") { _, _ ->
-                    showAdvancedRestoreDialog(item, context)
+                .setPositiveButton(android.R.string.ok, null)
+                .setNeutralButton("更多") { _, _ ->
+                    showMorePopupMenu(binding.root, item)
                 }
                 .show()
+        }
+
+        /**
+         * 显示更多操作弹出菜单
+         */
+        private fun showMorePopupMenu(anchor: View, item: ArchiveItem) {
+            val popupMenu = PopupMenu(anchor.context, anchor)
+            popupMenu.menu.add(0, 1, 0, "重命名")
+            popupMenu.menu.add(0, 2, 1, "高级恢复")
+            
+            popupMenu.setOnMenuItemClickListener { menuItem: MenuItem ->
+                when (menuItem.itemId) {
+                    1 -> {
+                        showRenameDialog(item, anchor.context)
+                        true
+                    }
+                    2 -> {
+                        showAdvancedRestoreDialog(item, anchor.context)
+                        true
+                    }
+                    else -> false
+                }
+            }
+            
+            popupMenu.show()
         }
 
         private fun formatFileSize(bytes: Long): String {
@@ -295,7 +333,8 @@ class ArchiveItemAdapter(
                     if (success) {
                         // 更新按钮UI
                         updateLockButtonUI(item)
-                        val message = if (newLockState) "存档已锁定，不会被自动清理" else "存档已解锁"
+                        val message =
+                            if (newLockState) "存档已锁定，不会被自动清理" else "存档已解锁"
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                     } else {
                         // 恢复原来的状态
@@ -314,25 +353,26 @@ class ArchiveItemAdapter(
                 Toast.makeText(context, "高级恢复功能未配置", Toast.LENGTH_SHORT).show()
                 return
             }
-        
+
             // 合并标准数据项和额外项目
-            val allRestoreOptions = mutableListOf<Pair<tiiehenry.android.app.snapshot.data.MetaDataItem, String?>>()
-                    
+            val allRestoreOptions =
+                mutableListOf<Pair<tiiehenry.android.app.snapshot.data.MetaDataItem, String?>>()
+
             // 添加标准数据项
             item.dataItems.forEach { dataItem ->
                 allRestoreOptions.add(Pair(dataItem, null))
             }
-                    
+
             // 添加额外项目
             item.extraItems.forEach { (dataItem, path) ->
                 allRestoreOptions.add(Pair(dataItem, path))
             }
-        
+
             if (allRestoreOptions.isEmpty()) {
                 Toast.makeText(context, "没有可恢复的数据项", Toast.LENGTH_SHORT).show()
                 return
             }
-        
+
             // 数据类型名称映射
             val dataTypeNames = mapOf(
                 "apk" to "APK 安装包",
@@ -342,12 +382,12 @@ class ArchiveItemAdapter(
                 "obb" to "OBB 数据",
                 "media" to "外部媒体数据 (media)"
             )
-        
+
             // 构建选项列表
             val options = allRestoreOptions.map { (dataItem, extraPath) ->
                 var displayName = dataTypeNames[dataItem.name] ?: dataItem.name
                 val sizeStr = formatFileSize(dataItem.targetSize)
-                        
+
                 // 如果是额外项目，添加路径信息
                 if (extraPath != null) {
                     val shortPath = extraPath.substringAfterLast("/").take(20)
@@ -356,10 +396,10 @@ class ArchiveItemAdapter(
                     "$displayName ($sizeStr)"
                 }
             }.toTypedArray()
-        
+
             // 默认全部选中
             val checkedItems = BooleanArray(options.size) { true }
-        
+
             AlertDialog.Builder(context)
                 .setTitle("选择要恢复的数据")
                 .setMultiChoiceItems(options, checkedItems) { _, which, isChecked ->
@@ -373,7 +413,7 @@ class ArchiveItemAdapter(
                             selectedTypes.add(allRestoreOptions[index].first.name)
                         }
                     }
-        
+
                     if (selectedTypes.isEmpty()) {
                         Toast.makeText(context, "请至少选择一项数据", Toast.LENGTH_SHORT).show()
                     } else {

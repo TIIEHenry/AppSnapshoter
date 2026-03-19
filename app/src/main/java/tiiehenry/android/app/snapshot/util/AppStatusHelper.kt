@@ -3,7 +3,6 @@ package tiiehenry.android.app.snapshot.util
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.group.SnapedApp
 import tiiehenry.android.app.snapshot.model.PackageStatus
-import tiiehenry.android.snapshot.app.IAppManager
 
 /**
  * 应用状态帮助类
@@ -125,7 +124,9 @@ object AppStatusHelper {
     fun unsuspendPackage(packageName: String, userId: Int) {
         try {
             val appManager = SnapshotApp.getInstance().appManager
-            appManager.unsuspendPackage(packageName, userId)
+            if (appManager.isInstalled(packageName, userId)) {
+                appManager.unsuspendPackage(packageName, userId)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }

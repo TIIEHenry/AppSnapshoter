@@ -184,7 +184,7 @@ class GroupShotConfigFragment : BottomSheetDialogFragment() {
     private fun saveConfig() {
         // 使用截图选项管理器保存配置
         groupConfig.shotConfig.permission = shotOptionsManager.getPermission()
-        groupConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
+        groupConfig.shotConfig.items = shotOptionsManager.getCompressItems()
         // 保存排除模式列表（保存按压缩项目分类的排除模式）
         excludePatternsManager.saveToExcludeConfig(groupConfig.excludeConfig)
 

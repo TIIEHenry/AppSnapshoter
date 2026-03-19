@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfig
+import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
 import tiiehenry.android.app.snapshot.ui.dialog.LoadingDialog
@@ -55,8 +56,8 @@ class SnapshotCreator(
                 val fs = snapShotApp.fileSystem
                 val appManager = snapShotApp.appManager
 
-                // 获取应用配置
-                val appConfig = AppConfig(item.appInfo.packageName)
+                // 获取应用配置（使用 AppConfigManager 复用实例）
+                val appConfig = AppConfigManager.getInstance().getConfig(item.appInfo.packageName)
                 val groupConfig = group.config
 
                 // 挂起应用（应用进程暂停运行）

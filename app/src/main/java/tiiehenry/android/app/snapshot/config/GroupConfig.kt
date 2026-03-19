@@ -81,6 +81,33 @@ class GroupConfig(val groupId: String) {
         groupConfigFile.delete()
     }
 
+    /**
+     * 添加应用到锁定列表
+     */
+    fun addToLockedList(packageName: String) {
+        if (!groupConfigData.lockedList.contains(packageName)) {
+            groupConfigData.lockedList.add(packageName)
+            save()
+        }
+    }
+
+    /**
+     * 从锁定列表中移除应用
+     */
+    fun removeFromLockedList(packageName: String) {
+        if (groupConfigData.lockedList.contains(packageName)) {
+            groupConfigData.lockedList.remove(packageName)
+            save()
+        }
+    }
+
+    /**
+     * 检查应用是否在锁定列表中
+     */
+    fun isLocked(packageName: String): Boolean {
+        return groupConfigData.lockedList.contains(packageName)
+    }
+
     private fun <T> loadConfigFromFile(file: File, parser: (String) -> T): T? {
         return try {
             if (!file.exists()) return null

@@ -24,14 +24,14 @@ class ActionConfigManager(
 
     private fun setupEnabledSwitch() {
         if (!showEnabledSwitch) {
-            binding.switchEnabled.visibility = android.view.View.GONE
+            binding.switchEnabled.visibility = View.GONE
             // 隐藏开关时，默认启用所有选项
             setEnabled(true)
         }
     }
 
     fun loadConfig() {
-        setEnabled(actionConfig.hasCompressAlgorithm())
+        setEnabled(actionConfig.enabled)
         setAutoSnapshot(actionConfig.isAutoSnapshot)
         setUninstallArchived(actionConfig.isUninstallArchived)
         setCompressAlgorithm(actionConfig.compressAlgorithm)
@@ -97,6 +97,7 @@ class ActionConfigManager(
     }
 
     fun saveToActionConfig(config: ActionConfig) {
+        config.enabled = getEnabled()
         config.isAutoSnapshot = getAutoSnapshot()
         config.isUninstallArchived = getUninstallArchived()
         config.compressAlgorithm = getCompressAlgorithm()

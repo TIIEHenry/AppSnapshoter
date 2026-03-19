@@ -25,7 +25,6 @@ import tiiehenry.android.app.snapshot.ui.ArchiveItemPopupMenu
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
 
 
-
 class GroupItemAdapter(
     private val groupsHolder: GroupsAdapter.GroupViewHolder,
     private val groupsAdapter: GroupsAdapter,
@@ -33,10 +32,6 @@ class GroupItemAdapter(
     private val group: SnapGroup,
     private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit = { a, s -> } // 添加更新回调){}){}
 ) : ListAdapter<SnapedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
-
-    // 添加删除状态标志
-    var isDeleteMode = false
-        private set
 
     // ItemTouchHelper 引用，用于拖拽排序
     var itemTouchHelper: ItemTouchHelper? = null
@@ -79,6 +74,9 @@ class GroupItemAdapter(
 
             // 根据应用是否正在运行显示运行指示器
             updateRunningIndicator(item)
+
+            // 根据应用是否在锁定列表中显示锁图标
+            updateLockIndicator(item)
 
             binding.root.setOnClickListener {
                 // 排序模式下禁用点击
@@ -136,6 +134,18 @@ class GroupItemAdapter(
             }
         }
 
+        /**
+         * 更新锁定状态指示器
+         */
+        private fun updateLockIndicator(item: SnapedApp) {
+            val isLocked = group.config.isLocked(item.appInfo.packageName)
+            binding.appLockIndicator.visibility = if (isLocked) {
+                android.view.View.VISIBLE
+            } else {
+                android.view.View.GONE
+            }
+        }
+
         // 设置拖拽触摸监听
         fun setupDragOnTouch() {
             binding.root.setOnTouchListener { _, event ->
@@ -164,10 +174,6 @@ class GroupItemAdapter(
                 anchor = binding.root,
                 item = item,
                 group = group,
-                isDeleteMode = adapter.isDeleteMode,
-                onDeleteModeChanged = { newMode ->
-                    adapter.isDeleteMode = newMode
-                },
                 callback = createPopupMenuCallback(item)
             )
         }
@@ -206,6 +212,11 @@ class GroupItemAdapter(
                 }
 
                 override fun onCreateSnapshot(item: SnapedApp) {
+                    // 检查应用是否已安装
+                    if (!AppStatusHelper.isAppInstalled(item)) {
+                        Toast.makeText(binding.root.context, "应用未安装，无法创建快照", Toast.LENGTH_SHORT).show()
+                        return
+                    }
                     createSnapshot(item)
                 }
 
@@ -216,6 +227,12 @@ class GroupItemAdapter(
                 override fun onDeleteApp(item: SnapedApp, onComplete: () -> Unit) {
                     deleteAppCompletely(item, onComplete)
                 }
+
+                override fun onLockStateChanged(item: SnapedApp, isLocked: Boolean) {
+                    // 锁定状态变化时，重新加载组数据以刷新 UI
+                    groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                    SnapshotApp.getViewModel().loadGroups()
+                }
             }
         }
 
@@ -223,6 +240,7 @@ class GroupItemAdapter(
             androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
                 .setTitle("确认操作")
                 .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
+//                .setNeutralButton() todo 点击删除存档
                 .setPositiveButton("确认") { _, _ ->
                     viewModel.onGroupItemClicked(
                         binding.root.context,
@@ -241,7 +259,8 @@ class GroupItemAdapter(
                 val success = ArchiveManager.clearAllArchives(item)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除存档成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(binding.root.context, "删除存档成功", Toast.LENGTH_SHORT)
+                            .show()
                     } else {
                         Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
                     }
@@ -256,7 +275,8 @@ class GroupItemAdapter(
                 val success = ArchiveManager.deleteAppCompletely(item, group)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除应用成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(binding.root.context, "删除应用成功", Toast.LENGTH_SHORT)
+                            .show()
                     } else {
                         Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
                     }

@@ -2,37 +2,43 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:padding="8dp"
     android:background="?attr/selectableItemBackground"
-    android:gravity="center_vertical">
-
-    <ImageView
-        android:id="@+id/archive_icon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:src="@drawable/archive_arrow_up_outline"
-        android:contentDescription="存档图标" />
-
-    <TextView
-        android:id="@+id/archive_name"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="8dp"
-        android:text="存档名称"
-        android:textSize="14sp" />
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="8dp">
 
     <ImageView
         android:id="@+id/btn_lock"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_marginStart="4dp"
-        android:padding="4dp"
-        android:src="@drawable/lock_outline"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="锁定/解锁"
         android:clickable="true"
-        android:focusable="true" />
+        android:contentDescription="锁定/解锁"
+        android:focusable="true"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/lock_outline" />
+
+    <ImageView
+        android:id="@+id/archive_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="存档图标"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/archive_arrow_up_outline" />
+
+    <TextView
+        android:id="@+id/archive_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:text="存档名称"
+        android:textSize="13sp" />
+
 
 </LinearLayout>

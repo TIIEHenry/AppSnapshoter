@@ -8,6 +8,7 @@ import com.alibaba.fastjson2.JSONWriter;
  * 管理自动存档和打包算法配置
  */
 public class ActionConfig {
+    public boolean enabled = false; // 是否启用应用单独配置
     // 配置字段
     private boolean autoSnapshot = false;
     private boolean uninstallArchived = false;
@@ -41,6 +42,14 @@ public class ActionConfig {
     }
 
     // Getter 和 Setter 方法
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     public boolean isAutoSnapshot() {
         return autoSnapshot;
     }

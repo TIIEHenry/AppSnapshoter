@@ -3,7 +3,10 @@ package tiiehenry.android.app.snapshot.config;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -14,7 +17,8 @@ import java.util.Set;
 public class ShotConfig {
     // 配置字段，直接访问
     public boolean enabled = false; // 是否启用应用单独配置
-    public Set<String> compressItems = new HashSet<>(CompressItems.getAll());
+    public Set<String> items = new HashSet<>(CompressItems.getAll());
+
     public boolean permission = true;
 
     // 版本保留配置
@@ -38,7 +42,7 @@ public class ShotConfig {
      * 是否有压缩项配置
      */
     public boolean hasCompressItems() {
-        return compressItems != null && !compressItems.isEmpty();
+        return items != null && !items.isEmpty();
     }
 
     /**

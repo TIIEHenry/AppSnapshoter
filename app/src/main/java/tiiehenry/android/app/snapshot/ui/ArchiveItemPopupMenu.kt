@@ -10,6 +10,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.PopupWindow
 import android.widget.Toast
+import androidx.fragment.app.FragmentManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.app.AppConfigFragment
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
@@ -19,10 +23,6 @@ import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
 import tiiehenry.android.app.snapshot.main.launch.ArchiveItemAdapter
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
-import androidx.fragment.app.FragmentManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 /**
  * 弹出菜单帮助类
@@ -39,10 +39,16 @@ class ArchiveItemPopupMenu(
      */
     interface Callback {
         fun onArchiveItemClick(item: SnapedApp, archiveItem: ArchiveItem, needConfirm: Boolean)
-        fun onAdvancedRestoreClick(item: SnapedApp, archiveItem: ArchiveItem, selectedTypes: Set<String>)
+        fun onAdvancedRestoreClick(
+            item: SnapedApp,
+            archiveItem: ArchiveItem,
+            selectedTypes: Set<String>
+        )
+
         fun onCreateSnapshot(item: SnapedApp)
         fun onClearAllArchives(item: SnapedApp, onComplete: () -> Unit)
         fun onDeleteApp(item: SnapedApp, onComplete: () -> Unit)
+        fun onLockStateChanged(item: SnapedApp, isLocked: Boolean)
     }
 
     /**
@@ -51,17 +57,16 @@ class ArchiveItemPopupMenu(
      * @param item 应用快照项
      * @param group 所属组
      * @param isDeleteMode 是否处于删除模式
-     * @param onDeleteModeChanged 删除模式变更回调
      * @param callback 菜单操作回调
      */
     fun showPopupMenu(
         anchor: View,
         item: SnapedApp,
         group: SnapGroup,
-        isDeleteMode: Boolean,
-        onDeleteModeChanged: (Boolean) -> Unit,
         callback: Callback
     ) {
+       val callback = createPopupMenuCallback(item)
+
         val popupBinding = LayoutPopupMenuBinding.inflate(LayoutInflater.from(context))
         val popupWindow = PopupWindow(
             popupBinding.root,
@@ -75,11 +80,18 @@ class ArchiveItemPopupMenu(
         popupWindow.isFocusable = true
         popupWindow.elevation = 16f * context.resources.displayMetrics.density
 
-        // 设置按钮点击事件
-        setupButtonListeners(popupBinding, item, group, popupWindow, isDeleteMode, onDeleteModeChanged, callback)
-
         // 设置存档列表
-        setupArchiveList(popupBinding, item, callback, popupWindow)
+        val archiveItemAdapter = setupArchiveList(popupBinding, item, callback, popupWindow)
+
+        // 设置按钮点击事件
+        setupButtonListeners(
+            popupBinding,
+            item,
+            group,
+            popupWindow,
+            archiveItemAdapter,
+            callback
+        )
 
         // 显示弹窗
         popupWindow.showAsDropDown(anchor)
@@ -93,13 +105,30 @@ class ArchiveItemPopupMenu(
         item: SnapedApp,
         group: SnapGroup,
         popupWindow: PopupWindow,
-        isDeleteMode: Boolean,
-        onDeleteModeChanged: (Boolean) -> Unit,
+        archiveItemAdapter: ArchiveItemAdapter,
         callback: Callback
     ) {
-        // 编辑按钮
-        popupBinding.btnEdit.setOnClickListener {
-            showEditNameHint()
+        // 锁定按钮 - 如果锁定在 GroupConfig.lockedList 中添加包名，否则移除
+        val packageName = item.appInfo.packageName
+        val isLocked = group.config.isLocked(packageName)
+        fun updateLockIcon(isLocked: Boolean) {
+            popupBinding.btnLock.setImageResource(
+                if (isLocked) R.drawable.lock_open_minus_outline else R.drawable.lock_plus_outline
+            )
+        }
+        updateLockIcon(isLocked)
+        popupBinding.btnLock.setOnClickListener {
+            val newLockState = !isLocked
+            if (isLocked) {
+                group.config.removeFromLockedList(packageName)
+                Toast.makeText(context, "已解锁应用，自动卸载跟随应用或组策略", Toast.LENGTH_SHORT)
+                    .show()
+            } else {
+                group.config.addToLockedList(packageName)
+                Toast.makeText(context, "已锁定应用，应用不会被自动卸载", Toast.LENGTH_SHORT).show()
+            }
+            updateLockIcon(newLockState)
+            callback.onLockStateChanged(item, newLockState)
             popupWindow.dismiss()
         }
 
@@ -112,7 +141,8 @@ class ArchiveItemPopupMenu(
 
         // 根据应用安装状态控制信息按钮的可见性
         val isAppInstalled = AppStatusHelper.isAppInstalled(item)
-        popupBinding.btnInfo.visibility = if (isAppInstalled) View.VISIBLE else View.GONE
+        popupBinding.btnInfo.isEnabled = isAppInstalled
+        popupBinding.btnShot.isEnabled = isAppInstalled
 
         // 信息按钮
         popupBinding.btnInfo.setOnClickListener {
@@ -138,8 +168,7 @@ class ArchiveItemPopupMenu(
 
         // 删除按钮点击 - 切换删除模式
         popupBinding.btnDelete.setOnClickListener {
-            val newDeleteMode = !isDeleteMode
-            onDeleteModeChanged(newDeleteMode)
+            val newDeleteMode = archiveItemAdapter.toggleDeleteMode()
 
             // 更新删除按钮的外观
             if (newDeleteMode) {
@@ -158,7 +187,7 @@ class ArchiveItemPopupMenu(
         item: SnapedApp,
         callback: Callback,
         popupWindow: PopupWindow
-    ) {
+    ): ArchiveItemAdapter {
         lateinit var archiveAdapter: ArchiveItemAdapter
 
         archiveAdapter = ArchiveItemAdapter(
@@ -193,6 +222,7 @@ class ArchiveItemPopupMenu(
 
         // 设置存档列表数据
         archiveAdapter.submitList(ArchiveManager.getSortedArchives(item))
+        return archiveAdapter
     }
 
     /**

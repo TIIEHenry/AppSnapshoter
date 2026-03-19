@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
@@ -115,10 +116,18 @@ class GroupsAdapter(
                     }
                 }
             }
+            binding.btnRefresh.setOnLongClickListener {
+                Toast.makeText(it.context, "刷新分组中的应用列表", Toast.LENGTH_SHORT).show()
+                true
+            }
             refresh(group, binding.groupRecyclerView)
 
             binding.btnAdd.setOnClickListener {
                 addNewApp(group)
+            }
+            binding.btnAdd.setOnLongClickListener {
+                Toast.makeText(it.context, "添加新应用到分组", Toast.LENGTH_SHORT).show()
+                true
             }
 
             binding.emptyLayout.setOnClickListener {
@@ -141,10 +150,14 @@ class GroupsAdapter(
             }
 
             binding.btnTune.setOnClickListener {
-                // 显示GroupConfigFragment，保存后刷新列表
+                // 显示 GroupConfigFragment，保存后刷新列表
                 GroupShotConfigFragment.newInstance(group) {
                     refresh(group, binding.groupRecyclerView)
                 }.show(fragmentManager, "GroupShotConfigFragment")
+            }
+            binding.btnTune.setOnLongClickListener {
+                Toast.makeText(it.context, "设置分组配置", Toast.LENGTH_SHORT).show()
+                true
             }
 
             updateButtonVisibility(!isSortMode)

@@ -195,21 +195,6 @@ object MetaInfoHelper {
         return JsonUtils.writeToFile(permissions, permissionsFile, prettyFormat)
     }
 
-    /**
-     * 写入 permissions.json 文件
-     * @param permissions 权限列表
-     * @param archivePath 存档目录路径
-     * @param prettyFormat 是否格式化输出
-     * @return 是否写入成功
-     */
-    fun writePermissions(
-        permissions: List<MetaPermission>,
-        archivePath: String,
-        prettyFormat: Boolean = true
-    ): Boolean {
-        return writePermissions(permissions, File(archivePath), prettyFormat)
-    }
-
 
     /**
      * 将 MetaInfo 写入存档目录

@@ -48,18 +48,24 @@ object SnapShotMaker {
             val archiveDir = Paths.get(packageDir, name).absolutePathString()
 
             fileSystem.mkdirs(archiveDir)
-
+            val shotConfig = if (appConfig.shotConfig.enabled) {
+                appConfig.shotConfig
+            } else {
+                groupConfig.shotConfig
+            }
+            val actionConfig = if (appConfig.actionConfig.enabled) {
+                appConfig.actionConfig
+            } else {
+                groupConfig.actionConfig
+            }
+            val excludeConfig = if (appConfig.shotConfig.enabled) {
+                appConfig.excludeConfig
+            } else {
+                groupConfig.excludeConfig
+            }
             // 获取要压缩的项目
-            val compressItems = if (appConfig.shotConfig.hasCompressItems()) {
-                appConfig.shotConfig.compressItems
-            } else {
-                groupConfig.shotConfig.compressItems
-            }
-            val compressAlgorithm = if (appConfig.actionConfig.hasCompressAlgorithm()) {
-                appConfig.actionConfig.compressAlgorithm
-            } else {
-                groupConfig.actionConfig.compressAlgorithm
-            }
+            val compressItems = shotConfig.items
+            val compressAlgorithm = actionConfig.compressAlgorithm
 
             val tasks = LinkedHashMap<String, ITaskHandler>()
             val applicationInfo =
@@ -77,11 +83,7 @@ object SnapShotMaker {
             val extraItemsMap = mutableMapOf<String, String>()
 
             // 获取排除模式映射（优先使用应用配置，否则使用组配置）
-            val excludePatternsMap = if (appConfig.excludeConfig.hasExcludePatterns()) {
-                appConfig.excludeConfig.getItemExcludePatternsMap()
-            } else {
-                groupConfig.excludeConfig.getItemExcludePatternsMap()
-            }
+            val excludePatternsMap = excludeConfig.getItemExcludePatternsMap()
 
             val realCompressItems = mutableSetOf<String>()
             val handler =
@@ -96,33 +98,31 @@ object SnapShotMaker {
                 )
             tasks["meta-info"] = handler
             // 处理额外压缩项目
-            appConfig.extraItems.forEach { extraItem ->
-                if (extraItem.isEnabled()) {
-                    val name = extraItem.getName()
-                    val path = extraItem.getPath()
-                    val excludes = extraItem.getExcludePatterns()
+            appConfig.extraItems.filter { it.isEnabled }.forEach { extraItem ->
+                val name = extraItem.getName()
+                val path = extraItem.getPath()
+                val excludes = extraItem.getExcludePatterns()
 
-                    if (fileSystem.fileType(path) != IFileType.TYPE_NONE) {
-                        val extension = compressor.fileExtension(algorithm, name, path)
-                        val fileName = "$name$extension"
-                        val task = compressor.compress(
+                if (fileSystem.fileType(path) != IFileType.TYPE_NONE) {
+                    val extension = compressor.fileExtension(algorithm, name, path)
+                    val fileName = "$name$extension"
+                    val task = compressor.compress(
+                        algorithm,
+                        path,
+                        Paths.get(archiveDir, fileName).absolutePathString(),
+                        excludes,
+                        arrayListOf(),
+                        createCompressCallback(
+                            callback,
+                            dataItems,
                             algorithm,
-                            path,
-                            Paths.get(archiveDir, fileName).absolutePathString(),
-                            excludes,
-                            arrayListOf(),
-                            createCompressCallback(
-                                callback,
-                                dataItems,
-                                algorithm,
-                                fileName,
-                                name,
-                                archiveDir
-                            )
+                            fileName,
+                            name,
+                            archiveDir
                         )
-                        tasks[name] = task
-                        extraItemsMap["$name.json"] = path
-                    }
+                    )
+                    tasks[name] = task
+                    extraItemsMap["$name.json"] = path
                 }
             }
 
@@ -302,6 +302,12 @@ object SnapShotMaker {
                     }
                 }
             }
+
+            if (!groupConfig.isLocked(appInfo.packageName) && actionConfig.isUninstallArchived) {
+                val uninstallTask = createUninstallAppTask(appInfo, appManager)
+                tasks["uninstall-app"] = uninstallTask
+            }
+
             return tasks
         } catch (e: Exception) {
             e.printStackTrace()
@@ -480,6 +486,45 @@ object SnapShotMaker {
                 callback.onError(msg)
             }
         }
+    }
+
+    private fun createUninstallAppTask(
+        appInfo: AppInfo,
+        appManager: IAppManager
+    ): ITaskHandler.Stub {
+        val handler = object : ITaskHandler.Stub() {
+            var state = CompressState.COMPRESS_STATE_NONE
+            var isCancel = AtomicBoolean(false)
+
+            override fun id(): String {
+                return "uninstall-app"
+            }
+
+            override fun state(): Int {
+                return state
+            }
+
+            override fun start() {
+                state = CompressState.COMPRESS_STATE_RUNNING
+                try {
+                    // 执行卸载操作
+                    val success = appManager.uninstallApk(appInfo.packageName, appInfo.userId)
+                    if (success) {
+                        state = CompressState.COMPRESS_STATE_COMPLETE
+                    } else {
+                        state = CompressState.COMPRESS_STATE_ERROR
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    state = CompressState.COMPRESS_STATE_ERROR
+                }
+            }
+
+            override fun cancel() {
+                isCancel.set(true)
+            }
+        }
+        return handler
     }
 
     fun deleteArchive(archivePath: String): Boolean {

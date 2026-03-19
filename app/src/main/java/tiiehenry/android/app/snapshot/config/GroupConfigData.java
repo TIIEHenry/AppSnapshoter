@@ -2,13 +2,15 @@ package tiiehenry.android.app.snapshot.config;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 分组数据配置类
  * 保存在 group.json 文件中
  */
 public class GroupConfigData {
-    // 用户ID
+    // 用户 ID
     public int userId = 0;
 
     // 分组名称
@@ -16,6 +18,9 @@ public class GroupConfigData {
 
     // 排序配置
     public SortConfig sortConfig = new SortConfig();
+
+    // 锁定列表，保存不允许删除的应用包名
+    public List<String> lockedList = new ArrayList<>();
 
     /**
      * 从 JSON 字符串解析配置（静态工厂方法）

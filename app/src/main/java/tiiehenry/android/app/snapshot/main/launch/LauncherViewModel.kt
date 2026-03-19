@@ -4,10 +4,13 @@ import android.app.AppOpsManagerHidden
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.RemoteException
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.alibaba.fastjson2.JSON
+import com.alibaba.fastjson2.JSONWriter
 import com.tencent.mmkv.MMKV
 import com.xayah.core.util.command.SELinux
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +31,7 @@ import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
+import java.io.File
 import java.nio.file.Paths
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -210,7 +214,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             Log.i("LauncherViewModel", "skip install apk")
         }
         Log.i("LauncherViewModel", "toMutableList: $toMutableList")
-        
+
         // 恢复标准数据项
         for (dataItem in toMutableList) {
             currentIndex++
@@ -273,16 +277,29 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        // 读取不可变更的权限列表
+        val fixedPermissionsFile =
+            File(SnapshotApp.getInstance().globalRootPath, "fixed_permissions.json")
+        val fixedPermissions = if (fixedPermissionsFile.exists()) {
+            try {
+                val jsonStr = fixedPermissionsFile.readText()
+                JSON.parseArray(jsonStr, String::class.java) ?: emptyList<String>()
+            } catch (e: Exception) {
+                Log.e("LauncherViewModel", "读取 fixed_permissions.json 失败：${e.message}")
+                emptyList<String>()
+            }
+        } else {
+            emptyList<String>()
+        }.toMutableList()
+        Log.i("LauncherViewModel", "已加载 ${fixedPermissions.size} 个不可变更的权限")
+
         // 恢复权限
         withContext(Dispatchers.Main) {
             loadingDialog.setMessage("正在恢复权限...")
         }
-        val archiveDir = ArchivedApks.getArchivedApkDir(
-            snapedApp.packageDir,
-            archiveItem.metaInfo.packageInfo.versionCode
-        )
-        val permissionsFile = "$archiveDir/${MetaInfoHelper.PERMISSIONS_FILE_NAME}"
+        val permissionsFile = "${archiveItem.path}/${MetaInfoHelper.PERMISSIONS_FILE_NAME}"
         val metaPermissions = MetaInfoHelper.readPermissions(fs, permissionsFile)
+        val newFixedPermissions = mutableListOf<String>()
         if (metaPermissions.isNotEmpty()) {
             val appPermissions = metaPermissions.map { metaPermission ->
                 AppPermission(
@@ -293,25 +310,50 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 )
             }
 
-            // 获取uid和UserHandle
+            // 获取 uid 和 UserHandle
             val uid = appManager.getPackageUid(packageName, userId)
             val user = appManager.getUserHandle(userId)
 
             if (uid != -1 && user != null) {
-                // 重置AppOps
+                // 重置 AppOps
                 appManager.resetAppOps(userId, packageName)
 
                 Log.i("LauncherViewModel", "Permissions size: ${appPermissions.size}...")
+
+                // 用于记录新增的不可变更权限
+
                 appPermissions.forEach {
                     Log.i(
                         "LauncherViewModel",
                         "Permission name: ${it.name}, isGranted: ${it.isGranted}, op: ${it.op}, mode: ${it.mode}"
                     )
+
+                    // 检查是否在不可变更的权限列表中
+                    val isFixed = fixedPermissions.contains(it.name)
+                    if (isFixed) {
+                        Log.i("LauncherViewModel", "跳过不可变更的权限：${it.name}")
+                        return@forEach
+                    }
+
                     runCatching {
-                        if (it.isGranted) {
-                            appManager.grantRuntimePermission(packageName, it.name, user)
-                        } else {
-                            appManager.revokeRuntimePermission(packageName, it.name, user)
+                        try {
+                            if (it.isGranted) {
+                                appManager.grantRuntimePermission(packageName, it.name, user)
+                            } else {
+                                appManager.revokeRuntimePermission(packageName, it.name, user)
+                            }
+                        } catch (e: RemoteException) {
+                            if (e.message?.contains("not a changeable permission type") == true) {
+                                // 记录不可变更的权限名称
+                                Log.w(
+                                    "LauncherViewModel",
+                                    "权限 ${it.name} 是不可变更的类型，添加到固定列表"
+                                )
+                                fixedPermissions.add(it.name)
+                                newFixedPermissions.add(it.name)
+                            }else{
+                                e.printStackTrace()
+                            }
                         }
                         if (it.op != AppOpsManagerHidden.OP_NONE) {
                             appManager.setOpsMode(it.op, uid, packageName, it.mode)
@@ -328,6 +370,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         if (archiveItem.metaInfo.ssaid.isNotEmpty()) {
             appManager.setPackageSsaidAsUser(packageName, userId, archiveItem.metaInfo.ssaid)
+        }
+
+
+        // 如果有新增的不可变更权限，合并并保存
+        if (newFixedPermissions.isNotEmpty()) {
+            try {
+                val str = JSON.toJSONString(fixedPermissions, JSONWriter.Feature.PrettyFormat)
+                fixedPermissionsFile.writeText(str)
+                Log.i("LauncherViewModel", "已保存 ${fixedPermissions.size} 个不可变更的权限")
+            } catch (e: Exception) {
+                Log.e("LauncherViewModel", "保存 fixed_permissions.json 失败：${e.message}")
+            }
         }
         withContext(Dispatchers.Main) {
             loadingDialog.dismiss()
@@ -350,7 +404,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val appInfo = archiveItem.appInfo
         val packageName = appInfo.packageName
         val userId = appInfo.userId
-    
+
         // 回调用于更新进度
         val callback = object : ICompressCallback.Stub() {
             override fun onStart() {
@@ -358,17 +412,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     loadingDialog.setMessage("开始恢复...")
                 }
             }
-    
+
             override fun onProgress(bytesWritten: Long, kbPerS: Long) {
                 loadingDialog.post {
                     val progress = (bytesWritten / 1024).toInt()
                     loadingDialog.setProgress(progress)
                 }
             }
-    
+
             override fun onDone(originSize: Long, targetSize: Long, md5: String) {
             }
-    
+
             override fun onError(msg: String?) {
                 Log.e("LauncherViewModel", "Error: $msg")
                 loadingDialog.post {
@@ -376,13 +430,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
             }
         }
-    
+
         // 过滤出选中的数据项
         val allDataItems = archiveItem.dataItems.toMutableList()
         val dataItems = allDataItems.filter { selectedTypes.contains(it.name) }
-    
+
         // 处理 extraItems：根据用户选择过滤
-        val selectedExtraItems = archiveItem.extraItems.filterKeys { selectedTypes.contains(it.name) }
+        val selectedExtraItems =
+            archiveItem.extraItems.filterKeys { selectedTypes.contains(it.name) }
         Log.i("LauncherViewModel", "高级恢复：选中 ${selectedExtraItems.size} 个额外项目")
 
         if (dataItems.isEmpty() && selectedExtraItems.isEmpty()) {
@@ -469,18 +524,18 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
 
         Log.i("LauncherViewModel", "高级恢复：toMutableList: $toMutableList")
-                
+
         // 恢复标准数据项
         for (dataItem in toMutableList) {
             currentIndex++
             val progress = (currentIndex * 100) / totalItems
             val itemName = dataItem.name
-        
+
             withContext(Dispatchers.Main) {
                 loadingDialog.setCurrentItem("$itemName")
                 loadingDialog.setProgress(progress)
             }
-        
+
             val shouldContinue = restoreDataItem(
                 fs,
                 appManager,
@@ -500,7 +555,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 return
             }
         }
-        
+
         // 恢复额外项目
         if (selectedExtraItems.isNotEmpty()) {
             Log.i("LauncherViewModel", "开始恢复 ${selectedExtraItems.size} 个额外项目")
@@ -508,12 +563,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 currentIndex++
                 val progress = (currentIndex * 100) / totalItems
                 val itemName = extraDataItem.name
-        
+
                 withContext(Dispatchers.Main) {
                     loadingDialog.setCurrentItem("$itemName (额外)")
                     loadingDialog.setProgress(progress)
                 }
-        
+
                 val shouldContinue = restoreExtraItem(
                     fs,
                     appManager,
@@ -537,11 +592,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             withContext(Dispatchers.Main) {
                 loadingDialog.setMessage("正在恢复权限...")
             }
-            val archiveDir = ArchivedApks.getArchivedApkDir(
-                snapedApp.packageDir,
-                archiveItem.metaInfo.packageInfo.versionCode
-            )
-            val permissionsFile = "$archiveDir/${MetaInfoHelper.PERMISSIONS_FILE_NAME}"
+            val permissionsFile = "${archiveItem.path}/${MetaInfoHelper.PERMISSIONS_FILE_NAME}"
             val metaPermissions = MetaInfoHelper.readPermissions(fs, permissionsFile)
             if (metaPermissions.isNotEmpty()) {
                 val appPermissions = metaPermissions.map { metaPermission ->
@@ -826,33 +877,33 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // 查找数据文件
         val archiveDir = archiveItem.path
         val dataFile = Paths.get(archiveDir, dataItem.file).toString()
-    
+
         if (!fs.exists(dataFile)) {
             callback.onError("数据文件不存在：$dataFile")
             return true // 返回 true 以继续处理其他数据项
         }
-    
+
         try {
             // Get the SELinux context of the path.
             val pathContext: String
             SELinux.getContext(path = targetPath).also { result ->
                 pathContext = if (result.isSuccess) result.outString else ""
             }
-    
+
             Log.i("LauncherViewModel", "额外项目原始 SELinux context: $pathContext.")
-                
+
             // 确保目标目录的父目录存在
             val parentDir = fs.getParent(targetPath) ?: ""
             if (parentDir.isNotEmpty()) {
                 fs.mkdirs(parentDir)
             }
-    
+
             // 解压数据
             val decompressor = fs.compressor
             val algorithm = dataItem.algorithm.ifEmpty { decompressor.detectAlgorithm(dataFile) }
             val task = decompressor.decompress(algorithm, dataFile, targetPath, callback)
             task?.start()
-    
+
             // 等待解压完成
             var state = task?.state() ?: CompressState.COMPRESS_STATE_ERROR
             while (state == CompressState.COMPRESS_STATE_RUNNING || state == CompressState.COMPRESS_STATE_NONE) {
@@ -860,7 +911,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 state = task?.state() ?: CompressState.COMPRESS_STATE_ERROR
             }
             var isSuccess = state == CompressState.COMPRESS_STATE_COMPLETE
-    
+
             if (!isSuccess) {
                 callback.onError("额外项目解压失败：${dataItem.file}")
             } else {
@@ -870,9 +921,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     isSuccess = isSuccess && result.isSuccess
                     out.addAll(result.out)
                 }
-                Log.i("LauncherViewModel", "恢复额外项目 SELinux context: ${out.joinToString(", ")}")
+                Log.i(
+                    "LauncherViewModel",
+                    "恢复额外项目 SELinux context: ${out.joinToString(", ")}"
+                )
             }
-    
+
             return isSuccess
         } catch (e: Exception) {
             callback.onError("恢复额外项目出错：${e.message}")
@@ -880,7 +934,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             return true
         }
     }
-    
+
     private suspend fun restoreData(
         fs: IFileSystem,
         appManager: IAppManager,
@@ -892,7 +946,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // 查找数据文件
         val archiveDir = archiveItem.path
         val dataFile = Paths.get(archiveDir, dataItem.file).toString()
-    
+
         if (!fs.exists(dataFile)) {
             callback.onError("数据文件不存在：$dataFile")
             return true // 返回 true 以继续处理其他数据项

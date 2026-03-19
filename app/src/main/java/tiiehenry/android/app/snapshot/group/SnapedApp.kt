@@ -26,7 +26,7 @@ data class SnapedApp(val group: SnapGroup, val packageDir: String, val iconFile:
         appManager: IAppManager,
         reload: Boolean
     ): LinkedHashMap<String, ArchiveItem> {
-        val archiveNames = fs.listDir(packageDir)
+        val archiveNames = fs.listDir(packageDir).filter { it != "apks" }
         if (reload) {
             synchronized(archives) {
                 archives.clear()
@@ -60,8 +60,10 @@ data class SnapedApp(val group: SnapGroup, val packageDir: String, val iconFile:
                     metaInfo.dataItems,
                     archiveDir
                 )
-                val extraItems = metaInfo.extraItems.mapKeys { MetaInfoHelper.readDataItem(it.key, archiveDir) }
-                val archiveItem = ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems, extraItems)
+                val extraItems =
+                    metaInfo.extraItems.mapKeys { MetaInfoHelper.readDataItem(it.key, archiveDir) }
+                val archiveItem =
+                    ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems, extraItems)
                 synchronized(archives) {
                     archives[archiveName] = archiveItem
                 }

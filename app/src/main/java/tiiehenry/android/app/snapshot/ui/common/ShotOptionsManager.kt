@@ -1,10 +1,7 @@
 package tiiehenry.android.app.snapshot.ui.common
 
 import android.content.Context
-import android.view.ContextThemeWrapper
-import androidx.core.view.children
 import com.google.android.material.chip.Chip
-import com.google.android.material.R as MaterialR
 import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.config.ShotConfig
 import tiiehenry.android.app.snapshot.databinding.IncludeShotOptionsBinding
@@ -32,7 +29,7 @@ class ShotOptionsManager(
 
     fun loadConfig() {
         setEnabled(shotConfig.enabled)
-        setCompressItems(shotConfig.compressItems)
+        setCompressItems(shotConfig.items)
     }
 
     private fun setupListeners() {
@@ -66,13 +63,13 @@ class ShotOptionsManager(
     }
 
     private fun updateCompressItems(item: String, isSelected: Boolean) {
-        val items = shotConfig.compressItems.toMutableSet()
+        val items = shotConfig.items.toMutableSet()
         if (isSelected) {
             items.add(item)
         } else {
             items.remove(item)
         }
-        shotConfig.compressItems = items
+        shotConfig.items = items
     }
 
     fun setEnabled(enabled: Boolean) {

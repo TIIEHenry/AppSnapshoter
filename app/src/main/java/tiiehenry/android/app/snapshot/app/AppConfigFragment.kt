@@ -11,6 +11,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfig
+import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.databinding.FragmentAppConfigBinding
 import tiiehenry.android.app.snapshot.ui.common.ShotOptionsManager
 import tiiehenry.android.app.snapshot.ui.common.VersionRetentionManager
@@ -51,7 +52,8 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             packageName =
                 it.getString(ARG_PACKAGE_NAME) ?: throw IllegalArgumentException("packageName is required")
         }
-        appConfig = AppConfig(packageName)
+        // 使用 AppConfigManager 获取配置实例，复用避免重复创建
+        appConfig = AppConfigManager.getInstance().getConfig(packageName)
     }
 
     override fun onCreateView(
@@ -186,16 +188,16 @@ class AppConfigFragment : BottomSheetDialogFragment() {
         // 使用截图选项管理器保存配置
         appConfig.shotConfig.enabled = shotOptionsManager.getEnabled()
         appConfig.shotConfig.permission = shotOptionsManager.getPermission()
-        appConfig.shotConfig.compressItems = shotOptionsManager.getCompressItems()
+        appConfig.shotConfig.items = shotOptionsManager.getCompressItems()
         // 保存排除模式列表（保存按压缩项目分类的排除模式）
         excludePatternsManager.saveToExcludeConfig(appConfig.excludeConfig)
-        
+
         // 使用动作配置管理器保存配置
         actionConfigManager.saveToActionConfig(appConfig.action)
-        
+
         // 使用版本保留管理器保存配置
         appConfig.shotConfig.versionRetentionConfig = versionRetentionManager.saveToConfig()
-        
+
         // 保存额外项目列表
         extraItemsManager.saveToConfig()
 
