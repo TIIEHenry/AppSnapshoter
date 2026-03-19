@@ -902,13 +902,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val decompressor = fs.compressor
             val algorithm = dataItem.algorithm.ifEmpty { decompressor.detectAlgorithm(dataFile) }
             val task = decompressor.decompress(algorithm, dataFile, targetPath, callback)
-            task?.start()
+            task.start()
 
             // 等待解压完成
-            var state = task?.state() ?: CompressState.COMPRESS_STATE_ERROR
+            var state = task.state()
             while (state == CompressState.COMPRESS_STATE_RUNNING || state == CompressState.COMPRESS_STATE_NONE) {
                 Thread.sleep(100)
-                state = task?.state() ?: CompressState.COMPRESS_STATE_ERROR
+                state = task.state()
             }
             var isSuccess = state == CompressState.COMPRESS_STATE_COMPLETE
 

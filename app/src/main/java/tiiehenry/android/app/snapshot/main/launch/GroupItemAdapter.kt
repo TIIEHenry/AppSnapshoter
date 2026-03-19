@@ -23,17 +23,24 @@ import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
 import tiiehenry.android.app.snapshot.ui.ArchiveItemPopupMenu
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
+import tiiehenry.android.app.snapshot.model.PackageStatus
 
-
+/**
+ * 分组应用列表适配器
+ * @param groupsHolder 分组 ViewHolder
+ * @param groupsAdapter 分组适配器
+ * @param viewModel ViewModel
+ * @param group 所属分组
+ * @param onItemUpdated 项目更新回调
+ */
 class GroupItemAdapter(
     private val groupsHolder: GroupsAdapter.GroupViewHolder,
     private val groupsAdapter: GroupsAdapter,
     private val viewModel: LauncherViewModel,
     private val group: SnapGroup,
-    private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit = { a, s -> } // 添加更新回调){}){}
+    private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit = { _, _ -> }
 ) : ListAdapter<SnapedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
 
-    // ItemTouchHelper 引用，用于拖拽排序
     var itemTouchHelper: ItemTouchHelper? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -43,7 +50,6 @@ class GroupItemAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(getItem(position))
-        // 在排序模式下设置触摸监听以启动拖拽
         if (groupsHolder.isSortMode) {
             holder.setupDragOnTouch()
         } else {
@@ -59,66 +65,70 @@ class GroupItemAdapter(
         private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit,
         private val adapter: GroupItemAdapter
     ) : RecyclerView.ViewHolder(binding.root) {
-
+    
         fun bind(item: SnapedApp) {
             val appInfo = item.appInfo
             binding.appName.text = appInfo.label
-
-            // 使用Glide加载图标
+            loadAppIcon(appInfo)
+            updateStatusIndicator(item)
+            updateRunningIndicator(item)
+            updateLockIndicator(item)
+            setupClickListeners(item)
+        }
+    
+        /**
+         * 加载应用图标
+         */
+        private fun loadAppIcon(appInfo: tiiehenry.android.app.snapshot.app.AppInfo) {
             Glide.with(binding.root.context)
                 .load(appInfo)
                 .into(binding.appIcon)
-
-            // 根据应用状态设置状态指示器
-            updateStatusIndicator(item)
-
-            // 根据应用是否正在运行显示运行指示器
-            updateRunningIndicator(item)
-
-            // 根据应用是否在锁定列表中显示锁图标
-            updateLockIndicator(item)
-
-            binding.root.setOnClickListener {
-                // 排序模式下禁用点击
-                if (groupsHolder.isSortMode) {
-                    return@setOnClickListener
-                }
-
-                // 检查应用是否已安装
-                if (AppStatusHelper.isAppInstalled(item)) {
-                    // 应用已安装，启动应用
-                    launchApp(item.appInfo.packageName, item.appInfo.userId)
-                } else {
-                    // 应用未安装，执行备份/恢复逻辑
-                    viewModel.onGroupItemClicked(
-                        binding.root.context,
-                        group.id,
-                        group.mmkv,
-                        appInfo.packageName,
-                        item
-                    )
-                }
+        }
+    
+        /**
+         * 设置点击监听器
+         */
+        private fun setupClickListeners(item: SnapedApp) {
+            binding.root.setOnClickListener { handleItemClick(item) }
+            binding.root.setOnLongClickListener { handleItemLongClick(item) }
+        }
+    
+        /**
+         * 处理点击事件
+         */
+        private fun handleItemClick(item: SnapedApp) {
+            if (groupsHolder.isSortMode) return
+    
+            if (AppStatusHelper.isAppInstalled(item)) {
+                launchApp(item.appInfo.packageName, item.appInfo.userId)
+            } else {
+                viewModel.onGroupItemClicked(
+                    binding.root.context,
+                    group.id,
+                    group.mmkv,
+                    item.appInfo.packageName,
+                    item
+                )
             }
-
-            binding.root.setOnLongClickListener {
-                // 只有在非排序模式下才显示弹出菜单
-                if (!groupsHolder.isSortMode) {
-                    showPopupMenu(item)
-                }
-                !groupsHolder.isSortMode // 如果是排序模式，不消费长按事件
+        }
+    
+        /**
+         * 处理长按事件
+         */
+        private fun handleItemLongClick(item: SnapedApp): Boolean {
+            if (!groupsHolder.isSortMode) {
+                showPopupMenu(item)
             }
+            return !groupsHolder.isSortMode
         }
 
         private fun updateStatusIndicator(item: SnapedApp) {
-            // 判断应用状态
             val status = AppStatusHelper.getPackageStatus(item)
-
-            // 根据状态设置图标和可见性
             binding.appStatusIndicator.visibility = android.view.View.VISIBLE
             val iconRes = when (status) {
-                tiiehenry.android.app.snapshot.model.PackageStatus.NOT_INSTALLED -> R.drawable.ic_status_not_installed
-                tiiehenry.android.app.snapshot.model.PackageStatus.INSTALLED -> R.drawable.ic_status_installed
-                tiiehenry.android.app.snapshot.model.PackageStatus.CAN_UPDATE -> R.drawable.ic_status_can_update
+                PackageStatus.NOT_INSTALLED -> R.drawable.ic_status_not_installed
+                PackageStatus.INSTALLED -> R.drawable.ic_status_installed
+                PackageStatus.CAN_UPDATE -> R.drawable.ic_status_can_update
             }
             binding.appStatusIndicator.setImageResource(iconRes)
         }
@@ -212,7 +222,6 @@ class GroupItemAdapter(
                 }
 
                 override fun onCreateSnapshot(item: SnapedApp) {
-                    // 检查应用是否已安装
                     if (!AppStatusHelper.isAppInstalled(item)) {
                         Toast.makeText(binding.root.context, "应用未安装，无法创建快照", Toast.LENGTH_SHORT).show()
                         return
@@ -229,7 +238,6 @@ class GroupItemAdapter(
                 }
 
                 override fun onLockStateChanged(item: SnapedApp, isLocked: Boolean) {
-                    // 锁定状态变化时，重新加载组数据以刷新 UI
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
                     SnapshotApp.getViewModel().loadGroups()
                 }
@@ -240,7 +248,6 @@ class GroupItemAdapter(
             androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
                 .setTitle("确认操作")
                 .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
-//                .setNeutralButton() todo 点击删除存档
                 .setPositiveButton("确认") { _, _ ->
                     viewModel.onGroupItemClicked(
                         binding.root.context,
@@ -259,8 +266,7 @@ class GroupItemAdapter(
                 val success = ArchiveManager.clearAllArchives(item)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除存档成功", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(binding.root.context, "删除存档成功", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
                     }
@@ -275,15 +281,12 @@ class GroupItemAdapter(
                 val success = ArchiveManager.deleteAppCompletely(item, group)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除应用成功", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(binding.root.context, "删除应用成功", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
                     }
-                    // 从组中移除应用并刷新 UI
                     group.apps.remove(item)
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
-                    // 通知全局 ViewModel 更新数据
                     SnapshotApp.getViewModel().loadGroups()
                     onComplete()
                 }
@@ -305,13 +308,12 @@ class GroupItemAdapter(
             val snapshotCreator = SnapshotCreator(binding.root.context, viewModel.viewModelScope)
             snapshotCreator.createSnapshot(item, group, object : SnapshotCreator.Callback {
                 override fun onSuccess() {
-                    // 重新加载应用数据
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
                     SnapshotApp.getViewModel().loadGroups()
                 }
 
                 override fun onError(message: String) {
-                    // 错误已在 SnapshotCreator 中处理（显示Toast）
+                    // 错误已在 SnapshotCreator 中处理（显示 Toast）
                 }
             })
         }

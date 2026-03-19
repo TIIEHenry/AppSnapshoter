@@ -56,7 +56,6 @@ class ArchiveItemPopupMenu(
      * @param anchor 锚点视图
      * @param item 应用快照项
      * @param group 所属组
-     * @param isDeleteMode 是否处于删除模式
      * @param callback 菜单操作回调
      */
     fun showPopupMenu(
@@ -65,8 +64,6 @@ class ArchiveItemPopupMenu(
         group: SnapGroup,
         callback: Callback
     ) {
-       val callback = createPopupMenuCallback(item)
-
         val popupBinding = LayoutPopupMenuBinding.inflate(LayoutInflater.from(context))
         val popupWindow = PopupWindow(
             popupBinding.root,

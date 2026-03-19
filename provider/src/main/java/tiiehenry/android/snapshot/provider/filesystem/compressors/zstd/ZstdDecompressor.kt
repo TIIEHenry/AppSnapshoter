@@ -58,6 +58,7 @@ object ZstdDecompressor {
     ) {
         if (!fileSystem.exists(file)) {
             callback?.onError("Source file not exists: $file")
+            Log.e(TAG, "Decompression error: Source file not exists: $file")
             updateState(CompressState.COMPRESS_STATE_ERROR)
             return
         }
@@ -80,6 +81,7 @@ object ZstdDecompressor {
             updateState(CompressState.COMPRESS_STATE_COMPLETE)
         } catch (e: CancellationException) {
             callback?.onError("Decompression cancelled")
+            Log.e(TAG, "Decompression error: Decompression cancelled", e)
             updateState(CompressState.COMPRESS_STATE_ERROR)
         } catch (e: Exception) {
             Log.e(TAG, "Decompress error", e)

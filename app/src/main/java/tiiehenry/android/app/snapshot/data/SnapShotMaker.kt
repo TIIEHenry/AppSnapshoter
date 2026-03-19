@@ -372,7 +372,7 @@ object SnapShotMaker {
                         false
                     )
 
-                    // 分别保存 meta-info.json（使用compressItems）、permissions.json 和各个 data-item.json
+                    // 分别保存 meta-info.json（使用 compressItems）、permissions.json 和各个 data-item.json
                     MetaInfoHelper.writeToArchive(metaInfo, File(archiveDir))
                     MetaInfoHelper.writePermissions(
                         permissions,
@@ -381,6 +381,7 @@ object SnapShotMaker {
                     state = CompressState.COMPRESS_STATE_COMPLETE
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    android.util.Log.e("SnapShotMaker", "MetaInfo task error: ${e.message}", e)
                     state = CompressState.COMPRESS_STATE_ERROR
                 }
             }
@@ -423,6 +424,7 @@ object SnapShotMaker {
                     state = CompressState.COMPRESS_STATE_COMPLETE
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    android.util.Log.e("SnapShotMaker", "Permission task error: ${e.message}", e)
                     state = CompressState.COMPRESS_STATE_ERROR
                 }
             }
@@ -512,10 +514,12 @@ object SnapShotMaker {
                     if (success) {
                         state = CompressState.COMPRESS_STATE_COMPLETE
                     } else {
+                        android.util.Log.e("SnapShotMaker", "Uninstall app failed: ${appInfo.packageName}")
                         state = CompressState.COMPRESS_STATE_ERROR
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    android.util.Log.e("SnapShotMaker", "Uninstall app error: ${e.message}", e)
                     state = CompressState.COMPRESS_STATE_ERROR
                 }
             }

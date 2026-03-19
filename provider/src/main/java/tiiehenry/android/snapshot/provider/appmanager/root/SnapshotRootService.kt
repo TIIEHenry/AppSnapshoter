@@ -467,30 +467,36 @@ class SnapshotRootService : RootService() {
         }
 
         override fun uninstallApk(packageName: String, userId: Int): Boolean {
-            return try {
-                val uninstallCmd = "pm uninstall --user $userId $packageName"
-                val shell = Shell.Builder.create()
-                    .setFlags(Shell.FLAG_MOUNT_MASTER)
-                    .setTimeout(60)
-                    .build()
-                val result = shell.newJob().to(null, null).add(uninstallCmd).exec()
-                shell.close()
-                val output = result.out.joinToString("\n")
-                val success = result.isSuccess && (
-                        output.contains("Success") ||
-                                output.contains("success") ||
-                                output.contains("not installed")
-                        )
-                if (success) {
-                    LogHelper.i("SnapshotRootService", "uninstallApk", "Successfully uninstalled APK: $packageName")
-                    true
-                } else {
-                    LogHelper.e("SnapshotRootService", "uninstallApk", "Failed to uninstall APK: $packageName")
-                    false
-                }
-            } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "uninstallApk", "Error: ${e.message}")
-                false
+            val uninstallCmd = "pm uninstall --user $userId $packageName"
+            val shell = Shell.Builder.create()
+                .setFlags(Shell.FLAG_MOUNT_MASTER)
+                .setTimeout(60)
+                .build()
+            val result = shell.newJob().to(null, null).add(uninstallCmd).exec()
+            shell.close()
+            val output = result.out.joinToString("\n")
+            val errorOutput = result.err.joinToString("\n")
+            val fullOutput = "$output\n$errorOutput"
+            
+            // 检查多种成功情况
+            // 1. 退出码为 0（某些系统成功时不输出任何内容）
+            // 2. 命令成功且输出包含成功关键词
+            val success = result.code == 0 || (
+                    result.isSuccess && (
+                            output.contains("Success") ||
+                            output.contains("success") ||
+                            output.contains("not installed") ||
+                            output.contains("Success!") ||
+                            fullOutput.contains("package uninstalled successfully")
+                    )
+                )
+            
+            if (success) {
+                LogHelper.i("SnapshotRootService", "uninstallApk", "Successfully uninstalled APK: $packageName")
+                return true
+            } else {
+                LogHelper.e("SnapshotRootService", "uninstallApk", "Failed to uninstall APK: $packageName, Output: $fullOutput, Exit code: ${result.code}")
+                return false
             }
         }
 

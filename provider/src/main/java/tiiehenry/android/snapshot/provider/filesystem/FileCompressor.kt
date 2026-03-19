@@ -113,7 +113,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         file: String,
         targetDir: String,
         callback: ICompressCallback?
-    ): ITaskHandler? {
+    ): ITaskHandler {
         return when (algorithm) {
             CompressorAlgorithms.ALGORITHM_ZSTD -> {
                 ZstdDecompressor.decompress(fs, file, targetDir, callback)
