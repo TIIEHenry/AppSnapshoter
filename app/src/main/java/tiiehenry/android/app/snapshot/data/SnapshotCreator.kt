@@ -97,7 +97,7 @@ class SnapshotCreator(
                         } else {
                             Toast.makeText(context, "存档创建成功", Toast.LENGTH_SHORT).show()
                             // 重新加载应用数据
-                            item.loadArchives(fs, appManager, true)
+                            ArchiveManager.reloadArchives(item, true)
                             callback?.onSuccess()
 
                             // 异步执行保留策略清理（不阻塞UI）

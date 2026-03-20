@@ -42,6 +42,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         targetFile: String,
         excludes: List<String>,
         excludeFiles: List<String>,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler {
         when (algorithm) {
@@ -53,6 +54,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
                     targetFile,
                     excludes,
                     excludeFiles,
+                    compressLevel,
                     callback
                 )
             }
@@ -64,6 +66,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
                 targetFile,
                 excludes,
                 excludeFiles,
+                compressLevel,
                 callback
             )
         }
@@ -73,6 +76,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         algorithm: String,
         files: List<String>,
         targetFile: String,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler {
         return when (algorithm) {
@@ -83,6 +87,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
                     fs,
                     files,
                     targetFile,
+                    compressLevel,
                     callback
                 )
             }
@@ -93,6 +98,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
                     fs,
                     files,
                     targetFile,
+                    compressLevel,
                     callback
                 )
             }
@@ -112,7 +118,7 @@ class FileCompressor(val fs: IFileSystem, val context: Context) : IFileCompresso
         algorithm: String,
         file: String,
         targetDir: String,
-        callback: ICompressCallback?
+        callback: ICompressCallback
     ): ITaskHandler {
         return when (algorithm) {
             CompressorAlgorithms.ALGORITHM_ZSTD -> {

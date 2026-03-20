@@ -62,4 +62,22 @@
         app:selectionRequired="true"
         app:singleSelection="true" />
 
+    <TextView
+        android:id="@+id/tv_compress_level_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="压缩级别：5 (平衡)"
+        android:textSize="16sp" />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/slider_compress_level"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:valueFrom="1.0"
+        android:valueTo="9.0"
+        android:stepSize="2.0"
+        android:value="5.0" />
+
 </LinearLayout>

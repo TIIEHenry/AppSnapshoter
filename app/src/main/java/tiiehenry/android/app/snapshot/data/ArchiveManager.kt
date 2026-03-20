@@ -139,7 +139,11 @@ object ArchiveManager {
     suspend fun reloadArchives(item: SnapedApp, forceReload: Boolean = true) {
         val fs = SnapshotApp.getInstance().fileSystem
         val appManager = SnapshotApp.getInstance().appManager
-        item.loadArchives(fs, appManager, forceReload)
+        try {
+            item.loadArchives(fs, appManager, forceReload)
+        }catch (e: Exception){
+            e.printStackTrace()
+        }
     }
 
     /**

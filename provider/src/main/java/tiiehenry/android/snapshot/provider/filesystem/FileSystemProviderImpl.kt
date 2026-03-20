@@ -217,20 +217,6 @@ class FileSystemProviderImpl(
                 file.createNewFile()
             }
             Log.i("FileSystemProvider", "openFile $path with mode $mode")
-//            // 如果是FIFO文件，使用非阻塞模式打开，避免死锁
-//            if (isFifo(path)) {
-//                return try {
-//                    val fd = Os.open(path, convertModeToOsFlags(mode) or OsConstants.O_NONBLOCK, 0)
-//                    ParcelFileDescriptor.dup(fd)
-//                } catch (e: Exception) {
-//                    Log.w(
-//                        "FileSystemProvider",
-//                        "Failed to open FIFO in non-blocking mode, falling back to blocking",
-//                        e
-//                    )
-//                    ParcelFileDescriptor.open(file, mode)
-//                }
-//            }
             return ParcelFileDescriptor.open(file, mode)
         }
 
@@ -273,6 +259,7 @@ class FileSystemProviderImpl(
                 val tempFile = File.createTempFile(prefix, suffix)
                 tempFile.absolutePath
             } catch (e: Exception) {
+                e.printStackTrace()
                 // 如果创建临时文件失败，返回一个基于时间戳的路径
                 "/tmp/${prefix}${System.currentTimeMillis()}${suffix}"
             }
@@ -311,7 +298,7 @@ class FileSystemProviderImpl(
 
                 Log.i("FileSystemProvider", "Executing tar command: ${args.joinToString(" ")}")
                 // 调用root服务执行tar命令
-                val resultCode = rootService.callTarCli(stdOut, stdErr, args.toTypedArray())
+                val resultCode = rootService.callTarCli(null,stdOut, stdErr, args.toTypedArray())
 
                 // 检查tar命令执行结果
                 if (resultCode != 0) {
@@ -370,7 +357,7 @@ class FileSystemProviderImpl(
                     "Executing tar command for multiple files: ${args.joinToString(" ")}"
                 )
                 // 调用root服务执行tar命令
-                val resultCode = rootService.callTarCli(stdOut, stdErr, args.toTypedArray())
+                val resultCode = rootService.callTarCli(null, stdOut, stdErr, args.toTypedArray())
 
                 // 检查tar命令执行结果
                 if (resultCode != 0) {

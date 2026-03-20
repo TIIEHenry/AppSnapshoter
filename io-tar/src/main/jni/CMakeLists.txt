@@ -314,12 +314,12 @@ target_include_directories(tar
         tar/src
 )
 
-# libtar-wrapper.so
-add_library(tar-wrapper SHARED
-        tar-wrapper.cpp
+# libtar-jni.so
+add_library(tar-jni SHARED
+        jni.cpp
 )
 
-target_link_libraries(tar-wrapper
+target_link_libraries(tar-jni
         android
         log
         libgnu

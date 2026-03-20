@@ -24,8 +24,12 @@ public class MetaDataItem {
     @JSONField(name = "md5")
     private String md5;
 
-    @JSONField(name = "compressCost")
-    private long compressCost;
+    @JSONField(name = "package_cost")
+    private long packageCost;
+
+    @JSONField(name = "compress_level")
+    private int compressLevel;
+
     @JSONField(name = "makeTime")
     private long makeTime;
 
@@ -35,16 +39,16 @@ public class MetaDataItem {
 
     // 全参构造函数
     public MetaDataItem(String algorithm, String name, String file,
-                        long originSize, long targetSize, String md5, long compressCost, long makeTime) {
+                        long originSize, long targetSize, String md5, long packageCost, long makeTime, int compressLevel) {
         this.algorithm = algorithm;
         this.name = name;
         this.file = file;
         this.originSize = originSize;
         this.targetSize = targetSize;
         this.md5 = md5;
-        this.compressCost = compressCost;
+        this.packageCost = packageCost;
         this.makeTime = makeTime;
-
+        this.compressLevel = compressLevel;
     }
 
     // Getter和Setter方法
@@ -96,25 +100,34 @@ public class MetaDataItem {
         this.md5 = md5;
     }
 
-    public long getCompressCost() {
-        return compressCost;
+    public long getPackageCost() {
+        return packageCost;
     }
 
-    public void setCompressCost(long compressCost) {
-        this.compressCost = compressCost;
+    public void setPackageCost(long packageCost) {
+        this.packageCost = packageCost;
+    }
+
+    public int getCompressLevel() {
+        return compressLevel;
+    }
+
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
     }
 
     @Override
     public String toString() {
         return "MetaDataItem{" +
-                "algorithm='" + algorithm + '\'' +
-                ", name='" + name + '\'' +
-                ", file='" + file + '\'' +
-                ", originSize=" + originSize +
-                ", targetSize=" + targetSize +
-                ", md5='" + md5 + '\'' +
-                ", compressCost=" + compressCost +
-                ", makeTime=" + makeTime +
-                '}';
+               "algorithm='" + algorithm + '\'' +
+               ", name='" + name + '\'' +
+               ", file='" + file + '\'' +
+               ", originSize=" + originSize +
+               ", targetSize=" + targetSize +
+               ", md5='" + md5 + '\'' +
+               ", compressCost=" + packageCost +
+               ", makeTime=" + makeTime +
+               ", compressLevel=" + compressLevel +
+               '}';
     }
 }

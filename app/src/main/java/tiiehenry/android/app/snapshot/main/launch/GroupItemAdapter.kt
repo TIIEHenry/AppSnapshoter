@@ -184,21 +184,39 @@ class GroupItemAdapter(
                 anchor = binding.root,
                 item = item,
                 group = group,
-                callback = createPopupMenuCallback(item)
+                callback = popupMenuCallback
             )
         }
 
-        private fun createPopupMenuCallback(item: SnapedApp): ArchiveItemPopupMenu.Callback {
-            return object : ArchiveItemPopupMenu.Callback {
-                override fun onArchiveItemClick(
-                    item: SnapedApp,
-                    archiveItem: ArchiveItem,
-                    needConfirm: Boolean,
-                    archiveAdapter: ArchiveItemAdapter
-                ) {
-                    if (needConfirm) {
-                        showRestoreConfirmDialog(item, archiveItem, archiveAdapter)
-                    } else {
+        val popupMenuCallback = object : ArchiveItemPopupMenu.Callback {
+            override fun onArchiveItemClick(
+                item: SnapedApp,
+                archiveItem: ArchiveItem,
+                needConfirm: Boolean,
+                archiveAdapter: ArchiveItemAdapter
+            ) {
+                if (needConfirm) {
+                    showRestoreConfirmDialog(item, archiveItem, archiveAdapter)
+                } else {
+                    viewModel.onGroupItemClicked(
+                        binding.root.context,
+                        group.id,
+                        group.mmkv,
+                        item.appInfo.packageName,
+                        item
+                    )
+                }
+            }
+
+            private fun showRestoreConfirmDialog(
+                item: SnapedApp,
+                archiveItem: ArchiveItem,
+                archiveAdapter: ArchiveItemAdapter
+            ) {
+                androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
+                    .setTitle("确认操作")
+                    .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
+                    .setPositiveButton("确认") { _, _ ->
                         viewModel.onGroupItemClicked(
                             binding.root.context,
                             group.id,
@@ -207,92 +225,73 @@ class GroupItemAdapter(
                             item
                         )
                     }
-                }
+                    .setNegativeButton("取消", null)
+                    .setNeutralButton("删除") { _, _ ->
+                        deleteArchive(item, archiveItem, archiveAdapter)
+                    }
+                    .show()
+            }
 
-                private fun showRestoreConfirmDialog(
-                    item: SnapedApp,
-                    archiveItem: ArchiveItem,
-                    archiveAdapter: ArchiveItemAdapter
-                ) {
-                    androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
-                        .setTitle("确认操作")
-                        .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
-                        .setPositiveButton("确认") { _, _ ->
-                            viewModel.onGroupItemClicked(
-                                binding.root.context,
-                                group.id,
-                                group.mmkv,
-                                item.appInfo.packageName,
-                                item
-                            )
+            override fun deleteArchive(
+                item: SnapedApp,
+                archiveItem: ArchiveItem,
+                archiveAdapter: ArchiveItemAdapter
+            ) {
+                viewModel.viewModelScope.launch {
+                    val success = ArchiveManager.deleteArchive(item, archiveItem)
+                    if (success) {
+                        // 删除成功后从列表中移除该项
+                        val currentList = archiveAdapter.currentList.toMutableList()
+                        currentList.removeAll { it.name == archiveItem.name }
+                        archiveAdapter.submitList(currentList) {
+                            archiveAdapter.notifyDataSetChanged()
                         }
-                        .setNegativeButton("取消", null)
-                        .setNeutralButton("删除") { _, _ ->
-                            deleteArchive(item, archiveItem, archiveAdapter)
-                        }
-                        .show()
-                }
-
-                override fun deleteArchive(
-                    item: SnapedApp,
-                    archiveItem: ArchiveItem,
-                    archiveAdapter: ArchiveItemAdapter
-                ) {
-                    viewModel.viewModelScope.launch {
-                        val success = ArchiveManager.deleteArchive(item, archiveItem)
-                        if (success) {
-                            // 删除成功后从列表中移除该项
-                            val currentList = archiveAdapter.currentList.toMutableList()
-                            currentList.removeAll { it.name == archiveItem.name }
-                            archiveAdapter.submitList(currentList) {
-                                archiveAdapter.notifyDataSetChanged()
-                            }
-                            Toast.makeText(binding.root.context, "存档删除成功", Toast.LENGTH_SHORT)
-                                .show()
-                        } else {
-                            Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT)
-                                .show()
-                        }
+                        ArchiveManager.reloadArchives(item, true)
+                        Toast.makeText(binding.root.context, "存档删除成功", Toast.LENGTH_SHORT)
+                            .show()
+                    } else {
+                        Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }
+            }
 
-                override fun onAdvancedRestoreClick(
-                    item: SnapedApp,
-                    archiveItem: ArchiveItem,
-                    selectedTypes: Set<String>
-                ) {
-                    viewModel.onAdvancedRestoreClicked(
+            override fun onAdvancedRestoreClick(
+                item: SnapedApp,
+                archiveItem: ArchiveItem,
+                selectedTypes: Set<String>
+            ) {
+                viewModel.onAdvancedRestoreClicked(
+                    binding.root.context,
+                    item,
+                    archiveItem,
+                    selectedTypes
+                )
+            }
+
+            override fun onCreateSnapshot(item: SnapedApp) {
+                if (!AppStatusHelper.isAppInstalled(item)) {
+                    Toast.makeText(
                         binding.root.context,
-                        item,
-                        archiveItem,
-                        selectedTypes
-                    )
+                        "应用未安装，无法创建快照",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return
                 }
+                createSnapshot(item)
+            }
 
-                override fun onCreateSnapshot(item: SnapedApp) {
-                    if (!AppStatusHelper.isAppInstalled(item)) {
-                        Toast.makeText(
-                            binding.root.context,
-                            "应用未安装，无法创建快照",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return
-                    }
-                    createSnapshot(item)
-                }
+            override fun onClearAllArchives(item: SnapedApp, onComplete: () -> Unit) {
+                clearAllArchives(item, onComplete)
+            }
 
-                override fun onClearAllArchives(item: SnapedApp, onComplete: () -> Unit) {
-                    clearAllArchives(item, onComplete)
-                }
+            override fun onDeleteApp(item: SnapedApp, onComplete: () -> Unit) {
+                deleteAppCompletely(item, onComplete)
+            }
 
-                override fun onDeleteApp(item: SnapedApp, onComplete: () -> Unit) {
-                    deleteAppCompletely(item, onComplete)
-                }
-
-                override fun onLockStateChanged(item: SnapedApp, isLocked: Boolean) {
-                    groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
-                    SnapshotApp.getViewModel().loadGroups()
-                }
+            override fun onLockStateChanged(item: SnapedApp, isLocked: Boolean) {
+                groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                SnapshotApp.getViewModel().loadGroups()
             }
         }
 

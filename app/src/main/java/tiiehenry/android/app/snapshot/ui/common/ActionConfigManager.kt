@@ -35,6 +35,7 @@ class ActionConfigManager(
         setAutoSnapshot(actionConfig.isAutoSnapshot)
         setUninstallArchived(actionConfig.isUninstallArchived)
         setCompressAlgorithm(actionConfig.compressAlgorithm)
+        setCompressLevel(actionConfig.getCompressLevel())
     }
 
     private fun setupListeners() {
@@ -50,6 +51,14 @@ class ActionConfigManager(
         binding.cbUninstallArchived.setOnCheckedChangeListener { _, isChecked ->
             // 当卸载已归档版本选项改变时的处理
             actionConfig.isUninstallArchived = isChecked
+        }
+
+        binding.sliderCompressLevel.addOnChangeListener { slider, value, fromUser ->
+            if (fromUser) {
+                val level = value.toInt()
+                actionConfig.setCompressLevel(level)
+                updateCompressLevelLabel(level)
+            }
         }
     }
 
@@ -70,6 +79,8 @@ class ActionConfigManager(
         for (i in 0 until binding.chipGroupCompressAlgorithm.childCount) {
             binding.chipGroupCompressAlgorithm.getChildAt(i).isEnabled = effectiveEnabled
         }
+        binding.sliderCompressLevel.isEnabled = effectiveEnabled
+        binding.tvCompressLevelLabel.isEnabled = effectiveEnabled
     }
 
     fun setAutoSnapshot(enabled: Boolean) {
@@ -101,6 +112,28 @@ class ActionConfigManager(
         config.isAutoSnapshot = getAutoSnapshot()
         config.isUninstallArchived = getUninstallArchived()
         config.compressAlgorithm = getCompressAlgorithm()
+        config.setCompressLevel(getCompressLevel())
+    }
+
+    fun getCompressLevel(): Int {
+        return binding.sliderCompressLevel.value.toInt()
+    }
+
+    private fun updateCompressLevelLabel(level: Int) {
+        val levelText = when (level) {
+            1 -> "极快 - 体积最大"
+            3 -> "快 - 体积稍大"
+            5 -> "中 - 体积一般"
+            7 -> "慢 - 体积较小"
+            9 -> "极慢 - 体积最小"
+            else -> "未知"
+        }
+        binding.tvCompressLevelLabel.text = "压缩级别：$level ($levelText)"
+    }
+
+    fun setCompressLevel(level: Int) {
+        binding.sliderCompressLevel.value = level.toFloat()
+        updateCompressLevelLabel(level)
     }
 
     fun setCompressAlgorithmOptions(options: Array<String>) {

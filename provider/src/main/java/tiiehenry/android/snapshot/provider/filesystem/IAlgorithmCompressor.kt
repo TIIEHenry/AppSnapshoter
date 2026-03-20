@@ -13,6 +13,7 @@ interface IAlgorithmCompressor {
         targetFile: String,
         excludes: List<String>,
         excludeFiles: List<String>,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler
 
@@ -21,6 +22,7 @@ interface IAlgorithmCompressor {
         fileSystem: IFileSystem,
         files: List<String>,
         targetFile: String,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler
 

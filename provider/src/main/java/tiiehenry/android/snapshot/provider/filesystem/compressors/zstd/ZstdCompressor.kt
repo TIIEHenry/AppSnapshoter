@@ -3,6 +3,7 @@ package tiiehenry.android.snapshot.provider.filesystem.compressors.zstd
 import android.content.Context
 import android.os.ParcelFileDescriptor
 import android.util.Log
+import com.github.luben.zstd.Zstd
 import com.github.luben.zstd.ZstdOutputStream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -32,9 +33,10 @@ object ZstdCompressor : IAlgorithmCompressor {
         targetFile: String,
         excludes: List<String>,
         excludeFiles: List<String>,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler {
-        Log.i(TAG, "start compress $dir to $targetFile")
+        Log.i(TAG, "start compress $dir to $targetFile, level: $compressLevel")
         return object : ITaskHandler.Stub() {
             var state = CompressState.COMPRESS_STATE_NONE
             var isCancel = AtomicBoolean(false)
@@ -49,7 +51,7 @@ object ZstdCompressor : IAlgorithmCompressor {
 
             override fun start() {
                 state = CompressState.COMPRESS_STATE_RUNNING
-                doCompress(context, fileSystem, dir, targetFile, excludes, excludeFiles, callback)
+                doCompress(context, fileSystem, dir, targetFile, excludes, excludeFiles, compressLevel, callback)
             }
 
             override fun cancel() {
@@ -65,6 +67,7 @@ object ZstdCompressor : IAlgorithmCompressor {
         targetFile: String,
         excludes: List<String>,
         excludeFiles: List<String>,
+        compressLevel: Int,
         callback: ICompressCallback
     ) {
         if (!fileSystem.exists(dir)) {
@@ -77,10 +80,10 @@ object ZstdCompressor : IAlgorithmCompressor {
         }
         callback.onStart()
         fileSystem.mkdirs(fileSystem.getParent(targetFile) ?: "")
-
-        // 使用流式处理，但仍调用createTarArchive方法
+    
+        // 使用流式处理，但仍调用 createTarArchive 方法
         runBlocking {
-            streamCompress(context, fileSystem, dir, targetFile, excludes, excludeFiles, callback)
+            streamCompress(context, fileSystem, dir, targetFile, excludes, excludeFiles, compressLevel, callback)
         }
     }
 
@@ -104,6 +107,7 @@ object ZstdCompressor : IAlgorithmCompressor {
         targetFile: String,
         excludes: List<String>,
         excludeFiles: List<String>,
+        compressLevel: Int,
         callback: ICompressCallback
     ) {
         var errorMessage = ""
@@ -171,7 +175,7 @@ object ZstdCompressor : IAlgorithmCompressor {
 
                 val zstdCompression = async(Dispatchers.IO) {
                     runCatching {
-                        compressTarStream(fileSystem, stdOut, targetFile, callback)
+                        compressTarStream(fileSystem, stdOut, targetFile, compressLevel, callback)
                     }.onFailure { exception ->
                         errorMessage = "Zstd compression failed: ${exception.message}"
                         Log.e(TAG, errorMessage, exception)
@@ -213,17 +217,18 @@ object ZstdCompressor : IAlgorithmCompressor {
     }
 
     /**
-     * 流式压缩tar文件
+     * 流式压缩 tar 文件
      */
     private suspend fun compressTarStream(
         fileSystem: IFileSystem,
         tarFile: String,
         targetFile: String,
+        compressLevel: Int,
         callback: ICompressCallback
     ) {
         val inputStream = fileSystem.openInputStream(tarFile)
         val outputStream = fileSystem.openOutputStream(targetFile)
-
+        
         if (inputStream != null && outputStream != null) {
             inputStream.use { parcelInput ->
                 val fis = ParcelFileDescriptor.AutoCloseInputStream(parcelInput)
@@ -237,6 +242,9 @@ object ZstdCompressor : IAlgorithmCompressor {
                     ).use { countingOutputStream ->
                         ZstdOutputStream(countingOutputStream).use { zstdOutputStream ->
                             zstdOutputStream.setWorkers(Runtime.getRuntime().availableProcessors())
+                            // 将 1-9 的用户级别映射到 Zstd 实际压缩级别范围
+                            val zstdLevel = mapToZstdLevel(compressLevel)
+                            zstdOutputStream.setLevel(zstdLevel)
                             fis.copyTo(zstdOutputStream)
                         }
                     }
@@ -246,15 +254,54 @@ object ZstdCompressor : IAlgorithmCompressor {
             throw Exception("Failed to open input or output stream for compression")
         }
     }
+    
+    /**
+     * 将用户友好的压缩级别 (1-9) 映射到 Zstd 实际压缩级别
+     * Zstd 压缩级别范围通常是 1-22，数字越大压缩率越高但速度越慢
+     * 这里将 1-9 线性映射到 1-22 范围
+     *
+     *         //--fast / 1	非常快	最低	低	实时数据流、网络传输、CPU 瓶颈高于 IO
+     *         //2 - 5	很快	较低	低	快速备份、常用文件传输
+     *         //6 - 15	中等	中等	中等	通用推荐 (速度与压缩率平衡)
+     *         //16 - 19	较慢	较高	中等	长期存储、软件分发、对存储空间敏感
+     *         //--ultra 20 - 22	非常慢	最高	高	一次性归档、极度追求最小文件大小
+     */
+    private fun mapToZstdLevel(userLevel: Int): Int {
+        // 限制用户级别在 1-9 范围内
+//        val clampedLevel = userLevel.coerceIn(1, 9)
+        // 公式：zstdLevel = 1 + (clampedLevel - 1) * (22 - 1) / (9 - 1)
+        // 线性映射：1->1, 9->22
+//        val zstdLevel = 1 + (clampedLevel - 1) * 21 / 8
+        val minimumValue = 1
+        val maximumValue = Zstd.maxCompressionLevel()//22
+        //tar 8004ms
+        //1 1.96g->1.88g 10019ms 10392ms
+        //3 1.96g->1.86g 10825ms 10489ms 10979ms
+        //5 1.96g->1.86g 10655ms 10809ms 10712ms
+        //7 1.96g->1.86g 332298ms
+
+        //这里使用非线性映射
+        val zstdLevel=when(userLevel){
+            1->1
+            3->3
+            5->8
+            7->15
+            9->19
+            else -> 2
+        }
+        Log.i(TAG, "Mapping user level $userLevel to Zstd level $zstdLevel (min: $minimumValue, max: $maximumValue)")
+        return zstdLevel.coerceIn(minimumValue, maximumValue)
+    }
 
     override fun compressMultiple(
         context: Context,
         fileSystem: IFileSystem,
         files: List<String>,
         targetFile: String,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler {
-        Log.i(TAG, "start compress multiple files to $targetFile")
+        Log.i(TAG, "start compress multiple files to $targetFile, level: $compressLevel")
         return object : ITaskHandler.Stub() {
             var state = CompressState.COMPRESS_STATE_NONE
             var isCancel = AtomicBoolean(false)
@@ -270,7 +317,7 @@ object ZstdCompressor : IAlgorithmCompressor {
             override fun start() {
                 state = CompressState.COMPRESS_STATE_RUNNING
                 doCompressMultiple(
-                    context, fileSystem, files, targetFile, callback
+                    context, fileSystem, files, targetFile, compressLevel, callback
                 )
             }
 
@@ -285,6 +332,7 @@ object ZstdCompressor : IAlgorithmCompressor {
         fileSystem: IFileSystem,
         files: List<String>,
         targetFile: String,
+        compressLevel: Int,
         callback: ICompressCallback
     ) {
         if (files.isEmpty()) {
@@ -314,6 +362,7 @@ object ZstdCompressor : IAlgorithmCompressor {
                 fileSystem,
                 files,
                 targetFile,
+                compressLevel,
                 callback
             )
         }
@@ -327,6 +376,7 @@ object ZstdCompressor : IAlgorithmCompressor {
         fileSystem: IFileSystem,
         files: List<String>,
         targetFile: String,
+        compressLevel: Int,
         callback: ICompressCallback
     ) {
         var errorMessage = ""
@@ -397,7 +447,7 @@ object ZstdCompressor : IAlgorithmCompressor {
                     }
 
                     runCatching {
-                        compressTarStream(fileSystem, stdOut, targetFile, callback)
+                        compressTarStream(fileSystem, stdOut, targetFile, compressLevel, callback)
                     }.onFailure { exception ->
                         errorMessage = "Zstd compression failed: ${exception.message}"
                         Log.e(TAG, errorMessage, exception)

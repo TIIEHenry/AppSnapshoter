@@ -23,11 +23,13 @@
 extern int main(int argc, char **argv);
 
 extern "C" JNIEXPORT jint JNICALL
-Java_tiiehenry_android_compress_zstd_TarJNI_callCli(JNIEnv *env, jobject, jstring std_out, jstring std_err, jobjectArray j_argv) {
+Java_tiiehenry_android_compress_zstd_TarJNI_callCli(JNIEnv *env, jobject, jstring std_in, jstring std_out, jstring std_err, jobjectArray j_argv) {
+    const char *in_path = nullptr;
+    
     const char *out_path = env->GetStringUTFChars(std_out, nullptr);
     const char *err_path = env->GetStringUTFChars(std_err, nullptr);
 
-    // Save previous STDOUT/STDERR
+    // Save previous STDOUT/STDERR/STDIN
     int saved_stdout = dup(STDOUT_FILENO);
     int saved_stderr = dup(STDERR_FILENO);
 
@@ -56,11 +58,28 @@ Java_tiiehenry_android_compress_zstd_TarJNI_callCli(JNIEnv *env, jobject, jstrin
             _exit(SIGTERM);
         }
 
-        // Redirect STDOUT/STDERR
+        // Redirect STDOUT/STDERR/STDIN
         dup2(out_fd, STDOUT_FILENO);
         dup2(err_fd, STDERR_FILENO);
 
-        // Close idle fds
+        int stdin_fd = -1;
+
+        // Handle STDIN if provided (can be a named pipe/FIFO)
+        if (std_in != nullptr) {
+          in_path = env->GetStringUTFChars(std_in, nullptr);
+          stdin_fd = open(in_path, O_RDONLY);
+          if (stdin_fd == -1) {
+            ALOGE("Failed to open STDIN file: %s", in_path);
+            env->ReleaseStringUTFChars(std_in, in_path);
+            return -1;
+          }
+          env->ReleaseStringUTFChars(std_in, in_path);
+        }
+        if (stdin_fd != -1) {
+            dup2(stdin_fd, STDIN_FILENO);
+        }
+
+        // Close idle fds in child process
         close(out_fd);
         close(err_fd);
         close(saved_stdout);
@@ -80,6 +99,9 @@ Java_tiiehenry_android_compress_zstd_TarJNI_callCli(JNIEnv *env, jobject, jstrin
 
         int result = main(argc, argv);
 
+        if (stdin_fd != -1) {
+          close(stdin_fd);
+        }
         // Release string resources
         for (int i = 0; i < argc; i++) {
             free(argv[i]);
@@ -87,7 +109,7 @@ Java_tiiehenry_android_compress_zstd_TarJNI_callCli(JNIEnv *env, jobject, jstrin
         free(argv);
         _exit(result);
     } else if (pid > 0) {
-        // Close idle fds
+        // Close idle fds in parent process
         close(out_fd);
         close(err_fd);
         close(saved_stdout);

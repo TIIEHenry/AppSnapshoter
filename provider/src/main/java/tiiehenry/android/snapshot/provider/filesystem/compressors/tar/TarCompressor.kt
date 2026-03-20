@@ -29,6 +29,7 @@ object TarCompressor : IAlgorithmCompressor {
         targetFile: String,
         excludes: List<String>,
         excludeFiles: List<String>,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler {
         Log.i(TAG, "start compress $dir to $targetFile")
@@ -194,6 +195,7 @@ object TarCompressor : IAlgorithmCompressor {
         fileSystem: IFileSystem,
         files: List<String>,
         targetFile: String,
+        compressLevel: Int,
         callback: ICompressCallback
     ): ITaskHandler {
         Log.i(TAG, "start compress multiple files to $targetFile")

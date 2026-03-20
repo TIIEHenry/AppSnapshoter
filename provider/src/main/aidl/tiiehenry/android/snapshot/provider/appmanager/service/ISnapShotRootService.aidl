@@ -71,7 +71,7 @@ interface ISnapShotRootService {
     ParcelFileDescriptor readText(String path);
     boolean writeText(String path, in ParcelFileDescriptor pfd);
     long calculateTreeSize(String path);
-    int callTarCli(String stdOut, String stdErr, in String[] argv);
+    int callTarCli(String pipeFile, String stdOut, String stdErr, in String[] argv);
     String compress(int level, String inputPath, String outputPath, IBinaryCallback callback);
     boolean mkdirs(String path);
     boolean exists(String path);

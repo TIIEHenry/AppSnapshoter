@@ -13,6 +13,7 @@ public class ActionConfig {
     private boolean autoSnapshot = false;
     private boolean uninstallArchived = false;
     private String compressAlgorithm = "";
+    private int compressLevel = 5; // 压缩级别：1 极快，3 快，5 平衡，7 略慢，9 极慢
 
     /**
      * 默认构造函数
@@ -72,5 +73,13 @@ public class ActionConfig {
 
     public void setCompressAlgorithm(String compressAlgorithm) {
         this.compressAlgorithm = compressAlgorithm;
+    }
+
+    public int getCompressLevel() {
+        return compressLevel;
+    }
+
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
     }
 }

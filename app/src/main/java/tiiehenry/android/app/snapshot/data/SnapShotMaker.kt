@@ -67,6 +67,7 @@ object SnapShotMaker {
             val compressItems = shotConfig.items
             val compressAlgorithm = actionConfig.compressAlgorithm
 
+            val compressLevel = actionConfig.compressLevel
             val tasks = LinkedHashMap<String, ITaskHandler>()
             val applicationInfo =
                 appInfo.getApplicationInfo(appManager) ?: throw IllegalStateException(
@@ -112,10 +113,12 @@ object SnapShotMaker {
                         Paths.get(archiveDir, fileName).absolutePathString(),
                         excludes,
                         arrayListOf(),
+                        compressLevel,
                         createCompressCallback(
                             callback,
                             dataItems,
                             algorithm,
+                            compressLevel,
                             fileName,
                             name,
                             archiveDir
@@ -151,10 +154,12 @@ object SnapShotMaker {
                             algorithm,
                             apks,
                             filePath.absolutePathString(),
+                            compressLevel,
                             createCompressCallback(
                                 callback,
                                 dataItems,
                                 algorithm,
+                                compressLevel,
                                 fileName,
                                 id,
                                 apkDataItemDir
@@ -177,10 +182,12 @@ object SnapShotMaker {
                                 Paths.get(archiveDir, fileName).absolutePathString(),
                                 excludes,
                                 arrayListOf(),
+                                compressLevel,
                                 createCompressCallback(
                                     callback,
                                     dataItems,
                                     algorithm,
+                                    compressLevel,
                                     fileName,
                                     item,
                                     archiveDir
@@ -204,10 +211,12 @@ object SnapShotMaker {
                                 Paths.get(archiveDir, fileName).absolutePathString(),
                                 excludes,
                                 arrayListOf(),
+                                compressLevel,
                                 createCompressCallback(
                                     callback,
                                     dataItems,
                                     algorithm,
+                                    compressLevel,
                                     fileName,
                                     item,
                                     archiveDir
@@ -232,10 +241,12 @@ object SnapShotMaker {
                                 Paths.get(archiveDir, fileName).absolutePathString(),
                                 excludes,
                                 arrayListOf(),
+                                compressLevel,
                                 createCompressCallback(
                                     callback,
                                     dataItems,
                                     algorithm,
+                                    compressLevel,
                                     fileName,
                                     item,
                                     archiveDir
@@ -259,10 +270,12 @@ object SnapShotMaker {
                                 Paths.get(archiveDir, fileName).absolutePathString(),
                                 excludes,
                                 arrayListOf(),
+                                compressLevel,
                                 createCompressCallback(
                                     callback,
                                     dataItems,
                                     algorithm,
+                                    compressLevel,
                                     fileName,
                                     item,
                                     archiveDir
@@ -287,10 +300,12 @@ object SnapShotMaker {
                                 Paths.get(archiveDir, fileName).absolutePathString(),
                                 excludes,
                                 arrayListOf(),
+                                compressLevel,
                                 createCompressCallback(
                                     callback,
                                     dataItems,
                                     algorithm,
+                                    compressLevel,
                                     fileName,
                                     item,
                                     archiveDir
@@ -445,6 +460,7 @@ object SnapShotMaker {
         callback: ICompressCallback,
         dataItems: MutableList<MetaDataItem>,
         algorithm: String,
+        compressLevel: Int,
         fileName: String,
         itemType: String,
         archiveDir: String
@@ -478,7 +494,8 @@ object SnapShotMaker {
                     targetSize,
                     md5,
                     endTime - startTime,
-                    System.currentTimeMillis()
+                    System.currentTimeMillis(),
+                    compressLevel
                 )
                 dataItems.add(dataItem)
                 MetaInfoHelper.saveDataItem(dataItem, File(archiveDir))
@@ -514,7 +531,10 @@ object SnapShotMaker {
                     if (success) {
                         state = CompressState.COMPRESS_STATE_COMPLETE
                     } else {
-                        android.util.Log.e("SnapShotMaker", "Uninstall app failed: ${appInfo.packageName}")
+                        android.util.Log.e(
+                            "SnapShotMaker",
+                            "Uninstall app failed: ${appInfo.packageName}"
+                        )
                         state = CompressState.COMPRESS_STATE_ERROR
                     }
                 } catch (e: Exception) {

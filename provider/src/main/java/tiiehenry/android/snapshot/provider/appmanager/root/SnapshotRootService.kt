@@ -234,7 +234,11 @@ class SnapshotRootService : RootService() {
             return try {
                 mPackageManagerHidden.getPackageInfoAsUser(packageName, flags, userId)
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "getPackageInfo", "Failed to get package info: $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "getPackageInfo",
+                    "Failed to get package info: $packageName: ${e.message}"
+                )
                 null
             }
         }
@@ -247,7 +251,11 @@ class SnapshotRootService : RootService() {
             return try {
                 mPackageManagerHidden.getApplicationInfoAsUser(packageName, flags, userId)
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "getApplicationInfo", "Failed to get application info: $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "getApplicationInfo",
+                    "Failed to get application info: $packageName: ${e.message}"
+                )
                 null
             }
         }
@@ -257,7 +265,11 @@ class SnapshotRootService : RootService() {
                 val appInfo = mPackageManagerHidden.getApplicationInfoAsUser(packageName, 0, userId)
                 appInfo?.loadLabel(mPackageManager)?.toString() ?: packageName
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "loadLabel", "Failed to load label: $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "loadLabel",
+                    "Failed to load label: $packageName: ${e.message}"
+                )
                 null
             }
         }
@@ -338,9 +350,17 @@ class SnapshotRootService : RootService() {
             }
         }
 
-        override fun setAppPermission(packageName: String, userId: Int, permission: AppPermission): Boolean {
+        override fun setAppPermission(
+            packageName: String,
+            userId: Int,
+            permission: AppPermission
+        ): Boolean {
             val userHandle = getUserHandle(userId) ?: run {
-                LogHelper.e("SnapshotRootService", "setAppPermission", "Failed to get user handle for userId: $userId")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "setAppPermission",
+                    "Failed to get user handle for userId: $userId"
+                )
                 return false
             }
             return try {
@@ -353,10 +373,18 @@ class SnapshotRootService : RootService() {
                     val uid = getPackageUid(packageName, userId)
                     setOpsMode(permission.op, uid, packageName, permission.mode)
                 }
-                LogHelper.i("SnapshotRootService", "setAppPermission", "Successfully set permission for $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "setAppPermission",
+                    "Successfully set permission for $packageName"
+                )
                 true
             } catch (e: SecurityException) {
-                LogHelper.e("SnapshotRootService", "setAppPermission", "Security exception: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "setAppPermission",
+                    "Security exception: ${e.message}"
+                )
                 false
             } catch (e: Exception) {
                 LogHelper.e("SnapshotRootService", "setAppPermission", "Error: ${e.message}")
@@ -372,11 +400,19 @@ class SnapshotRootService : RootService() {
             return try {
                 for (permission in permissions) {
                     if (!setAppPermission(packageName, userId, permission)) {
-                        LogHelper.e("SnapshotRootService", "setAppPermissions", "Failed to set permission ${permission.name} for $packageName")
+                        LogHelper.e(
+                            "SnapshotRootService",
+                            "setAppPermissions",
+                            "Failed to set permission ${permission.name} for $packageName"
+                        )
                         return false
                     }
                 }
-                LogHelper.i("SnapshotRootService", "setAppPermissions", "Successfully set all permissions for $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "setAppPermissions",
+                    "Successfully set all permissions for $packageName"
+                )
                 true
             } catch (e: Exception) {
                 LogHelper.e("SnapshotRootService", "setAppPermissions", "Error: ${e.message}")
@@ -403,7 +439,11 @@ class SnapshotRootService : RootService() {
                 val result = shell.newJob().to(null, null).add(installCmd).exec()
                 shell.close()
                 if (result.isSuccess) {
-                    LogHelper.i("SnapshotRootService", "installApk", "Successfully installed APK: $file")
+                    LogHelper.i(
+                        "SnapshotRootService",
+                        "installApk",
+                        "Successfully installed APK: $file"
+                    )
                     true
                 } else {
                     LogHelper.e("SnapshotRootService", "installApk", "Failed to install APK: $file")
@@ -431,7 +471,11 @@ class SnapshotRootService : RootService() {
                 val sessionMatch = Regex("\\[(\\d+)\\]").find(output)
                 if (sessionMatch == null) {
                     shell.close()
-                    LogHelper.e("SnapshotRootService", "installApks", "Failed to get session ID from output: $output")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "installApks",
+                        "Failed to get session ID from output: $output"
+                    )
                     return false
                 }
                 val sessionId = sessionMatch.groupValues[1]
@@ -446,7 +490,11 @@ class SnapshotRootService : RootService() {
                     if (!createResult.isSuccess && !output.contains("Success")) {
                         shell.newJob().to(null, null).add("pm install-abandon $sessionId").exec()
                         shell.close()
-                        LogHelper.e("SnapshotRootService", "installApks", "Failed to write APK: $filePath")
+                        LogHelper.e(
+                            "SnapshotRootService",
+                            "installApks",
+                            "Failed to write APK: $filePath"
+                        )
                         return false
                     }
                 }
@@ -454,10 +502,18 @@ class SnapshotRootService : RootService() {
                 createResult = shell.newJob().to(null, null).add(commitCmd).exec()
                 shell.close()
                 if (createResult.isSuccess) {
-                    LogHelper.i("SnapshotRootService", "installApks", "Successfully installed APKs: ${files.joinToString(", ")}")
+                    LogHelper.i(
+                        "SnapshotRootService",
+                        "installApks",
+                        "Successfully installed APKs: ${files.joinToString(", ")}"
+                    )
                     true
                 } else {
-                    LogHelper.e("SnapshotRootService", "installApks", "Failed to install APKs: ${files.joinToString(", ")}")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "installApks",
+                        "Failed to install APKs: ${files.joinToString(", ")}"
+                    )
                     false
                 }
             } catch (e: Exception) {
@@ -477,25 +533,33 @@ class SnapshotRootService : RootService() {
             val output = result.out.joinToString("\n")
             val errorOutput = result.err.joinToString("\n")
             val fullOutput = "$output\n$errorOutput"
-            
+
             // 检查多种成功情况
             // 1. 退出码为 0（某些系统成功时不输出任何内容）
             // 2. 命令成功且输出包含成功关键词
             val success = result.code == 0 || (
                     result.isSuccess && (
                             output.contains("Success") ||
-                            output.contains("success") ||
-                            output.contains("not installed") ||
-                            output.contains("Success!") ||
-                            fullOutput.contains("package uninstalled successfully")
+                                    output.contains("success") ||
+                                    output.contains("not installed") ||
+                                    output.contains("Success!") ||
+                                    fullOutput.contains("package uninstalled successfully")
+                            )
                     )
-                )
-            
+
             if (success) {
-                LogHelper.i("SnapshotRootService", "uninstallApk", "Successfully uninstalled APK: $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "uninstallApk",
+                    "Successfully uninstalled APK: $packageName"
+                )
                 return true
             } else {
-                LogHelper.e("SnapshotRootService", "uninstallApk", "Failed to uninstall APK: $packageName, Output: $fullOutput, Exit code: ${result.code}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "uninstallApk",
+                    "Failed to uninstall APK: $packageName, Output: $fullOutput, Exit code: ${result.code}"
+                )
                 return false
             }
         }
@@ -510,10 +574,18 @@ class SnapshotRootService : RootService() {
                 val result = shell.newJob().to(null, null).add(cmd).exec()
                 shell.close()
                 if (result.isSuccess) {
-                    LogHelper.i("SnapshotRootService", "forceStopPackage", "Successfully force-stopped package: $packageName")
+                    LogHelper.i(
+                        "SnapshotRootService",
+                        "forceStopPackage",
+                        "Successfully force-stopped package: $packageName"
+                    )
                     true
                 } else {
-                    LogHelper.e("SnapshotRootService", "forceStopPackage", "Failed to force-stop package: $packageName")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "forceStopPackage",
+                        "Failed to force-stop package: $packageName"
+                    )
                     false
                 }
             } catch (e: Exception) {
@@ -532,10 +604,18 @@ class SnapshotRootService : RootService() {
                 val result = shell.newJob().to(null, null).add(cmd).exec()
                 shell.close()
                 if (result.isSuccess) {
-                    LogHelper.i("SnapshotRootService", "clearAppData", "Successfully cleared app data: $packageName")
+                    LogHelper.i(
+                        "SnapshotRootService",
+                        "clearAppData",
+                        "Successfully cleared app data: $packageName"
+                    )
                     true
                 } else {
-                    LogHelper.e("SnapshotRootService", "clearAppData", "Failed to clear app data: $packageName")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "clearAppData",
+                        "Failed to clear app data: $packageName"
+                    )
                     false
                 }
             } catch (e: Exception) {
@@ -554,10 +634,18 @@ class SnapshotRootService : RootService() {
                 val result = shell.newJob().to(null, null).add(cmd).exec()
                 shell.close()
                 if (result.isSuccess) {
-                    LogHelper.i("SnapshotRootService", "suspendPackage", "Successfully suspended package: $packageName")
+                    LogHelper.i(
+                        "SnapshotRootService",
+                        "suspendPackage",
+                        "Successfully suspended package: $packageName"
+                    )
                     true
                 } else {
-                    LogHelper.e("SnapshotRootService", "suspendPackage", "Failed to suspend package: $packageName")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "suspendPackage",
+                        "Failed to suspend package: $packageName"
+                    )
                     false
                 }
             } catch (e: Exception) {
@@ -576,10 +664,18 @@ class SnapshotRootService : RootService() {
                 val result = shell.newJob().to(null, null).add(cmd).exec()
                 shell.close()
                 if (result.isSuccess) {
-                    LogHelper.i("SnapshotRootService", "unsuspendPackage", "Successfully unsuspended package: $packageName")
+                    LogHelper.i(
+                        "SnapshotRootService",
+                        "unsuspendPackage",
+                        "Successfully unsuspended package: $packageName"
+                    )
                     true
                 } else {
-                    LogHelper.e("SnapshotRootService", "unsuspendPackage", "Failed to unsuspend package: $packageName")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "unsuspendPackage",
+                        "Failed to unsuspend package: $packageName"
+                    )
                     false
                 }
             } catch (e: Exception) {
@@ -595,18 +691,34 @@ class SnapshotRootService : RootService() {
         ): Int {
             return try {
                 mPackageManagerHidden.grantRuntimePermission(packageName, permName, user)
-                LogHelper.i("SnapshotRootService", "grantRuntimePermission", "Successfully granted permission: $permName for $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "grantRuntimePermission",
+                    "Successfully granted permission: $permName for $packageName"
+                )
                 1 // 成功
             } catch (e: SecurityException) {
                 if (e.message?.contains("is not a changeable permission type") == true) {
-                    LogHelper.w("SnapshotRootService", "grantRuntimePermission", "not a changeable permission type: $permName for $packageName")
+                    LogHelper.w(
+                        "SnapshotRootService",
+                        "grantRuntimePermission",
+                        "not a changeable permission type: $permName for $packageName"
+                    )
                     -1 // fixed permission type
                 } else {
-                    LogHelper.e("SnapshotRootService", "grantRuntimePermission", "Failed to grant permission: $permName for $packageName: ${e.message}")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "grantRuntimePermission",
+                        "Failed to grant permission: $permName for $packageName: ${e.message}"
+                    )
                     0 // 失败
                 }
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "grantRuntimePermission", "Failed to grant permission: $permName for $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "grantRuntimePermission",
+                    "Failed to grant permission: $permName for $packageName: ${e.message}"
+                )
                 0 // 失败
             }
         }
@@ -622,18 +734,34 @@ class SnapshotRootService : RootService() {
             }
             return try {
                 mPackageManagerHidden.revokeRuntimePermission(packageName, permName, user)
-                LogHelper.i("SnapshotRootService", "revokeRuntimePermission", "Successfully revoked permission: $permName for $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "revokeRuntimePermission",
+                    "Successfully revoked permission: $permName for $packageName"
+                )
                 1 // 成功
             } catch (e: SecurityException) {
                 if (e.message?.contains("is not a changeable permission type") == true) {
-                    LogHelper.w("SnapshotRootService", "revokeRuntimePermission", "not a changeable permission type: $permName for $packageName")
+                    LogHelper.w(
+                        "SnapshotRootService",
+                        "revokeRuntimePermission",
+                        "not a changeable permission type: $permName for $packageName"
+                    )
                     -1 // fixed permission type
                 } else {
-                    LogHelper.e("SnapshotRootService", "revokeRuntimePermission", "Failed to revoke permission: $permName for $packageName: ${e.message}")
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "revokeRuntimePermission",
+                        "Failed to revoke permission: $permName for $packageName: ${e.message}"
+                    )
                     0 // 失败
                 }
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "revokeRuntimePermission", "Failed to revoke permission: $permName for $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "revokeRuntimePermission",
+                    "Failed to revoke permission: $permName for $packageName: ${e.message}"
+                )
                 0 // 失败
             }
         }
@@ -665,10 +793,18 @@ class SnapshotRootService : RootService() {
                     flagValues,
                     user
                 )
-                LogHelper.i("SnapshotRootService", "updatePermissionFlags", "Successfully updated permission flags for $permName in $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "updatePermissionFlags",
+                    "Successfully updated permission flags for $permName in $packageName"
+                )
                 true
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "updatePermissionFlags", "Failed to update permission flags: $permName for $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "updatePermissionFlags",
+                    "Failed to update permission flags: $permName for $packageName: ${e.message}"
+                )
                 false
             }
         }
@@ -697,10 +833,18 @@ class SnapshotRootService : RootService() {
             return try {
                 val appOpsManagerHidden = mAppOpsManager.castTo<AppOpsManagerHidden>()
                 appOpsManagerHidden.setMode(code, uid, packageName, mode)
-                LogHelper.i("SnapshotRootService", "setOpsMode", "Successfully set ops mode for $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "setOpsMode",
+                    "Successfully set ops mode for $packageName"
+                )
                 true
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "setOpsMode", "Failed to set ops mode for $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "setOpsMode",
+                    "Failed to set ops mode for $packageName: ${e.message}"
+                )
                 false
             }
         }
@@ -712,10 +856,18 @@ class SnapshotRootService : RootService() {
             }
             return try {
                 com.topjohnwu.superuser.ShellUtils.fastCmd("appops reset --user $userId $packageName")
-                LogHelper.i("SnapshotRootService", "resetAppOps", "Successfully reset appops for $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "resetAppOps",
+                    "Successfully reset appops for $packageName"
+                )
                 true
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "resetAppOps", "Failed to reset appops for $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "resetAppOps",
+                    "Failed to reset appops for $packageName: ${e.message}"
+                )
                 false
             }
         }
@@ -744,10 +896,18 @@ class SnapshotRootService : RootService() {
                     true,
                     packageName
                 )
-                LogHelper.i("SnapshotRootService", "setPackageSsaidAsUser", "Successfully set ssaid for $packageName")
+                LogHelper.i(
+                    "SnapshotRootService",
+                    "setPackageSsaidAsUser",
+                    "Successfully set ssaid for $packageName"
+                )
                 true
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "setPackageSsaidAsUser", "Failed to set ssaid for $packageName: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "setPackageSsaidAsUser",
+                    "Failed to set ssaid for $packageName: ${e.message}"
+                )
                 false
             }
         }
@@ -770,7 +930,7 @@ class SnapshotRootService : RootService() {
                     .setFlags(Shell.FLAG_MOUNT_MASTER)
                     .setTimeout(30)
                     .build()
-        
+
                 // 优先检测应用是否已在后台运行，若是则通过 am moveTaskToFront 将其前台化
                 val isRunning = isPackageRunning(packageName, userId)
                 if (isRunning) {
@@ -833,7 +993,7 @@ class SnapshotRootService : RootService() {
                         // moveTaskToFront 失败则继续降级用 am start
                     }
                 }
-        
+
                 // 应用未在运行，或 moveTaskToFront 降级：通过 am start 命令行以 root 权限启动，支持多用户
                 val cmd =
                     "am start --user $userId -a android.intent.action.MAIN -c android.intent.category.LAUNCHER $packageName"
@@ -883,7 +1043,11 @@ class SnapshotRootService : RootService() {
                 LogHelper.i("SnapshotRootService", "writeText", "Successfully wrote text to $path")
                 true
             } catch (e: Exception) {
-                LogHelper.e("SnapshotRootService", "writeText", "Failed to write text to $path: ${e.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "writeText",
+                    "Failed to write text to $path: ${e.message}"
+                )
                 false
             }
         }
@@ -892,8 +1056,13 @@ class SnapshotRootService : RootService() {
             return NativeFileSystem.calculateTreeSize(path)
         }
 
-        override fun callTarCli(stdOut: String, stdErr: String, argv: Array<String>): Int {
-            return TarJNI.callCli(stdOut, stdErr, argv)
+        override fun callTarCli(
+            pipeFile: String,
+            stdOut: String,
+            stdErr: String,
+            argv: Array<String>
+        ): Int {
+            return TarJNI.callCli(pipeFile, stdOut, stdErr, argv)
         }
 
         override fun compress(
@@ -1017,19 +1186,50 @@ class SnapshotRootService : RootService() {
 
         override fun extractTar(tarFifo: String, targetDir: String): Boolean {
             return runCatching {
+                if (!File(tarFifo).exists()) {
+                    LogHelper.e(
+                        "SnapshotRootService",
+                        "extractTar",
+                        "Tar file does not exist: $tarFifo"
+                    )
+                }
                 File(targetDir).mkdirs()
                 val stdOut =
                     File.createTempFile("tar-stdout-", ".log", context.cacheDir).absolutePath
                 val stdErr =
                     File.createTempFile("tar-stderr-", ".log", context.cacheDir).absolutePath
                 try {
-                    val argv = arrayOf("tar", "-xpf", tarFifo, "-C", targetDir)
-                    val exitCode = callTarCli(stdOut, stdErr, argv)
+                    val argv = arrayOf("tar", "-xpf", "-", "-C", "$targetDir")
+                    Log.i("SnapshotRootService", "Running command: ${argv.joinToString(" ")}")
+                    if (!File(tarFifo).exists()) {
+                        LogHelper.e(
+                            "SnapshotRootService",
+                            "extractTar",
+                            "Tar file does not exist: $tarFifo"
+                        )
+                    }
+                    val exitCode = callTarCli(tarFifo, stdOut, stdErr, argv)
                     if (exitCode == 0) {
-                        LogHelper.i("SnapshotRootService", "extractTar", "Successfully extracted tar to $targetDir")
+                        LogHelper.i(
+                            "SnapshotRootService",
+                            "extractTar",
+                            "Successfully extracted tar to $targetDir"
+                        )
                         true
                     } else {
-                        LogHelper.e("SnapshotRootService", "extractTar", "Failed to extract tar, exit code: $exitCode")
+
+                        LogHelper.e(
+                            "SnapshotRootService",
+                            "extractTar",
+                            "Failed to extract tar, exit code: $exitCode"
+                        )
+                        val readText = File(stdErr).readText()
+
+                        LogHelper.e(
+                            "SnapshotRootService",
+                            "extractTar",
+                            "$readText"
+                        )
                         false
                     }
                 } finally {
@@ -1039,7 +1239,11 @@ class SnapshotRootService : RootService() {
                     }
                 }
             }.onFailure { exception ->
-                LogHelper.e("SnapshotRootService", "extractTar", "Failed to extract tar: ${exception.message}")
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "extractTar",
+                    "Failed to extract tar: ${exception.message}"
+                )
             }.getOrNull() ?: false
         }
 

@@ -9,7 +9,7 @@ interface IFileCompressor {
     String fileExtension(String algorithm, String type, String file);
     String detectAlgorithm(String file);
     boolean checkFileValid(String algorithm, String path, long size, String md5);
-    ITaskHandler compress(String algorithm, String dir, String targetFile, in List<String> excludes,  in List<String> excludeFiles, ICompressCallback callback);
-    ITaskHandler compressMultiple(String algorithm, in List<String> files, String targetFile, ICompressCallback callback);
+    ITaskHandler compress(String algorithm, String dir, String targetFile, in List<String> excludes,  in List<String> excludeFiles, int compressLevel, ICompressCallback callback);
+    ITaskHandler compressMultiple(String algorithm, in List<String> files, String targetFile, int compressLevel, ICompressCallback callback);
     ITaskHandler decompress(String algorithm, String file, String targetDir, ICompressCallback callback);
 }

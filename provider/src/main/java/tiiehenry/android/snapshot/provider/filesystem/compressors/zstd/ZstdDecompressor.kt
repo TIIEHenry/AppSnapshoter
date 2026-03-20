@@ -1,18 +1,21 @@
 package tiiehenry.android.snapshot.provider.filesystem.compressors.zstd
 
 import android.os.ParcelFileDescriptor
+import android.system.OsConstants
 import android.util.Log
 import com.github.luben.zstd.ZstdInputStream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
 import tiiehenry.android.snapshot.task.ITaskHandler
 import java.util.concurrent.atomic.AtomicBoolean
+
 
 object ZstdDecompressor {
     private const val TAG = "ZstdDecompressor"
@@ -21,7 +24,7 @@ object ZstdDecompressor {
         fileSystem: IFileSystem,
         file: String,
         targetDir: String,
-        callback: ICompressCallback?
+        callback: ICompressCallback
     ): ITaskHandler {
         var currentState = CompressState.COMPRESS_STATE_NONE
         val isCancel = AtomicBoolean(false)
@@ -52,18 +55,18 @@ object ZstdDecompressor {
         fileSystem: IFileSystem,
         file: String,
         targetDir: String,
-        callback: ICompressCallback?,
+        callback: ICompressCallback,
         isCancel: AtomicBoolean,
         updateState: (Int) -> Unit
     ) {
         if (!fileSystem.exists(file)) {
-            callback?.onError("Source file not exists: $file")
-            Log.e(TAG, "Decompression error: Source file not exists: $file")
             updateState(CompressState.COMPRESS_STATE_ERROR)
+            callback.onError("Source file not exists: $file")
+            Log.e(TAG, "Decompression error: Source file not exists: $file")
             return
         }
 
-        callback?.onStart()
+        callback.onStart()
 
         // 创建临时FIFO管道用于流式处理
         val tempZstdFifo = fileSystem.createTempFile("fifo-", ".fifo")
@@ -78,15 +81,14 @@ object ZstdDecompressor {
                     updateState(newState)
                 }
             }
-            updateState(CompressState.COMPRESS_STATE_COMPLETE)
         } catch (e: CancellationException) {
-            callback?.onError("Decompression cancelled")
+            updateState(CompressState.COMPRESS_STATE_ERROR)
+            callback.onError("Decompression cancelled")
             Log.e(TAG, "Decompression error: Decompression cancelled", e)
-            updateState(CompressState.COMPRESS_STATE_ERROR)
         } catch (e: Exception) {
-            Log.e(TAG, "Decompress error", e)
-            callback?.onError(e.message ?: "Unknown error")
             updateState(CompressState.COMPRESS_STATE_ERROR)
+            Log.e(TAG, "Decompress error", e)
+            callback.onError(e.message ?: "Unknown error")
         } finally {
             // 清理临时FIFO管道
             runCatching {
@@ -100,7 +102,7 @@ object ZstdDecompressor {
         sourceFile: String,
         targetDir: String,
         zstdFifo: String,
-        callback: ICompressCallback?,
+        callback: ICompressCallback,
         isCancel: AtomicBoolean,
         updateState: (Int) -> Unit
     ) {
@@ -111,9 +113,16 @@ object ZstdDecompressor {
         fileSystem.cleanDir(targetDir) // Clean directory before decompression
 
         fileSystem.delete(zstdFifo)
+
+        // 可以使用 OsConstants 组合权限位
+        val mode = OsConstants.S_IRUSR or OsConstants.S_IWUSR or  // User read/write
+                OsConstants.S_IRGRP or OsConstants.S_IWGRP or  // Group read/write
+                OsConstants.S_IROTH or OsConstants.S_IWOTH // Others read/write
+
         // 创建FIFO管道
-        if (!fileSystem.mkfifo(zstdFifo, 420)) {
-            callback?.onError("Failed to create zstd fifo")
+        if (!fileSystem.mkfifo(zstdFifo, mode)) {
+            updateState(CompressState.COMPRESS_STATE_ERROR)
+            callback.onError("Failed to create zstd fifo")
             return
         }
 
@@ -121,23 +130,27 @@ object ZstdDecompressor {
 
         try {
             coroutineScope {
-                // 步骤2: 解包tar文件
-                val extractJob = async(Dispatchers.IO) {
-                    runCatching {
-                        extractTarFromFifo(fileSystem, zstdFifo, targetDir, callback, isCancel)
-                    }.onFailure { exception ->
-                        Log.e(TAG, "Tar extraction failed", exception)
-                        throw exception
-                    }
-                }
-
                 // 步骤1: 解压zstd文件到FIFO管道
                 val decompressJob = async(Dispatchers.IO) {
                     runCatching {
                         decompressZstdToFifo(fileSystem, sourceFile, zstdFifo, callback, isCancel)
                     }.onFailure { exception ->
                         Log.e(TAG, "Zstd decompression failed", exception)
-                        throw exception
+                        updateState(CompressState.COMPRESS_STATE_ERROR)
+                        callback.onError("Zstd decompression failed")
+                        return@async
+                    }
+                }
+                delay(100)
+                // 步骤2: 解包tar文件
+                val extractJob = async(Dispatchers.IO) {
+                    runCatching {
+                        extractTarFromFifo(fileSystem, zstdFifo, targetDir, callback, isCancel)
+                    }.onFailure { exception ->
+                        Log.e(TAG, "Tar extraction failed", exception)
+                        updateState(CompressState.COMPRESS_STATE_ERROR)
+                        callback.onError("Tar extraction failed")
+                        return@async
                     }
                 }
 
@@ -148,8 +161,8 @@ object ZstdDecompressor {
 
             // 成功完成
             val targetSize = fileSystem.calculateSize(targetDir)
-            callback?.onDone(sourceSize, targetSize, "")
             updateState(CompressState.COMPRESS_STATE_COMPLETE)
+            callback.onDone(sourceSize, targetSize, "")
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -177,11 +190,17 @@ object ZstdDecompressor {
 
             ParcelFileDescriptor.AutoCloseInputStream(inPfd).use { fileInput ->
                 ZstdInputStream(fileInput).use { decompressedInput ->
-                    ParcelFileDescriptor.AutoCloseOutputStream(outPfd).use { fileOutput ->
+                    object :ParcelFileDescriptor.AutoCloseOutputStream(outPfd){
+                        override fun close() {
+                            Log.i(TAG, "Closing file output stream")
+                            super.close()
+                        }
+                    }.use { fileOutput ->
                         val buffer = ByteArray(8192)
                         var bytesRead: Int
                         while (decompressedInput.read(buffer).also { bytesRead = it } != -1) {
                             if (isCancel.get()) {
+                                Log.i(TAG, "Decompression cancelled")
                                 return
                             }
                             fileOutput.write(buffer, 0, bytesRead)
