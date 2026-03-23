@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.config.GlobalConfig
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.utils.AppIconUtils
 import tiiehenry.android.snapshot.app.UserInfoParcelable
 import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
@@ -49,6 +50,7 @@ class SnapshotViewModel : ViewModel() {
             Log.i(TAG, "loadGroup: $groupId")
             SnapGroup(groupId).apply {
                 loadApps(
+                    SnapshotApp.getContext(),
                     SnapshotApp.getInstance().fileSystem,
                     SnapshotApp.getInstance().appManager,
                     true
@@ -150,16 +152,18 @@ class SnapshotViewModel : ViewModel() {
                     // 保存应用图标
                     val iconFile =
                         Paths.get(group.path, "$packageName.png").absolutePathString()
-                    val icon = SnapshotApp.getInstance().appManager.loadIcon(packageName, 0)
-                    if (icon != null) {
-                        saveIconToFile(icon, iconFile)
-                        android.util.Log.d("addAppsToGroup", "Saved icon to: $iconFile")
-                    } else {
-                        android.util.Log.w("addAppsToGroup", "Failed to load icon for $packageName")
-                    }
+                    AppIconUtils.loadAndSaveAppIcon(
+                        SnapshotApp.getContext(),
+                        SnapshotApp.getInstance().fileSystem,
+                        SnapshotApp.getInstance().appManager,
+                        packageName,
+                        0,
+                        iconFile
+                    )
                 }
                 // 重新加载分组的应用列表
                 group.loadApps(
+                    SnapshotApp.getContext(),
                     SnapshotApp.getInstance().fileSystem,
                     SnapshotApp.getInstance().appManager,
                     true
@@ -178,25 +182,6 @@ class SnapshotViewModel : ViewModel() {
         }
     }
 
-    private fun saveIconToFile(bitmap: Bitmap, filePath: String) {
-        try {
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            val byteArray = outputStream.toByteArray()
-
-            SnapshotApp.getInstance().fileSystem.openFile(
-                filePath,
-                ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY
-            ).use { pfd ->
-                ParcelFileDescriptor.AutoCloseOutputStream(pfd).use { fos ->
-                    fos.write(byteArray)
-                    fos.flush()
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 
     fun deleteGroup(groupId: String, deleteFiles: Boolean = false) {
         viewModelScope.launch {

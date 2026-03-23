@@ -106,9 +106,10 @@ class GroupsAdapter(
             binding.btnRefresh.setOnClickListener {
                 viewModel.viewModelScope.launch {
                     group.loadApps(
+                        SnapshotApp.getContext(),
                         SnapshotApp.getInstance().fileSystem,
                         SnapshotApp.getInstance().appManager,
-                        true
+                        reload = true
                     )
                     withContext(Dispatchers.Main) {
                         // 控制加载状态

@@ -1,8 +1,10 @@
 package tiiehenry.android.app.snapshot.group
 
+import android.content.Context
 import android.util.Log
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.config.GroupConfig
+import tiiehenry.android.app.snapshot.utils.AppIconUtils
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.IFileType
@@ -12,6 +14,7 @@ import kotlin.io.path.absolutePathString
 data class SnapGroup(
     val id: String,
 ) {
+    val TAG = "SnapGroup"
     val config = GroupConfig(id)
     val mmkv = config.mmkv
 
@@ -48,7 +51,7 @@ data class SnapGroup(
     val apps: MutableList<SnapedApp> = mutableListOf()
 
     fun loadApps(
-        fs: IFileSystem, appManager: IAppManager, reload: Boolean
+        context: Context, fs: IFileSystem, appManager: IAppManager, reload: Boolean
     ): MutableList<SnapedApp> {
         if (reload) {
             synchronized(apps) {
@@ -60,7 +63,7 @@ data class SnapGroup(
                 return apps
             }
             val files = fs.listDir(path)
-            Log.i("SnapGroup", "files: $files")
+            Log.i(TAG, "files: $files")
             for (pkgName in files) {
                 if (pkgName.startsWith(".")) {
                     //ignore dir likes .stfolder
@@ -70,12 +73,26 @@ data class SnapGroup(
                 val fileType = fs.fileType(packageDir)
                 if (fileType == IFileType.TYPE_DIR) {
                     val iconFile = Paths.get(path, "$pkgName.png").absolutePathString()
+                    val iconExists = fs.exists(iconFile)
                     Log.d(
-                        "SnapGroup",
-                        "Creating SnapedApp for $pkgName, iconFile: $iconFile, exists: ${
-                            fs.fileType(iconFile) != 0
-                        }"
+                        TAG,
+                        "Creating SnapedApp for $pkgName, iconFile: $iconFile, exists: $iconExists"
                     )
+                    // 如果图标文件不存在，尝试从系统加载并保存
+                    if (!iconExists) {
+                        try {
+                            AppIconUtils.loadAndSaveAppIcon(
+                                context,
+                                fs,
+                                appManager,
+                                pkgName,
+                                config.groupConfigData.userId,
+                                iconFile
+                            )
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to load and save icon for $pkgName: ${e.message}", e)
+                        }
+                    }
                     val app = SnapedApp(this, packageDir, iconFile)
                     try {
                         app.loadArchives(fs, appManager, false)
@@ -90,7 +107,7 @@ data class SnapGroup(
                         )
                         // 先设置存档图标文件路径，再赋值给 app.appInfo
                         newAppInfo.archiveIconFile = iconFile
-                        Log.d("SnapGroup", "Setting archiveIconFile for $pkgName: $iconFile")
+                        Log.d(TAG, "Setting archiveIconFile for $pkgName: $iconFile")
                         app.appInfo = newAppInfo
                         apps.add(app)
                     } catch (e: Exception) {
