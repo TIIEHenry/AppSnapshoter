@@ -9,11 +9,11 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingStart="24dp"
-        android:paddingEnd="16dp"
         android:paddingTop="16dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="8dp">
 
         <TextView
@@ -21,17 +21,17 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="分组配置"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btn_save"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/check"
             android:contentDescription="保存"
+            android:src="@drawable/check"
             app:tint="?attr/colorPrimary" />
 
     </LinearLayout>
@@ -42,9 +42,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingHorizontal="12dp"
-        app:tabMode="fixed"
-        app:tabGravity="fill"
-        app:tabIndicatorFullWidth="true"/>
+        app:tabGravity="center"
+        app:tabIndicatorFullWidth="false"
+        app:tabMode="fixed" />
 
     <!-- Tab 内容 -->
     <androidx.core.widget.NestedScrollView
