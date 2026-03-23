@@ -8,12 +8,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
-import androidx.fragment.app.FragmentManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
 import com.google.android.material.R as MaterialR
-import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.databinding.BottomSheetExcludePatternBinding
 import com.alibaba.fastjson2.JSON
@@ -213,7 +211,6 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
             else -> "/data/data/$packageName"
         }
         val filePicker = FilePickerBottomSheet.newInstance(
-            userId = 0,
             rootPath = rootPath
         )
         filePicker.setOnFilesSelectedListener { selectedFiles ->

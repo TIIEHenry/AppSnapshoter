@@ -118,13 +118,10 @@ class ExtraExcludePatternBottomSheet : BottomSheetDialogFragment() {
      */
     private fun showFilePicker() {
         val activity = requireActivity()
-        val actualRootPath = if (rootPath.isNotEmpty()) {
-            rootPath
-        } else {
+        val actualRootPath = rootPath.ifEmpty {
             "/data/data"
         }
         val filePicker = FilePickerBottomSheet.newInstance(
-            userId = 0,
             rootPath = actualRootPath
         )
         filePicker.setOnFilesSelectedListener { selectedFiles ->

@@ -128,7 +128,7 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
      */
     private fun showFilePicker() {
         val filePicker = FilePickerBottomSheet.newInstance(
-            userId = 0, rootPath = rootPath
+            rootPath = rootPath
         )
 
         filePicker.setOnFilesSelectedListener { selectedFiles ->

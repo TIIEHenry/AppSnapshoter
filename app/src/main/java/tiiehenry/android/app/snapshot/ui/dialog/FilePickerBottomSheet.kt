@@ -33,23 +33,19 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
     private val selectedFiles = mutableSetOf<String>()
     private var currentPath: String = ""
     private var rootPath: String = ""
-    private var userId: Int = 0
 
     private var onFilesSelectedListener: ((List<String>) -> Unit)? = null
 
     companion object {
-        private const val ARG_USER_ID = "user_id"
         private const val ARG_ROOT_PATH = "root_path"
 
         /**
          * 创建文件选择器实例
-         * @param userId 用户ID，默认0
          * @param rootPath 根路径，默认为 /data/data
          */
-        fun newInstance(userId: Int = 0, rootPath: String = "/data/data"): FilePickerBottomSheet {
+        fun newInstance(rootPath: String = "/data/data"): FilePickerBottomSheet {
             return FilePickerBottomSheet().apply {
                 arguments = Bundle().apply {
-                    putInt(ARG_USER_ID, userId)
                     putString(ARG_ROOT_PATH, rootPath)
                 }
             }
@@ -59,7 +55,6 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            userId = it.getInt(ARG_USER_ID, 0)
             rootPath = it.getString(ARG_ROOT_PATH, "/data/data")
         }
         currentPath = rootPath
@@ -346,12 +341,12 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
                 // 设置选中状态
                 cbFileSelected.isChecked = isSelected
 
+                cbFileSelected.setOnClickListener {
+                    onFolderSelectClick(fileItem)
+                }
                 if (fileItem.isDirectory) {
                     // 文件夹：显示选择按钮，点击选择按钮切换选中状态
                     cbFileSelected.visibility = View.VISIBLE
-                    cbFileSelected.setOnClickListener {
-                        onFolderSelectClick(fileItem)
-                    }
                     // 整个条目点击进入目录
                     root.setOnClickListener {
                         onItemClick(fileItem)
@@ -359,7 +354,6 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
                 } else {
                     // 文件：显示选择按钮，点击整个条目切换选中状态
                     cbFileSelected.visibility = View.VISIBLE
-                    cbFileSelected.setOnClickListener(null)
                     root.setOnClickListener {
                         onItemClick(fileItem)
                     }
