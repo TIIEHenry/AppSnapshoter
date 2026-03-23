@@ -43,7 +43,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         context: Context,
         snapedApp: SnapedApp,
         archiveItem: ArchiveItem,
-        selectedTypes: Set<String>
+        selectedTypes: Set<String>,
+        updateCurrent: () -> Unit
     ) {
         val snapShotApp = SnapshotApp.getInstance()
         val fs = snapShotApp.fileSystem
@@ -74,6 +75,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     loadingDialog.dismiss()
                     Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
                 }
+            } finally {
+                updateCurrent()
             }
         }
     }
@@ -83,7 +86,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         groupId: String,
         mmkv: MMKV,
         packageName: String,
-        item: SnapedApp
+        item: SnapedApp,
+        updateCurrent: () -> Unit
     ) {
         val snapShotApp = SnapshotApp.getInstance()
         val fs = snapShotApp.fileSystem
@@ -113,6 +117,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     loadingDialog.dismiss()
                     Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
                 }
+            } finally {
+                updateCurrent()
             }
         }
     }
@@ -351,7 +357,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                                 )
                                 fixedPermissions.add(it.name)
                                 newFixedPermissions.add(it.name)
-                            }else{
+                            } else {
                                 e.printStackTrace()
                             }
                         }

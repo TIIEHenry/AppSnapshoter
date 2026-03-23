@@ -551,23 +551,4 @@ object SnapShotMaker {
         return handler
     }
 
-    fun deleteArchive(archivePath: String): Boolean {
-        return try {
-            val archiveDir = File(archivePath)
-            if (archiveDir.exists()) {
-                archiveDir.deleteRecursively()
-                true
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
-
-    fun restoreArchive(archivePath: String): Boolean {
-        // TODO: 实现恢复逻辑，需要调用IFileSystem接口
-        return false
-    }
 }

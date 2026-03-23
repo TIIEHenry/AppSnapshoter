@@ -12,7 +12,10 @@ import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.databinding.FragmentLauncherBinding
@@ -41,7 +44,7 @@ class LauncherFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.groupsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        
+
         groupsAdapter = GroupsAdapter(viewModel, childFragmentManager)
         binding.groupsRecyclerView.adapter = groupsAdapter
 
@@ -63,10 +66,12 @@ class LauncherFragment : Fragment() {
                         showAddGroupDialog()
                         true
                     }
+
                     R.id.menu_sort_groups -> {
                         showSortGroupsDialog()
                         true
                     }
+
                     else -> false
                 }
             }
@@ -87,6 +92,14 @@ class LauncherFragment : Fragment() {
             }
         }
         bottomSheet.show(childFragmentManager, GroupSortBottomSheet.TAG)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 刷新groupAdapter
+        lifecycleScope.launch(Dispatchers.IO) {
+            SnapshotApp.getViewModel().loadGroups()
+        }
     }
 
     override fun onDestroyView() {

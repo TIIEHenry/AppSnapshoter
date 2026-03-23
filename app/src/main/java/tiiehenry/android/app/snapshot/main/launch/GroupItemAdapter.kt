@@ -70,10 +70,14 @@ class GroupItemAdapter(
             val appInfo = item.appInfo
             binding.appName.text = appInfo.label
             loadAppIcon(appInfo)
+            updateCurrent(item)
+            setupClickListeners(item)
+        }
+
+        private fun updateCurrent(item: SnapedApp) {
             updateStatusIndicator(item)
             updateRunningIndicator(item)
             updateLockIndicator(item)
-            setupClickListeners(item)
         }
 
         /**
@@ -107,7 +111,8 @@ class GroupItemAdapter(
                     group.id,
                     group.mmkv,
                     item.appInfo.packageName,
-                    item
+                    item,
+                    { updateCurrent(item) }
                 )
             }
         }
@@ -204,7 +209,7 @@ class GroupItemAdapter(
                         group.mmkv,
                         item.appInfo.packageName,
                         item
-                    )
+                    ) { updateCurrent(item) }
                 }
             }
 
@@ -223,7 +228,7 @@ class GroupItemAdapter(
                             group.mmkv,
                             item.appInfo.packageName,
                             item
-                        )
+                        ) { updateCurrent(item) }
                     }
                     .setNegativeButton("取消", null)
                     .setNeutralButton("删除") { _, _ ->
@@ -265,7 +270,8 @@ class GroupItemAdapter(
                     binding.root.context,
                     item,
                     archiveItem,
-                    selectedTypes
+                    selectedTypes,
+                    { updateCurrent(item) }
                 )
             }
 

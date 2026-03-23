@@ -123,6 +123,7 @@ class SnapshotCreator(
             } finally {
                 // 恢复挂起应用
                 AppStatusHelper.unsuspendPackage(item.appInfo.packageName, item.appInfo.userId)
+                ArchiveManager.reloadArchives(item, true)
             }
         }
     }
