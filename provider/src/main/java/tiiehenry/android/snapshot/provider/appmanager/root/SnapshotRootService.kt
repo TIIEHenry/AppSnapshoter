@@ -1057,7 +1057,7 @@ class SnapshotRootService : RootService() {
         }
 
         override fun callTarCli(
-            pipeFile: String,
+            pipeFile: String?,
             stdOut: String,
             stdErr: String,
             argv: Array<String>

@@ -69,7 +69,7 @@ object ZstdDecompressor {
         callback.onStart()
 
         // 创建临时FIFO管道用于流式处理
-        val tempZstdFifo = fileSystem.createTempFile("fifo-", ".fifo")
+        val tempZstdFifo = fileSystem.createTempFile("fifo-", ".tmp")
 
         try {
             // 使用FIFO管道进行流式解压缩
