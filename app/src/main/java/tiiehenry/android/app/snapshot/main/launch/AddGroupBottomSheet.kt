@@ -72,14 +72,9 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             userIdSpinner.adapter = userAdapter
         }
 
-        binding.etGroupPath.setOnClickListener {
+        // 为 TextInputLayout 的 endIcon 设置点击事件
+        binding.tilGroupPath.setEndIconOnClickListener {
             pathPickerHelper.launch()
-        }
-
-        binding.etGroupPath.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                pathPickerHelper.launch()
-            }
         }
 
         binding.btnCancel.setOnClickListener {
