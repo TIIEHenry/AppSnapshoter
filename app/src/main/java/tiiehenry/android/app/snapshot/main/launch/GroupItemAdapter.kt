@@ -354,10 +354,6 @@ class GroupItemAdapter(
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
                     SnapshotApp.getViewModel().loadGroups()
                 }
-
-                override fun onError(message: String) {
-                    // 错误已在 SnapshotCreator 中处理（显示 Toast）
-                }
             })
         }
     }

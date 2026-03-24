@@ -126,23 +126,21 @@ object ZstdDecompressor {
 
         // 创建FIFO管道
         if (!fileSystem.mkfifo(zstdFifo, mode)) {
-            updateState(CompressState.COMPRESS_STATE_ERROR)
-            callback.onError("Failed to create zstd fifo")
-            return
+            throw Exception("Failed to create zstd fifo")
         }
 
         val sourceSize = fileSystem.length(sourceFile)
 
         try {
             coroutineScope {
+                var errored: Throwable? = null
                 // 步骤1: 解压zstd文件到FIFO管道
                 val decompressJob = async(Dispatchers.IO) {
                     runCatching {
                         decompressZstdToFifo(fileSystem, sourceFile, zstdFifo, callback, isCancel)
                     }.onFailure { exception ->
                         Log.e(TAG, "Zstd decompression failed", exception)
-                        updateState(CompressState.COMPRESS_STATE_ERROR)
-                        callback.onError("Zstd decompression failed")
+                        errored = exception
                         return@async
                     }
                 }
@@ -150,18 +148,19 @@ object ZstdDecompressor {
                 // 步骤2: 解包tar文件
                 val extractJob = async(Dispatchers.IO) {
                     runCatching {
-                        extractTarFromFifo(fileSystem, zstdFifo, targetDir, callback, isCancel)
+                        extractTarFromFifo(fileSystem, zstdFifo, targetDir, isCancel)
                     }.onFailure { exception ->
                         Log.e(TAG, "Tar extraction failed", exception)
-                        updateState(CompressState.COMPRESS_STATE_ERROR)
-                        callback.onError("Tar extraction failed")
+                        errored = exception
                         return@async
                     }
                 }
-
                 // 等待所有任务完成
                 decompressJob.await()
                 extractJob.await()
+                if (errored != null) {
+                    throw Exception(errored)
+                }
             }
 
             // 成功完成
@@ -179,7 +178,7 @@ object ZstdDecompressor {
         fileSystem: IFileSystem,
         sourceFile: String,
         fifoPath: String,
-        callback: ICompressCallback?,
+        progressCallback: ICompressCallback?,
         isCancel: AtomicBoolean
     ) {
         Log.i(TAG, "Starting zstd decompress: $sourceFile to $fifoPath")
@@ -205,7 +204,11 @@ object ZstdDecompressor {
                         val progressJob = Job()
                         CoroutineScope(Dispatchers.Default + progressJob).launch {
                             transformer.progressFlow.collectLatest { progress ->
-                                callback?.onProgress(progress.bytesWritten, progress.speed)
+                                if (isCancel.get()) {
+                                    transformer.cancel()
+                                    return@collectLatest
+                                }
+                                progressCallback?.onProgress(progress.bytesWritten, progress.speed)
                             }
                         }
                         transformer.startAndWait()
@@ -231,42 +234,10 @@ object ZstdDecompressor {
         }
     }
 
-    private fun copyFifo(
-        fileSystem: IFileSystem,
-        inputFifo: String,
-        outputFifo: String,
-        callback: ICompressCallback?,
-        isCancel: AtomicBoolean
-    ) {
-        try {
-            val inputStream = fileSystem.openInputStream(inputFifo)
-            val outputStream = fileSystem.openOutputStream(outputFifo)
-
-            if (inputStream != null && outputStream != null) {
-                ParcelFileDescriptor.AutoCloseInputStream(inputStream).use { input ->
-                    ParcelFileDescriptor.AutoCloseOutputStream(outputStream).use { output ->
-                        val buffer = ByteArray(8192)
-                        var bytesRead: Int
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            if (isCancel.get()) {
-                                return
-                            }
-                            output.write(buffer, 0, bytesRead)
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Fifo copy error", e)
-            throw e
-        }
-    }
-
     private fun extractTarFromFifo(
         fileSystem: IFileSystem,
         tarFifo: String,
         targetDir: String,
-        callback: ICompressCallback?,
         isCancel: AtomicBoolean
     ) {
         Log.i(TAG, "Starting tar extract: $tarFifo to $targetDir")

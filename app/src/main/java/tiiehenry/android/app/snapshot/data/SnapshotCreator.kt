@@ -2,7 +2,6 @@ package tiiehenry.android.app.snapshot.data
 
 import android.content.Context
 import android.text.format.Formatter
-import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -11,6 +10,7 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.main.launch.ArchiveFailedException
 import tiiehenry.android.app.snapshot.ui.dialog.LoadingDialog
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
 import tiiehenry.android.snapshot.file.ICompressCallback
@@ -34,7 +34,6 @@ class SnapshotCreator(
      */
     interface Callback {
         fun onSuccess()
-        fun onError(message: String)
     }
 
     /**
@@ -45,9 +44,16 @@ class SnapshotCreator(
      */
     fun createSnapshot(item: SnapedApp, group: SnapGroup, callback: Callback? = null) {
         val loadingDialog = LoadingDialog(context)
-        loadingDialog.setMessage("正在创建存档...")
+        loadingDialog.setMessage("正在创建存档")
+        loadingDialog.setStatus("...")
         loadingDialog.show()
 
+        val onError = { msg: Exception ->
+            loadingDialog.setException(msg)
+        }
+        val onErrorCallback = { msg: String ->
+            onError(ArchiveFailedException(msg))
+        }
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 val snapShotApp = SnapshotApp.getInstance()
@@ -62,61 +68,59 @@ class SnapshotCreator(
                 AppStatusHelper.suspendPackage(item.appInfo.packageName, item.appInfo.userId)
 
                 // 创建压缩回调
-                val compressCallback = createCompressCallback(context, loadingDialog, callback)
+                val compressCallback =
+                    createCompressCallback(context, loadingDialog, onErrorCallback)
 
                 val tasks = SnapShotMaker.makeSnapshot(
                     fs, appManager, item, item.appInfo, compressCallback, groupConfig, appConfig
                 )
-
+                var currentIndex = 0
                 if (tasks != null) {
+                    val totalTask = tasks.size
+                    fun updateIndex(index: Int) {
+                        loadingDialog.setProgress(index * 100 / totalTask)
+                    }
+
                     // 先启动meta-info任务
                     tasks.remove("meta-info")?.let {
+                        currentIndex++
+                        withContext(Dispatchers.Main) {
+                            updateIndex(currentIndex)
+                        }
                         async { it.start() }
                     }
 
                     // 执行其他任务
                     for (entry in tasks) {
+                        currentIndex++
                         withContext(Dispatchers.Main) {
+                            updateIndex(currentIndex)
                             loadingDialog.setCurrentItem(entry.key)
+                            loadingDialog.setStatus("...")
                         }
                         entry.value.start()
-                    }
-
-                    val hasError = tasks.values.any {
-                        it.state() == CompressState.COMPRESS_STATE_ERROR
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        loadingDialog.dismiss()
-
-                        if (hasError) {
-                            Toast.makeText(context, "存档过程中出现错误", Toast.LENGTH_LONG).show()
-                            callback?.onError("存档过程中出现错误")
-                        } else {
-                            Toast.makeText(context, "存档创建成功", Toast.LENGTH_SHORT).show()
-                            // 重新加载应用数据
-                            ArchiveManager.reloadArchives(item, true)
-                            callback?.onSuccess()
-
-                            // 异步执行保留策略清理（不阻塞UI）
-                            launch {
-                                RetentionPolicyExecutor.applyPolicy(item, groupConfig, appConfig)
-                            }
+                        if (entry.value.state() == CompressState.COMPRESS_STATE_ERROR) {
+                            //todo clean failed archive
+                            return@launch
                         }
+                    }
+                    // 重新加载应用数据
+                    ArchiveManager.reloadArchives(item, true)
+                    // 异步执行保留策略清理（不阻塞UI）
+                    RetentionPolicyExecutor.applyPolicy(item, groupConfig, appConfig)
+                    withContext(Dispatchers.Main) {
+                        callback?.onSuccess()
+                        loadingDialog.dismiss()
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        loadingDialog.dismiss()
-                        Toast.makeText(context, "存档创建失败", Toast.LENGTH_LONG).show()
-                        callback?.onError("存档创建失败")
+                        onErrorCallback("no task")
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    loadingDialog.dismiss()
-                    Toast.makeText(context, "存档失败: ${e.message}", Toast.LENGTH_LONG).show()
-                    callback?.onError("存档失败: ${e.message}")
+                    onError(e)
                 }
             } finally {
                 // 恢复挂起应用
@@ -132,7 +136,7 @@ class SnapshotCreator(
     private fun createCompressCallback(
         context: Context,
         loadingDialog: LoadingDialog,
-        callback: Callback?
+        onErrorCallbck: (String) -> Unit
     ): ICompressCallback {
         return object : ICompressCallback.Stub() {
             override fun onStart() {
@@ -142,9 +146,13 @@ class SnapshotCreator(
             override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
                 viewModelScope.launch(Dispatchers.Main) {
                     val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                    val speed = Formatter.formatFileSize(context, bytesPerS)
-                    val message = "已写入: $fileSize\n速度: $speed/s"
-                    loadingDialog.setMessage(message)
+                    loadingDialog.setMessage("已写入: $fileSize")
+                    if (bytesPerS == 0L) {
+                        loadingDialog.setStatus("...")
+                    } else {
+                        val speed = Formatter.formatFileSize(context, bytesPerS)
+                        loadingDialog.setStatus("$speed/s")
+                    }
                 }
             }
 
@@ -154,9 +162,7 @@ class SnapshotCreator(
 
             override fun onError(msg: String?) {
                 viewModelScope.launch(Dispatchers.Main) {
-                    loadingDialog.dismiss()
-                    Toast.makeText(context, "存档失败: $msg", Toast.LENGTH_LONG).show()
-                    callback?.onError("存档失败: $msg")
+                    onErrorCallbck(msg ?: "unknow")
                 }
             }
         }

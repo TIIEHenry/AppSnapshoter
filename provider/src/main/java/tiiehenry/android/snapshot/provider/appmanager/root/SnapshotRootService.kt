@@ -431,7 +431,7 @@ class SnapshotRootService : RootService() {
 
         override fun installApk(file: String, userId: Int): Boolean {
             return try {
-                val installCmd = "pm install -i com.android.vending -r -t --user $userId \"$file\""
+                val installCmd = "pm install -i com.android.vending -r -t -d --user $userId \"$file\""
                 val shell = Shell.Builder.create()
                     .setFlags(Shell.FLAG_MOUNT_MASTER)
                     .setTimeout(120)
