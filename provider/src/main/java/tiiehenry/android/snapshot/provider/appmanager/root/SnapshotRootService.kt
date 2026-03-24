@@ -39,7 +39,7 @@ import com.android.providers.settings.SettingsStateApi31
 import com.github.luben.zstd.ZstdOutputStream
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ipc.RootService
-import com.xayah.hiddenapi.castTo
+import nota.android.hiddenapi.castTo
 import nota.android.io.NativeFileSystem
 import nota.lang.reflect.ReflectionCache
 import tiiehenry.android.compress.zstd.TarJNI
@@ -82,9 +82,9 @@ class SnapshotRootService : RootService() {
             mPackageManager = mSystemContext.packageManager
             mPackageManagerHidden = mPackageManager.castTo()
             mUserManager = UserManagerHidden.get(mSystemContext).castTo()
-            mAppOpsManager = mSystemContext.getSystemService(Context.APP_OPS_SERVICE).castTo()
+            mAppOpsManager = mSystemContext.getSystemService(APP_OPS_SERVICE).castTo()
             mAppOpsManagerHidden = mAppOpsManager.castTo()
-            mActivityManager = mSystemContext.getSystemService(Context.ACTIVITY_SERVICE).castTo()
+            mActivityManager = mSystemContext.getSystemService(ACTIVITY_SERVICE).castTo()
             mActivityManagerHidden = mActivityManager.castTo()
         }
 
@@ -431,7 +431,7 @@ class SnapshotRootService : RootService() {
 
         override fun installApk(file: String, userId: Int): Boolean {
             return try {
-                val installCmd = "pm install -r -t --user $userId \"$file\""
+                val installCmd = "pm install -i com.android.vending -r -t --user $userId \"$file\""
                 val shell = Shell.Builder.create()
                     .setFlags(Shell.FLAG_MOUNT_MASTER)
                     .setTimeout(120)

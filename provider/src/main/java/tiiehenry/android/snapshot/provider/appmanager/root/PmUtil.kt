@@ -1,8 +1,7 @@
-package com.xayah.core.util.command
+package tiiehenry.android.snapshot.provider.appmanager.root
 
 import android.os.Build
-import com.xayah.core.util.SymbolUtil.QUOTE
-import com.xayah.core.util.model.ShellResult
+import tiiehenry.android.snapshot.provider.appmanager.root.SymbolUtil.QUOTE
 
 object Pm {
     private suspend fun execute(vararg args: String): ShellResult = BaseUtil.execute("pm", *args)

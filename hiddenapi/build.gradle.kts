@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.xayah.hiddenapi"
+    namespace = "nota.android.hiddenapi"
     compileSdk = 36
 
     defaultConfig {

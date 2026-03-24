@@ -1,13 +1,11 @@
-package com.xayah.core.util.command
+package tiiehenry.android.snapshot.provider.appmanager.root
 
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.util.Log
 import com.topjohnwu.superuser.Shell
-import com.xayah.core.common.util.trim
-import com.xayah.core.util.SymbolUtil.QUOTE
-import com.xayah.core.util.SymbolUtil.USD
-import com.xayah.core.util.model.ShellResult
+import tiiehenry.android.snapshot.provider.appmanager.root.SymbolUtil.QUOTE
+import tiiehenry.android.snapshot.provider.appmanager.root.SymbolUtil.USD
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

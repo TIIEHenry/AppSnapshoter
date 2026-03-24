@@ -2,9 +2,6 @@ package tiiehenry.android.app.snapshot.utils
 
 import android.content.Context
 import com.topjohnwu.superuser.Shell
-import com.topjohnwu.superuser.ShellUtils
-import com.xayah.databackup.util.SymbolHelper.USD
-import tiiehenry.android.snapshot.util.LogHelper
 
 object ShellHelper {
     private const val TAG = "ShellHelper"
@@ -34,39 +31,4 @@ object ShellHelper {
         Shell.setDefaultBuilder(getShellBuilder(context))
     }
 
-    private suspend fun getNewShell(context: Context): Shell? = runCatching { getShellBuilder(context).build() }.getOrNull()
-
-    private suspend fun kill(context: Context, vararg keys: String) {
-        val shell = getNewShell(context)
-        if (shell != null) {
-            // ps -A | grep -w $key1 | grep -w $key2 | ... | awk 'NF>1{print $2}' | xargs kill
-            val keysArg = keys.map { "| grep -w $it" }.toTypedArray()
-            val args = mutableListOf<String>()
-            args.add("ps")
-            args.add("-A")
-            args.addAll(keysArg)
-            args.add("|")
-            args.add("awk")
-            args.add("'NF>1{print ${USD}2}'")
-            args.add("|")
-            args.add("xargs")
-            args.add("kill")
-            shell.newJob().to(null, null).add(args.joinToString(separator = " ")).exec()
-            shell.close()
-        } else {
-            LogHelper.e(TAG, "kill", "Failed to get a new shell!")
-        }
-    }
-
-    suspend fun rm(context: Context,path: String) {
-        val shell = getNewShell(context)
-        if (shell != null) {
-            shell.newJob().to(null, null).add("rm $path").exec()
-            shell.close()
-        } else {
-            LogHelper.e(TAG, "rm", "Failed to get a new shell!")
-        }
-    }
-
-    fun getSuVersion(): String? = runCatching { ShellUtils.fastCmd("su -v").trim().ifBlank { null } }.getOrNull()
 }

@@ -1,7 +1,4 @@
-package com.xayah.core.util.model
-
-import com.xayah.core.common.util.toLineString
-import com.xayah.core.common.util.toSpaceString
+package tiiehenry.android.snapshot.provider.appmanager.root
 
 data class ShellResult(
     var code: Int,

@@ -1,4 +1,4 @@
-package com.xayah.core.util
+package tiiehenry.android.snapshot.provider.appmanager.root
 
 object SymbolUtil {
     const val USD = '$'

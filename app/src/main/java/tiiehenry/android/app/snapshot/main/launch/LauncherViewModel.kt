@@ -12,7 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONWriter
 import com.tencent.mmkv.MMKV
-import com.xayah.core.util.command.SELinux
+import tiiehenry.android.snapshot.provider.appmanager.root.SELinux
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

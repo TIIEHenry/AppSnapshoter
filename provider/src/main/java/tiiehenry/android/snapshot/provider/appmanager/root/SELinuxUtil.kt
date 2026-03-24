@@ -1,8 +1,7 @@
-package com.xayah.core.util.command
+package tiiehenry.android.snapshot.provider.appmanager.root
 
-import com.xayah.core.util.SymbolUtil.QUOTE
-import com.xayah.core.util.SymbolUtil.USD
-import com.xayah.core.util.model.ShellResult
+import tiiehenry.android.snapshot.provider.appmanager.root.SymbolUtil.QUOTE
+import tiiehenry.android.snapshot.provider.appmanager.root.SymbolUtil.USD
 
 object SELinux {
     private suspend fun execute(vararg args: String): ShellResult = BaseUtil.execute(*args)

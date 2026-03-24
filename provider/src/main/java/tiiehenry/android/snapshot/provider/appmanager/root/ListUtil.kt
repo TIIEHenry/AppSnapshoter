@@ -1,4 +1,4 @@
-package com.xayah.core.common.util
+package tiiehenry.android.snapshot.provider.appmanager.root
 
 fun List<String>.toLineString() = joinToString(separator = "\n")
 fun List<String>.trim() = filter { it.isNotEmpty() }
