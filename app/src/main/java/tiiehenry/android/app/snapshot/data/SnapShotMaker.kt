@@ -474,9 +474,9 @@ object SnapShotMaker {
 
             override fun onProgress(
                 bytesWritten: Long,
-                kbPerS: Long
+                bytesPerS: Long
             ) {
-                callback.onProgress(bytesWritten, kbPerS)
+                callback.onProgress(bytesWritten, bytesPerS)
             }
 
             override fun onDone(

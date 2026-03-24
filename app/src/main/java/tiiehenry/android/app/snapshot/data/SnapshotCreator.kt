@@ -2,14 +2,12 @@ package tiiehenry.android.app.snapshot.data
 
 import android.content.Context
 import android.text.format.Formatter
-import android.util.Log
 import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
-import tiiehenry.android.app.snapshot.config.AppConfig
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
@@ -141,10 +139,10 @@ class SnapshotCreator(
                 // 可选：显示开始状态
             }
 
-            override fun onProgress(bytesWritten: Long, kbPerS: Long) {
+            override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
                 viewModelScope.launch(Dispatchers.Main) {
                     val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                    val speed = Formatter.formatFileSize(context, kbPerS)
+                    val speed = Formatter.formatFileSize(context, bytesPerS)
                     val message = "已写入: $fileSize\n速度: $speed/s"
                     loadingDialog.setMessage(message)
                 }

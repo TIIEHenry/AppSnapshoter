@@ -5,11 +5,16 @@ import android.system.OsConstants
 import android.util.Log
 import com.github.luben.zstd.ZstdInputStream
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import nota.io.StreamParallelTransformer
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
@@ -186,27 +191,37 @@ object ZstdDecompressor {
                 throw Exception("Failed to open input or output stream")
             }
 
-            var totalBytes = 0L
 
             ParcelFileDescriptor.AutoCloseInputStream(inPfd).use { fileInput ->
                 ZstdInputStream(fileInput).use { decompressedInput ->
-                    object :ParcelFileDescriptor.AutoCloseOutputStream(outPfd){
+                    object : ParcelFileDescriptor.AutoCloseOutputStream(outPfd) {
                         override fun close() {
                             Log.i(TAG, "Closing file output stream")
                             super.close()
                         }
                     }.use { fileOutput ->
-                        val buffer = ByteArray(8192)
-                        var bytesRead: Int
-                        while (decompressedInput.read(buffer).also { bytesRead = it } != -1) {
-                            if (isCancel.get()) {
-                                Log.i(TAG, "Decompression cancelled")
-                                return
+//                        43969ms->20210ms
+                        val transformer = StreamParallelTransformer(decompressedInput, fileOutput)
+                        val progressJob = Job()
+                        CoroutineScope(Dispatchers.Default + progressJob).launch {
+                            transformer.progressFlow.collectLatest { progress ->
+                                callback?.onProgress(progress.bytesWritten, progress.speed)
                             }
-                            fileOutput.write(buffer, 0, bytesRead)
-                            totalBytes += bytesRead
-                            callback?.onProgress(totalBytes, 0)
                         }
+                        transformer.startAndWait()
+                        progressJob.cancel()
+//                        var totalBytes = 0L
+//                        val buffer = ByteArray(8192)
+//                        var bytesRead: Int
+//                        while (decompressedInput.read(buffer).also { bytesRead = it } != -1) {
+//                            if (isCancel.get()) {
+//                                Log.i(TAG, "Decompression cancelled")
+//                                return
+//                            }
+//                            fileOutput.write(buffer, 0, bytesRead)
+//                            totalBytes += bytesRead
+//                            callback?.onProgress(totalBytes, 0)
+//                        }
                     }
                 }
             }

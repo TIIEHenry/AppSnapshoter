@@ -6,11 +6,16 @@ import android.util.Log
 import com.github.luben.zstd.Zstd
 import com.github.luben.zstd.ZstdOutputStream
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import nota.io.StreamParallelTransformer
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
@@ -234,19 +239,20 @@ object ZstdCompressor : IAlgorithmCompressor {
                 val fis = ParcelFileDescriptor.AutoCloseInputStream(parcelInput)
                 outputStream.use { parcelOutput ->
                     val fos = ParcelFileDescriptor.AutoCloseOutputStream(parcelOutput)
-                    CountingOutputStream(
-                        source = fos,
-                        onProgress = { bytesWritten, speed ->
-                            callback.onProgress(bytesWritten, speed)
+                    ZstdOutputStream(fos).use { zstdOutputStream ->
+                        zstdOutputStream.setWorkers(Runtime.getRuntime().availableProcessors())
+                        val zstdLevel = mapToZstdLevel(compressLevel)
+                        zstdOutputStream.setLevel(zstdLevel)
+                        //45532ms->34777ms
+                        val transformer = StreamParallelTransformer(fis, zstdOutputStream)
+                        val progressJob = Job()
+                        CoroutineScope(Dispatchers.Default + progressJob).launch {
+                            transformer.progressFlow.collectLatest { progress ->
+                                callback.onProgress(progress.bytesWritten, progress.speed)
+                            }
                         }
-                    ).use { countingOutputStream ->
-                        ZstdOutputStream(countingOutputStream).use { zstdOutputStream ->
-                            zstdOutputStream.setWorkers(Runtime.getRuntime().availableProcessors())
-                            // 将 1-9 的用户级别映射到 Zstd 实际压缩级别范围
-                            val zstdLevel = mapToZstdLevel(compressLevel)
-                            zstdOutputStream.setLevel(zstdLevel)
-                            fis.copyTo(zstdOutputStream)
-                        }
+                        transformer.startAndWait()
+                        progressJob.cancel()
                     }
                 }
             }

@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.RemoteException
+import android.text.format.Formatter
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
@@ -143,10 +144,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
             }
 
-            override fun onProgress(bytesWritten: Long, kbPerS: Long) {
+            override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
                 loadingDialog.post {
-                    val progress = (bytesWritten / 1024).toInt()
-                    loadingDialog.setProgress(progress)
+                    val fileSize = Formatter.formatFileSize(context, bytesWritten)
+                    val speed = Formatter.formatFileSize(context, bytesPerS)
+                    val message = "已读取: $fileSize\n速度: $speed/s"
+                    loadingDialog.setMessage(message)
                 }
             }
 
@@ -419,10 +422,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
             }
 
-            override fun onProgress(bytesWritten: Long, kbPerS: Long) {
+            override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
                 loadingDialog.post {
-                    val progress = (bytesWritten / 1024).toInt()
-                    loadingDialog.setProgress(progress)
+                    val fileSize = Formatter.formatFileSize(context, bytesWritten)
+                    val speed = Formatter.formatFileSize(context, bytesPerS)
+                    val message = "已读取: $fileSize\n速度: $speed/s"
+                    loadingDialog.setMessage(message)
                 }
             }
 
