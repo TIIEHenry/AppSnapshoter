@@ -530,7 +530,7 @@ class GroupsAdapter(
                         "${timeSeconds / 60}分${timeSeconds % 60}秒"
                     }
                     val sizeStr = Formatter.formatFileSize(context, info.archiveSize)
-                    itemBinding.successInfo.text = "耗时: $timeStr, 大小: $sizeStr"
+                    itemBinding.successInfo.text = "耗时: $timeStr, 数据: $sizeStr"
 
                     return itemBinding.root
                 }
@@ -569,8 +569,8 @@ class GroupsAdapter(
                 appendLine("成功项数: $totalCount")
                 appendLine("总耗时: $totalTimeStr")
                 appendLine("平均耗时: $avgTimeStr")
-                appendLine("总大小: ${Formatter.formatFileSize(context, totalSize)}")
-                appendLine("平均大小: ${Formatter.formatFileSize(context, avgSize)}")
+                appendLine("总数据大小: ${Formatter.formatFileSize(context, totalSize)}")
+                appendLine("平均数据大小: ${Formatter.formatFileSize(context, avgSize)}")
             }
 
             MaterialAlertDialogBuilder(context)

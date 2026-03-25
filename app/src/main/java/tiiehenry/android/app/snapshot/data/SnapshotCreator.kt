@@ -102,7 +102,7 @@ class SnapshotCreator(
                     }
 
                     // 先启动meta-info任务
-                    tasks.remove("meta-info")?.let {
+                    val job = tasks.remove("meta-info")?.let {
                         currentIndex++
                         withContext(Dispatchers.Main) {
                             updateIndex(currentIndex)
@@ -127,6 +127,7 @@ class SnapshotCreator(
                             return@launch
                         }
                     }
+                    job?.await()// wait finish writing
                     if (isCanceled.get()) {
                         fs.delete(snapshotTasks.dir)
                         return@launch
