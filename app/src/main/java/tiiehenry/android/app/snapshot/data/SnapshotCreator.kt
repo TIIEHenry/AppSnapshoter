@@ -123,11 +123,16 @@ class SnapshotCreator(
                         }
                         entry.value.start()
                         if (entry.value.state() == CompressState.COMPRESS_STATE_ERROR) {
+                            if (false == job?.isCompleted) {
+                                job.await()// wait finish writing
+                            }
                             fs.delete(snapshotTasks.dir)
                             return@launch
                         }
                     }
-                    job?.await()// wait finish writing
+                    if (false == job?.isCompleted) {
+                        job.await()// wait finish writing
+                    }
                     if (isCanceled.get()) {
                         fs.delete(snapshotTasks.dir)
                         return@launch
