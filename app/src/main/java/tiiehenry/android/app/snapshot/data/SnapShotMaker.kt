@@ -147,6 +147,7 @@ object SnapShotMaker {
                         if (filePath.isRegularFile()) {
                             continue
                         }
+                        val compressLevel = 3// apk use static compress level 高level 压缩不了太多内存了
                         val apks = mutableListOf<String>()
                         apks.add(apkPath)
                         applicationInfo.splitPublicSourceDirs?.forEach { apks.add(it) }
