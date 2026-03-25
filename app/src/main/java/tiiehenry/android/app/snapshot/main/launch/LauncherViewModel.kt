@@ -24,6 +24,7 @@ import tiiehenry.android.app.snapshot.data.ArchivedApks
 import tiiehenry.android.app.snapshot.data.MetaDataItem
 import tiiehenry.android.app.snapshot.data.MetaInfoHelper
 import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.ui.dialog.ILoadingDialog
 import tiiehenry.android.app.snapshot.ui.dialog.LoadingDialog
 import tiiehenry.android.app.snapshot.util.ApkUtil
 import tiiehenry.android.snapshot.app.AppPermission
@@ -53,8 +54,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         // 显示 LoadingDialog
         val loadingDialog = LoadingDialog(context)
-        loadingDialog.setMessage("正在准备高级恢复...")
-        loadingDialog.show()
+        loadingDialog.setItemMessage("正在准备高级恢复")
+        loadingDialog.setItemStatus("...")
+        loadingDialog.showItem()
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -73,7 +75,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    loadingDialog.dismiss()
+                    loadingDialog.dismissItem()
                     Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             } finally {
@@ -103,8 +105,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         // 显示 LoadingDialog
         val loadingDialog = LoadingDialog(context)
-        loadingDialog.setMessage("正在准备恢复存档...")
-        loadingDialog.show()
+        loadingDialog.setItemMessage("正在准备恢复存档")
+        loadingDialog.setItemStatus("...")
+        loadingDialog.showItem()
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -115,7 +118,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    loadingDialog.dismiss()
+                    loadingDialog.dismissItem()
                     Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             } finally {
@@ -132,7 +135,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         appManager: IAppManager,
         snapedApp: SnapedApp,
         archiveItem: ArchiveItem,
-        loadingDialog: LoadingDialog
+        loadingDialog: ILoadingDialog
     ) {
         val appInfo = archiveItem.appInfo
         val packageName = appInfo.packageName
@@ -146,8 +149,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         // 恢复前先清除应用数据
         withContext(Dispatchers.Main) {
-            loadingDialog.setMessage("清除应用数据")
-            loadingDialog.setStatus("...")
+            loadingDialog.setItemMessage("清除应用数据")
+            loadingDialog.setItemStatus("...")
         }
         val installed = appManager.isInstalled(packageName, userId)
 
@@ -217,7 +220,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         restorePermission(loadingDialog, archiveItem, fs, appManager, packageName, userId)
         withContext(Dispatchers.Main) {
-            loadingDialog.dismiss()
+            loadingDialog.dismissItem()
             Toast.makeText(context, "存档恢复成功", Toast.LENGTH_SHORT).show()
         }
     }
@@ -225,7 +228,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private suspend fun restoreItems(
         needRestoreDataItems: MutableList<MetaDataItem>,
         extraItems: Map<MetaDataItem, String>,
-        loadingDialog: LoadingDialog,
+        loadingDialog: ILoadingDialog,
         fs: IFileSystem,
         appManager: IAppManager,
         snapedApp: SnapedApp,
@@ -247,7 +250,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
                 withContext(Dispatchers.Main) {
                     loadingDialog.setCurrentItem("$itemName")
-                    loadingDialog.setProgress(progress)
+                    loadingDialog.setItemProgress(progress)
                 }
 
                 restoreDataItem(
@@ -274,7 +277,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
                     withContext(Dispatchers.Main) {
                         loadingDialog.setCurrentItem("$itemName (额外)")
-                        loadingDialog.setProgress(progress)
+                        loadingDialog.setItemProgress(progress)
                     }
                     restoreExtraItem(
                         fs,
@@ -289,7 +292,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
-                loadingDialog.setException(e)
+                loadingDialog.setItemException(e)
             }
             return false
         }
@@ -297,7 +300,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private suspend fun restorePermission(
-        loadingDialog: LoadingDialog,
+        loadingDialog: ILoadingDialog,
         archiveItem: ArchiveItem,
         fs: IFileSystem,
         appManager: IAppManager,
@@ -322,8 +325,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         // 恢复权限
         withContext(Dispatchers.Main) {
-            loadingDialog.setMessage("正在恢复权限")
-            loadingDialog.setStatus("...")
+            loadingDialog.setItemMessage("正在恢复权限")
+            loadingDialog.setItemStatus("...")
         }
         val permissionsFile = "${archiveItem.path}/${MetaInfoHelper.PERMISSIONS_FILE_NAME}"
         val metaPermissions = MetaInfoHelper.readPermissions(fs, permissionsFile)
@@ -414,25 +417,25 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun itemCallback(
-        loadingDialog: LoadingDialog,
+        loadingDialog: ILoadingDialog,
         context: Context
     ): DataItemCallback {
         val callback = object : DataItemCallback {
             override fun onStart(dataItem: MetaDataItem) {
                 loadingDialog.post {
-                    loadingDialog.setStatus("...")
+                    loadingDialog.setItemStatus("...")
                 }
             }
 
             override fun onProgress(dataItem: MetaDataItem, bytesWritten: Long, bytesPerS: Long) {
                 loadingDialog.post {
                     val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                    loadingDialog.setMessage("已读取: $fileSize")
+                    loadingDialog.setItemMessage("已读取: $fileSize")
                     if (bytesPerS == 0L) {
-                        loadingDialog.setStatus("...")
+                        loadingDialog.setItemStatus("...")
                     } else {
                         val speed = Formatter.formatFileSize(context, bytesPerS)
-                        loadingDialog.setStatus("$speed/s")
+                        loadingDialog.setItemStatus("$speed/s")
                     }
                 }
             }
@@ -448,7 +451,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
             override fun onError(dataItem: MetaDataItem, e: Exception) {
                 loadingDialog.post {
-                    loadingDialog.setException(e)
+                    loadingDialog.setItemException(e)
                 }
             }
         }
@@ -464,7 +467,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         appManager: IAppManager,
         snapedApp: SnapedApp,
         archiveItem: ArchiveItem,
-        loadingDialog: LoadingDialog,
+        loadingDialog: ILoadingDialog,
         selectedTypes: Set<String>
     ) {
         val appInfo = archiveItem.appInfo
@@ -485,7 +488,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         if (dataItems.isEmpty() && selectedExtraItems.isEmpty()) {
             withContext(Dispatchers.Main) {
-                loadingDialog.dismiss()
+                loadingDialog.dismissItem()
                 Toast.makeText(context, "没有选中的数据项", Toast.LENGTH_SHORT).show()
             }
             return
@@ -524,7 +527,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val hasDataTypes = selectedTypes.any { it != CompressItems.COMPRESS_ITEM_APK }
         if (hasDataTypes && !installed && !needInstallApk) {
             withContext(Dispatchers.Main) {
-                loadingDialog.dismiss()
+                loadingDialog.dismissItem()
                 Toast.makeText(context, "应用未安装，请先恢复APK或安装应用", Toast.LENGTH_LONG)
                     .show()
             }
@@ -534,8 +537,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // 如果恢复数据且应用已安装，清除应用数据
         if (hasDataTypes && installed) {
             withContext(Dispatchers.Main) {
-                loadingDialog.setMessage("清除应用数据")
-                loadingDialog.setStatus("...")
+                loadingDialog.setItemMessage("清除应用数据")
+                loadingDialog.setItemStatus("...")
             }
             appManager.clearAppData(packageName, userId)
         }
@@ -586,7 +589,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
 
         withContext(Dispatchers.Main) {
-            loadingDialog.dismiss()
+            loadingDialog.dismissItem()
             Toast.makeText(context, "高级恢复成功", Toast.LENGTH_SHORT).show()
         }
     }
@@ -601,7 +604,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         packageName: String,
         userId: Int,
         callback: DataItemCallback,
-        loadingDialog: LoadingDialog
+        loadingDialog: ILoadingDialog
     ) {
         val itemName = dataItem.name
 
@@ -801,7 +804,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         dataItem: MetaDataItem,
         targetPath: String,
         callback: DataItemCallback,
-        loadingDialog: LoadingDialog
+        loadingDialog: ILoadingDialog
     ) {
         // 查找数据文件
         val archiveDir = archiveItem.path

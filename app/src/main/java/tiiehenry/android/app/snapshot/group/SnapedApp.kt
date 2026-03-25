@@ -42,6 +42,10 @@ data class SnapedApp(val group: SnapGroup, val packageDir: String, val iconFile:
                 }
             }
             val archiveDir = Paths.get(packageDir, archiveName).absolutePathString()
+            if (fs.fileType(archiveDir) == IFileType.TYPE_FILE) {
+                //json config
+                continue
+            }
             val jsonFile = Paths.get(archiveDir, MetaInfoHelper.META_INFO_FILE_NAME)
                 .absolutePathString()
             if (fs.fileType(jsonFile) == IFileType.TYPE_FILE) {

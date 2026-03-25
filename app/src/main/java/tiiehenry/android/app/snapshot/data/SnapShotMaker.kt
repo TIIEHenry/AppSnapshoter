@@ -34,7 +34,7 @@ object SnapShotMaker {
         groupConfig: GroupConfig,
         appConfig: AppConfig,
         archiveName: String? = null
-    ): java.util.LinkedHashMap<String, ITaskHandler>? {
+    ): SnapshotTasks? {
         try {
             val rootPath = groupConfig.rootPath
             val packageDir = Paths.get(rootPath, appInfo.packageName).absolutePathString()
@@ -323,7 +323,7 @@ object SnapShotMaker {
                 tasks["uninstall-app"] = uninstallTask
             }
 
-            return tasks
+            return SnapshotTasks(archiveDir, tasks)
         } catch (e: Exception) {
             e.printStackTrace()
             return null

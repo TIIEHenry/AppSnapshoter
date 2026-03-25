@@ -1,5 +1,6 @@
 package tiiehenry.android.app.snapshot.main.launch
 
+import android.text.format.Formatter
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -13,17 +14,30 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.SortConfig
+import tiiehenry.android.app.snapshot.data.MetaInfoHelper
+import tiiehenry.android.app.snapshot.data.SnapshotCreator
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
+import tiiehenry.android.app.snapshot.databinding.ItemSuccessAppBinding
 import tiiehenry.android.app.snapshot.group.SelectAppFragment
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.ui.dialog.MultiItemLoadingDialog
 import tiiehenry.android.app.snapshot.ui.group.GroupConfigFragment
 import tiiehenry.android.app.snapshot.ui.group.GroupShotConfigFragment
+import tiiehenry.android.app.snapshot.util.AppStatusHelper
+import java.util.concurrent.atomic.AtomicBoolean
+
+data class SuccessSnapshotInfo(
+    val snapedApp: SnapedApp,
+    val timeMillis: Long,
+    val archiveSize: Long
+)
 
 class GroupsAdapter(
     private val viewModel: LauncherViewModel,
@@ -121,6 +135,10 @@ class GroupsAdapter(
                 Toast.makeText(it.context, "刷新分组中的应用列表", Toast.LENGTH_SHORT).show()
                 true
             }
+            binding.btnRefresh.setOnLongClickListener {
+                showGroupStatistics(group)
+                true
+            }
             refresh(group, binding.groupRecyclerView)
 
             binding.btnAdd.setOnClickListener {
@@ -161,6 +179,9 @@ class GroupsAdapter(
                 true
             }
 
+            binding.btnArchiveAll.setOnClickListener {
+                archiveAllApps(group, adapter)
+            }
             updateButtonVisibility(!isSortMode)
         }
 
@@ -228,10 +249,367 @@ class GroupsAdapter(
             binding.btnAdd.visibility = if (show) View.VISIBLE else View.GONE
             binding.btnTune.visibility = if (show) View.VISIBLE else View.GONE
             binding.btnRefresh.visibility = if (show) View.VISIBLE else View.GONE
+            binding.btnArchiveAll.visibility = if (show) View.VISIBLE else View.GONE
             // 排序模式下显示确认按钮，普通模式下隐藏
             binding.btnConfirm.visibility = if (show) View.GONE else View.VISIBLE
         }
 
+        /**
+         * 批量归档组内所有已安装应用
+         */
+        private fun archiveAllApps(group: SnapGroup, adapter: GroupItemAdapter) {
+            val installedApps = group.apps.filter { AppStatusHelper.isAppInstalled(it) }
+            if (installedApps.isEmpty()) {
+                Toast.makeText(binding.root.context, "没有已安装的应用可归档", Toast.LENGTH_SHORT)
+                    .show()
+                return
+            }
+
+            // 显示确认对话框
+            MaterialAlertDialogBuilder(binding.root.context)
+                .setTitle("全部归档")
+                .setMessage("确定为 ${group.name} 中的 ${installedApps.size} 个应用创建快照？")
+                .setPositiveButton("确认") { _, _ ->
+                    val loadingDialog = MultiItemLoadingDialog(binding.root.context)
+                    loadingDialog.setTotalProgress(installedApps.size)
+                    val erroredList = mutableMapOf<SnapedApp, Exception>()
+                    val succeedList = mutableListOf<SuccessSnapshotInfo>()
+                    val isCancelled = AtomicBoolean(false)
+                    val isForceCancelled = AtomicBoolean(false)
+                    val startTime = System.currentTimeMillis()
+                    loadingDialog.setOnCancelListener {
+                        isCancelled.set(true)
+                        loadingDialog.setFinishButtonAsForceCancel {
+                            isForceCancelled.set(true)
+                        }
+                        loadingDialog.setLabel("正在停止")
+                    }
+                    loadingDialog.setOnFailListener {
+                        if (erroredList.isNotEmpty()) {
+                            showErroredAppsDialog(erroredList)
+                        } else {
+                            Toast.makeText(binding.root.context, "暂无错误", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    }
+                    loadingDialog.setOnSuccessListener {
+                        if (succeedList.isNotEmpty()) {
+                            showSuccessAppsDialog(succeedList)
+                        } else {
+                            Toast.makeText(binding.root.context, "暂无成功", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    }
+                    loadingDialog.setOnSuccessLongClickListener {
+                        if (succeedList.isNotEmpty()) {
+                            showSuccessStatistics(succeedList)
+                        } else {
+                            Toast.makeText(binding.root.context, "暂无成功", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    }
+                    createSnapshotsSequentially(
+                        loadingDialog,
+                        installedApps,
+                        group,
+                        adapter,
+                        erroredList,
+                        succeedList,
+                        isCancelled,
+                        isForceCancelled,
+                        0,
+                        startTime
+                    )
+                    loadingDialog.show()
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
+
+        /**
+         * 顺序创建快照
+         */
+        private fun createSnapshotsSequentially(
+            loadingDialog: MultiItemLoadingDialog,
+            apps: List<SnapedApp>,
+            group: SnapGroup,
+            adapter: GroupItemAdapter,
+            erroredList: MutableMap<SnapedApp, Exception>,
+            succeedList: MutableList<SuccessSnapshotInfo>,
+            isCancelled: AtomicBoolean,
+            isForceCancelled: AtomicBoolean,
+            currentIndex: Int,
+            totalStartTime: Long
+        ) {
+            if (isCancelled.get()) {
+                return
+            }
+            if (currentIndex >= apps.size) {
+                // 所有快照创建完成
+                refresh(group, binding.groupRecyclerView)
+                SnapshotApp.getViewModel().loadGroups()
+                Toast.makeText(binding.root.context, "全部归档完成", Toast.LENGTH_SHORT).show()
+                val totalTime = System.currentTimeMillis() - totalStartTime
+                updateDialogFinishState(
+                    loadingDialog,
+                    totalTime,
+                    succeedList.size,
+                    erroredList.size,
+                    false
+                )
+                return
+            }
+            val item = apps[currentIndex]
+            loadingDialog.setProgress(currentIndex + 1)
+            loadingDialog.setLabel(item.appInfo.label)
+            loadingDialog.setPackageName(item.appInfo.packageName)
+            val startTime = System.currentTimeMillis()
+            val snapshotCreator = SnapshotCreator(binding.root.context, viewModel.viewModelScope)
+            snapshotCreator.createSnapshot(
+                loadingDialog,
+                item,
+                group,
+                isForceCancelled,
+                object : SnapshotCreator.Callback {
+                    override fun onSuccess() {
+                        val endTime = System.currentTimeMillis()
+                        val timeMillis = endTime - startTime
+                        val archiveSize = calculateArchiveSize(item)
+                        synchronized(succeedList) {
+                            succeedList.add(SuccessSnapshotInfo(item, timeMillis, archiveSize))
+                        }
+                    }
+
+                    override fun onError(e: Exception) {
+                        erroredList[item] = e
+                    }
+
+                    override fun onFinish() {
+                        if (isCancelled.get() && currentIndex < apps.size) {
+                            val totalTime = System.currentTimeMillis() - startTime
+                            updateDialogFinishState(
+                                loadingDialog,
+                                totalTime,
+                                succeedList.size,
+                                erroredList.size,
+                                true
+                            )
+                            Toast.makeText(binding.root.context, "已中止归档", Toast.LENGTH_SHORT)
+                                .show()
+                        } else {
+                            createSnapshotsSequentially(
+                                loadingDialog,
+                                apps,
+                                group,
+                                adapter,
+                                erroredList,
+                                succeedList,
+                                isCancelled,
+                                isForceCancelled,
+                                currentIndex + 1,
+                                totalStartTime
+                            )
+                        }
+                    }
+                })
+        }
+
+        private fun calculateArchiveSize(item: SnapedApp): Long {
+            return try {
+                item.latestArchive?.let { archive ->
+                    archive.dataItems.sumOf { it.targetSize } +
+                            archive.extraItems.keys.sumOf { it.targetSize }
+                } ?: 0L
+            } catch (e: Exception) {
+                0L
+            }
+        }
+
+        private fun showErroredAppsDialog(erroredList: Map<SnapedApp, Exception>) {
+            val context = binding.root.context
+            val items = erroredList.entries.toList()
+
+            val adapter = object : android.widget.BaseAdapter() {
+                override fun getCount(): Int = items.size
+
+                override fun getItem(position: Int): Any = items[position]
+
+                override fun getItemId(position: Int): Long = position.toLong()
+
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val itemBinding = if (convertView != null) {
+                        tiiehenry.android.app.snapshot.databinding.ItemErrorAppBinding.bind(
+                            convertView
+                        )
+                    } else {
+                        tiiehenry.android.app.snapshot.databinding.ItemErrorAppBinding.inflate(
+                            LayoutInflater.from(context), parent, false
+                        )
+                    }
+                    val entry = items[position]
+                    val snapedApp = entry.key
+                    val exception = entry.value
+
+                    itemBinding.appIcon.setImageBitmap(snapedApp.appInfo.icon)
+                    itemBinding.appLabel.text = snapedApp.appInfo.label
+                    itemBinding.packageName.text = snapedApp.appInfo.packageName
+
+                    itemBinding.errorIcon.setOnClickListener {
+                        MaterialAlertDialogBuilder(context)
+                            .setTitle("Error: ${snapedApp.appInfo.label}")
+                            .setMessage(exception.toString())
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+
+                    return itemBinding.root
+                }
+            }
+
+            MaterialAlertDialogBuilder(context)
+                .setTitle("创建快照失败 (${items.size}个)")
+                .setAdapter(adapter) { _, _ -> }
+                .setPositiveButton("OK", null)
+                .show()
+        }
+
+        private fun updateDialogFinishState(
+            loadingDialog: MultiItemLoadingDialog,
+            totalTime: Long,
+            succeedCount: Int,
+            errorCount: Int,
+            isCancelled: Boolean
+        ) {
+            val timeSeconds = totalTime / 1000
+            val timeStr = if (timeSeconds < 60) {
+                "${timeSeconds}秒"
+            } else {
+                "${timeSeconds / 60}分${timeSeconds % 60}秒"
+            }
+            val statusText = if (isCancelled) {
+                "已中止"
+            } else {
+                "已完成"
+            }
+            loadingDialog.setLabel(statusText)
+            loadingDialog.setCurrentItem("总耗时: $timeStr")
+            loadingDialog.setItemMessage("成功: $succeedCount")
+            loadingDialog.setItemStatus("失败: $errorCount")
+            loadingDialog.setPackageName("")
+            loadingDialog.setFinishButtonAsClose {
+                loadingDialog.dismiss()
+            }
+        }
+
+        private fun showSuccessAppsDialog(successedList: List<SuccessSnapshotInfo>) {
+            val context = binding.root.context
+            val items = successedList.toList()
+
+            val adapter = object : android.widget.BaseAdapter() {
+                override fun getCount(): Int = items.size
+
+                override fun getItem(position: Int): Any = items[position]
+
+                override fun getItemId(position: Int): Long = position.toLong()
+
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val itemBinding = ItemSuccessAppBinding.inflate(
+                        LayoutInflater.from(context), parent, false
+                    )
+                    val info = items[position]
+                    val snapedApp = info.snapedApp
+
+                    itemBinding.appIcon.setImageBitmap(snapedApp.appInfo.icon)
+                    itemBinding.appLabel.text = snapedApp.appInfo.label
+                    itemBinding.packageName.text = snapedApp.appInfo.packageName
+
+                    val timeSeconds = info.timeMillis / 1000
+                    val timeStr = if (timeSeconds < 60) {
+                        "${timeSeconds}秒"
+                    } else {
+                        "${timeSeconds / 60}分${timeSeconds % 60}秒"
+                    }
+                    val sizeStr = Formatter.formatFileSize(context, info.archiveSize)
+                    itemBinding.successInfo.text = "耗时: $timeStr, 大小: $sizeStr"
+
+                    return itemBinding.root
+                }
+            }
+
+            MaterialAlertDialogBuilder(context)
+                .setTitle("创建快照成功 (${items.size}个)")
+                .setAdapter(adapter) { _, _ -> }
+                .setPositiveButton("OK", null)
+                .show()
+        }
+
+        private fun showSuccessStatistics(successedList: List<SuccessSnapshotInfo>) {
+            val context = binding.root.context
+            val totalCount = successedList.size
+            val totalTimeMillis = successedList.sumOf { it.timeMillis }
+            val totalSize = successedList.sumOf { it.archiveSize }
+            val avgTimeMillis = if (totalCount > 0) totalTimeMillis / totalCount else 0L
+            val avgSize = if (totalCount > 0) totalSize / totalCount else 0L
+
+            val totalTimeSeconds = totalTimeMillis / 1000
+            val totalTimeStr = if (totalTimeSeconds < 60) {
+                "${totalTimeSeconds}秒"
+            } else {
+                "${totalTimeSeconds / 60}分${totalTimeSeconds % 60}秒"
+            }
+
+            val avgTimeSeconds = avgTimeMillis / 1000
+            val avgTimeStr = if (avgTimeSeconds < 60) {
+                "${avgTimeSeconds}秒"
+            } else {
+                "${avgTimeSeconds / 60}分${avgTimeSeconds % 60}秒"
+            }
+
+            val message = buildString {
+                appendLine("成功项数: $totalCount")
+                appendLine("总耗时: $totalTimeStr")
+                appendLine("平均耗时: $avgTimeStr")
+                appendLine("总大小: ${Formatter.formatFileSize(context, totalSize)}")
+                appendLine("平均大小: ${Formatter.formatFileSize(context, avgSize)}")
+            }
+
+            MaterialAlertDialogBuilder(context)
+                .setTitle("成功项统计数据")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show()
+        }
+
+        private fun showGroupStatistics(group: SnapGroup) {
+            val context = binding.root.context
+            val totalApps = group.apps.size
+            val installedApps = group.apps.count { AppStatusHelper.isAppInstalled(it) }
+            val archivedApps = group.apps.count { it.archives.isNotEmpty() }
+            val totalArchives = group.apps.sumOf { it.archives.size }
+            val totalSize = group.apps.flatMap { it.archives.values }.sumOf { archive ->
+                try {
+                    MetaInfoHelper.getTotalSize(archive.metaInfo, archive.path)
+                } catch (e: Exception) {
+                    0L
+                }
+            }
+            val avgArchives = if (archivedApps > 0) totalArchives.toDouble() / archivedApps else 0.0
+
+            val message = buildString {
+                appendLine("总应用数: $totalApps")
+                appendLine("已安装应用: $installedApps")
+                appendLine("已存档应用: $archivedApps")
+                appendLine("总存档数: $totalArchives")
+                appendLine("平均存档数: ${String.format("%.1f", avgArchives)}")
+                appendLine("总存档大小: ${Formatter.formatFileSize(context, totalSize)}")
+            }
+
+            MaterialAlertDialogBuilder(context)
+                .setTitle("${group.name} - 统计数据")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show()
+        }
 
         private fun startDragSortMode(adapter: GroupItemAdapter, group: SnapGroup) {
             val callback = object : ItemTouchHelper.SimpleCallback(

@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -211,7 +212,7 @@ class ArchiveItemAdapter(
                 }
             }
 
-            AlertDialog.Builder(context)
+            MaterialAlertDialogBuilder(context)
                 .setTitle("存档信息 - ${item.name}")
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, null)

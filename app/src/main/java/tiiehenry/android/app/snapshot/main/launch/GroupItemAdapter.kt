@@ -351,6 +351,13 @@ class GroupItemAdapter(
             val snapshotCreator = SnapshotCreator(binding.root.context, viewModel.viewModelScope)
             snapshotCreator.createSnapshot(item, group, object : SnapshotCreator.Callback {
                 override fun onSuccess() {
+                }
+
+                override fun onError(e: Exception) {
+
+                }
+
+                override fun onFinish() {
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
                     SnapshotApp.getViewModel().loadGroups()
                 }

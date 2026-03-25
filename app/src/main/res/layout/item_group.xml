@@ -83,6 +83,17 @@
                 android:scaleType="fitCenter"
                 android:src="@drawable/tune" />
 
+            <ImageButton
+                android:id="@+id/btn_archive_all"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_margin="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="全部归档"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/briefcase_download_outline" />
+
         </LinearLayout>
 
         <FrameLayout

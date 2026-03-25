@@ -11,10 +11,12 @@ import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapedApp
 import tiiehenry.android.app.snapshot.main.launch.ArchiveFailedException
+import tiiehenry.android.app.snapshot.ui.dialog.ILoadingDialog
 import tiiehenry.android.app.snapshot.ui.dialog.LoadingDialog
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.fs.CompressState
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 快照创建管理类
@@ -34,6 +36,8 @@ class SnapshotCreator(
      */
     interface Callback {
         fun onSuccess()
+        fun onError(e: Exception)
+        fun onFinish()
     }
 
     /**
@@ -44,12 +48,27 @@ class SnapshotCreator(
      */
     fun createSnapshot(item: SnapedApp, group: SnapGroup, callback: Callback? = null) {
         val loadingDialog = LoadingDialog(context)
-        loadingDialog.setMessage("正在创建存档")
-        loadingDialog.setStatus("...")
-        loadingDialog.show()
+        loadingDialog.setItemMessage("正在创建存档")
+        loadingDialog.setItemStatus("...")
+        loadingDialog.showItem()
+        createSnapshot(loadingDialog, item, group, AtomicBoolean(false), callback)
+    }
 
+    /**
+     * 创建应用快照
+     * @param item 应用快照项
+     * @param group 所属组
+     * @param callback 回调
+     */
+    fun createSnapshot(
+        loadingDialog: ILoadingDialog,
+        item: SnapedApp,
+        group: SnapGroup,
+        isCanceled: AtomicBoolean,
+        callback: Callback? = null
+    ) {
         val onError = { msg: Exception ->
-            loadingDialog.setException(msg)
+            loadingDialog.setItemException(msg)
         }
         val onErrorCallback = { msg: String ->
             onError(ArchiveFailedException(msg))
@@ -71,14 +90,15 @@ class SnapshotCreator(
                 val compressCallback =
                     createCompressCallback(context, loadingDialog, onErrorCallback)
 
-                val tasks = SnapShotMaker.makeSnapshot(
+                val snapshotTasks = SnapShotMaker.makeSnapshot(
                     fs, appManager, item, item.appInfo, compressCallback, groupConfig, appConfig
                 )
                 var currentIndex = 0
-                if (tasks != null) {
+                if (snapshotTasks != null) {
+                    val tasks = snapshotTasks.tasks
                     val totalTask = tasks.size
                     fun updateIndex(index: Int) {
-                        loadingDialog.setProgress(index * 100 / totalTask)
+                        loadingDialog.setItemProgress(index * 100 / totalTask)
                     }
 
                     // 先启动meta-info任务
@@ -89,20 +109,27 @@ class SnapshotCreator(
                         }
                         async { it.start() }
                     }
-
                     // 执行其他任务
                     for (entry in tasks) {
+                        if (isCanceled.get()) {
+                            continue
+                        }
                         currentIndex++
                         withContext(Dispatchers.Main) {
                             updateIndex(currentIndex)
                             loadingDialog.setCurrentItem(entry.key)
-                            loadingDialog.setStatus("...")
+                            loadingDialog.setItemMessage("处理中")
+                            loadingDialog.setItemStatus("...")
                         }
                         entry.value.start()
                         if (entry.value.state() == CompressState.COMPRESS_STATE_ERROR) {
-                            //todo clean failed archive
+                            fs.delete(snapshotTasks.dir)
                             return@launch
                         }
+                    }
+                    if (isCanceled.get()) {
+                        fs.delete(snapshotTasks.dir)
+                        return@launch
                     }
                     // 重新加载应用数据
                     ArchiveManager.reloadArchives(item, true)
@@ -110,7 +137,7 @@ class SnapshotCreator(
                     RetentionPolicyExecutor.applyPolicy(item, groupConfig, appConfig)
                     withContext(Dispatchers.Main) {
                         callback?.onSuccess()
-                        loadingDialog.dismiss()
+                        loadingDialog.dismissItem()
                     }
                 } else {
                     withContext(Dispatchers.Main) {
@@ -120,12 +147,16 @@ class SnapshotCreator(
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
+                    callback?.onError(e)
                     onError(e)
                 }
             } finally {
                 // 恢复挂起应用
                 AppStatusHelper.unsuspendPackage(item.appInfo.packageName, item.appInfo.userId)
                 ArchiveManager.reloadArchives(item, true)
+                withContext(Dispatchers.Main) {
+                    callback?.onFinish()
+                }
             }
         }
     }
@@ -135,8 +166,8 @@ class SnapshotCreator(
      */
     private fun createCompressCallback(
         context: Context,
-        loadingDialog: LoadingDialog,
-        onErrorCallbck: (String) -> Unit
+        loadingDialog: ILoadingDialog,
+        onErrorCallback: (String) -> Unit
     ): ICompressCallback {
         return object : ICompressCallback.Stub() {
             override fun onStart() {
@@ -146,12 +177,12 @@ class SnapshotCreator(
             override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
                 viewModelScope.launch(Dispatchers.Main) {
                     val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                    loadingDialog.setMessage("已写入: $fileSize")
+                    loadingDialog.setItemMessage("已写入: $fileSize")
                     if (bytesPerS == 0L) {
-                        loadingDialog.setStatus("...")
+                        loadingDialog.setItemStatus("...")
                     } else {
                         val speed = Formatter.formatFileSize(context, bytesPerS)
-                        loadingDialog.setStatus("$speed/s")
+                        loadingDialog.setItemStatus("$speed/s")
                     }
                 }
             }
@@ -162,7 +193,7 @@ class SnapshotCreator(
 
             override fun onError(msg: String?) {
                 viewModelScope.launch(Dispatchers.Main) {
-                    onErrorCallbck(msg ?: "unknow")
+                    onErrorCallback(msg ?: "unknow")
                 }
             }
         }
