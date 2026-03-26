@@ -1,5 +1,6 @@
-package tiiehenry.android.app.snapshot.main.launch
+package tiiehenry.android.app.snapshot.main.launch.addgroup
 
+import android.R
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,13 +9,15 @@ import android.widget.ArrayAdapter
 import android.widget.Spinner
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.databinding.BottomSheetAddGroupBinding
+import tiiehenry.android.app.snapshot.main.launch.LauncherViewModel
 import tiiehenry.android.app.snapshot.util.GroupPathPickerHelper
+import tiiehenry.android.snapshot.app.UserInfoParcelable
 
 class AddGroupBottomSheet : BottomSheetDialogFragment() {
 
@@ -23,14 +26,19 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
     private val viewModel: LauncherViewModel by activityViewModels()
 
     private lateinit var userIdSpinner: Spinner
-    private val userInfoList = mutableListOf<tiiehenry.android.snapshot.app.UserInfoParcelable>()
+    private val userInfoList = mutableListOf<UserInfoParcelable>()
 
     private val pathPickerHelper = GroupPathPickerHelper(this) { absolutePath, uri ->
         binding.etGroupPath.setText(absolutePath)
-        GroupPathPickerHelper.takePersistablePermission(this, uri)
-        GroupPathPickerHelper.autoFillGroupName(this, uri, absolutePath, binding.etGroupName)
+        GroupPathPickerHelper.Companion.takePersistablePermission(this, uri)
+        GroupPathPickerHelper.Companion.autoFillGroupName(
+            this,
+            uri,
+            absolutePath,
+            binding.etGroupName
+        )
         // 尝试从 group.json 自动解析 userId 并选中对应项
-        val configData = GroupPathPickerHelper.readGroupConfigData(this, uri)
+        val configData = GroupPathPickerHelper.Companion.readGroupConfigData(this, uri)
         if (configData != null) {
             val idx = userInfoList.indexOfFirst { it.id == configData.userId }
             if (idx >= 0) userIdSpinner.setSelection(idx)
@@ -58,7 +66,7 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
         lifecycleScope.launch {
             val users = withContext(Dispatchers.IO) {
                 try {
-                    SnapshotApp.getInstance().appManager.users ?: emptyList()
+                    SnapshotApp.Companion.getInstance().appManager.users ?: emptyList()
                 } catch (e: Exception) {
                     e.printStackTrace()
                     emptyList()
@@ -67,8 +75,9 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             userInfoList.clear()
             userInfoList.addAll(users)
             val userLabels = userInfoList.map { "${it.name} (${it.id})" }.toTypedArray()
-            val userAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, userLabels)
-            userAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            val userAdapter =
+                ArrayAdapter(requireContext(), R.layout.simple_spinner_item, userLabels)
+            userAdapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
             userIdSpinner.adapter = userAdapter
         }
 
@@ -90,7 +99,7 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
                 val userId = if (selectedIndex >= 0 && selectedIndex < userInfoList.size) {
                     userInfoList[selectedIndex].id
                 } else 0
-                SnapshotApp.getViewModel().addGroup(groupName, groupPath, userId)
+                SnapshotApp.Companion.getViewModel().addGroup(groupName, groupPath, userId)
                 dismiss()
             } else {
                 if (groupName.isEmpty()) {

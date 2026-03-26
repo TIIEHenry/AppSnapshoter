@@ -1,7 +1,7 @@
 package tiiehenry.android.app.snapshot.util
 
 import tiiehenry.android.app.snapshot.SnapshotApp
-import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.model.PackageStatus
 
 /**
@@ -15,7 +15,7 @@ object AppStatusHelper {
      * @param item 应用快照项
      * @return 应用状态
      */
-    fun getPackageStatus(item: SnapedApp): PackageStatus {
+    fun getPackageStatus(item: ArchivedApp): PackageStatus {
         val appManager = item.appInfo.appManager
         val packageName = item.appInfo.packageName
         val userId = item.appInfo.userId
@@ -60,7 +60,7 @@ object AppStatusHelper {
      * @param item 应用快照项
      * @return 是否已安装
      */
-    fun isAppInstalled(item: SnapedApp): Boolean {
+    fun isAppInstalled(item: ArchivedApp): Boolean {
         return try {
             item.appInfo.appManager.isInstalled(
                 item.appInfo.packageName,
@@ -76,7 +76,7 @@ object AppStatusHelper {
      * @param item 应用快照项
      * @return 是否正在运行
      */
-    fun isAppRunning(item: SnapedApp): Boolean {
+    fun isAppRunning(item: ArchivedApp): Boolean {
         return try {
             item.appInfo.appManager.isPackageRunning(
                 item.appInfo.packageName,

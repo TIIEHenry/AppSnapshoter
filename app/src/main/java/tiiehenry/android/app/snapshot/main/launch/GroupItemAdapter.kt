@@ -17,10 +17,10 @@ import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.data.ArchiveManager
-import tiiehenry.android.app.snapshot.data.SnapshotCreator
+import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.databinding.ItemAppBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.model.PackageStatus
 import tiiehenry.android.app.snapshot.ui.ArchiveItemPopupMenu
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
@@ -38,8 +38,8 @@ class GroupItemAdapter(
     private val groupsAdapter: GroupsAdapter,
     private val viewModel: LauncherViewModel,
     private val group: SnapGroup,
-    private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit = { _, _ -> }
-) : ListAdapter<SnapedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
+    private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit = { _, _ -> }
+) : ListAdapter<ArchivedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
 
     var itemTouchHelper: ItemTouchHelper? = null
 
@@ -62,11 +62,11 @@ class GroupItemAdapter(
         private val groupsHolder: GroupsAdapter.GroupViewHolder,
         private val viewModel: LauncherViewModel,
         private val group: SnapGroup,
-        private val onItemUpdated: (GroupItemAdapter, SnapedApp) -> Unit,
+        private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit,
         private val adapter: GroupItemAdapter
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: SnapedApp) {
+        fun bind(item: ArchivedApp) {
             val appInfo = item.appInfo
             binding.appName.text = appInfo.label
             loadAppIcon(appInfo)
@@ -74,7 +74,7 @@ class GroupItemAdapter(
             setupClickListeners(item)
         }
 
-        private fun updateCurrent(item: SnapedApp) {
+        private fun updateCurrent(item: ArchivedApp) {
             updateStatusIndicator(item)
             updateRunningIndicator(item)
             updateLockIndicator(item)
@@ -92,7 +92,7 @@ class GroupItemAdapter(
         /**
          * 设置点击监听器
          */
-        private fun setupClickListeners(item: SnapedApp) {
+        private fun setupClickListeners(item: ArchivedApp) {
             binding.root.setOnClickListener { handleItemClick(item) }
             binding.root.setOnLongClickListener { handleItemLongClick(item) }
         }
@@ -100,7 +100,7 @@ class GroupItemAdapter(
         /**
          * 处理点击事件
          */
-        private fun handleItemClick(item: SnapedApp) {
+        private fun handleItemClick(item: ArchivedApp) {
             if (groupsHolder.isSortMode) return
 
             if (AppStatusHelper.isAppInstalled(item)) {
@@ -120,14 +120,14 @@ class GroupItemAdapter(
         /**
          * 处理长按事件
          */
-        private fun handleItemLongClick(item: SnapedApp): Boolean {
+        private fun handleItemLongClick(item: ArchivedApp): Boolean {
             if (!groupsHolder.isSortMode) {
                 showPopupMenu(item)
             }
             return !groupsHolder.isSortMode
         }
 
-        private fun updateStatusIndicator(item: SnapedApp) {
+        private fun updateStatusIndicator(item: ArchivedApp) {
             val status = AppStatusHelper.getPackageStatus(item)
             binding.appStatusIndicator.visibility = android.view.View.VISIBLE
             val iconRes = when (status) {
@@ -141,7 +141,7 @@ class GroupItemAdapter(
         /**
          * 更新运行状态指示器
          */
-        private fun updateRunningIndicator(item: SnapedApp) {
+        private fun updateRunningIndicator(item: ArchivedApp) {
             binding.appRunIndicator.visibility = if (item.isRunning) {
                 android.view.View.VISIBLE
             } else {
@@ -152,7 +152,7 @@ class GroupItemAdapter(
         /**
          * 更新锁定状态指示器
          */
-        private fun updateLockIndicator(item: SnapedApp) {
+        private fun updateLockIndicator(item: ArchivedApp) {
             val isLocked = group.config.isLocked(item.appInfo.packageName)
             binding.appLockIndicator.visibility = if (isLocked) {
                 android.view.View.VISIBLE
@@ -178,7 +178,7 @@ class GroupItemAdapter(
             binding.root.setOnTouchListener(null)
         }
 
-        private fun showPopupMenu(item: SnapedApp) {
+        private fun showPopupMenu(item: ArchivedApp) {
             val archiveItemPopupMenu = ArchiveItemPopupMenu(
                 binding.root.context,
                 groupsHolder.fragmentManager,
@@ -195,7 +195,7 @@ class GroupItemAdapter(
 
         val popupMenuCallback = object : ArchiveItemPopupMenu.Callback {
             override fun onArchiveItemClick(
-                item: SnapedApp,
+                item: ArchivedApp,
                 archiveItem: ArchiveItem,
                 needConfirm: Boolean,
                 archiveAdapter: ArchiveItemAdapter
@@ -214,7 +214,7 @@ class GroupItemAdapter(
             }
 
             private fun showRestoreConfirmDialog(
-                item: SnapedApp,
+                item: ArchivedApp,
                 archiveItem: ArchiveItem,
                 archiveAdapter: ArchiveItemAdapter
             ) {
@@ -238,7 +238,7 @@ class GroupItemAdapter(
             }
 
             override fun deleteArchive(
-                item: SnapedApp,
+                item: ArchivedApp,
                 archiveItem: ArchiveItem,
                 archiveAdapter: ArchiveItemAdapter
             ) {
@@ -262,7 +262,7 @@ class GroupItemAdapter(
             }
 
             override fun onAdvancedRestoreClick(
-                item: SnapedApp,
+                item: ArchivedApp,
                 archiveItem: ArchiveItem,
                 selectedTypes: Set<String>
             ) {
@@ -275,7 +275,7 @@ class GroupItemAdapter(
                 )
             }
 
-            override fun onCreateSnapshot(item: SnapedApp) {
+            override fun onCreateSnapshot(item: ArchivedApp) {
                 if (!AppStatusHelper.isAppInstalled(item)) {
                     Toast.makeText(
                         binding.root.context,
@@ -287,22 +287,22 @@ class GroupItemAdapter(
                 createSnapshot(item)
             }
 
-            override fun onClearAllArchives(item: SnapedApp, onComplete: () -> Unit) {
+            override fun onClearAllArchives(item: ArchivedApp, onComplete: () -> Unit) {
                 clearAllArchives(item, onComplete)
             }
 
-            override fun onDeleteApp(item: SnapedApp, onComplete: () -> Unit) {
+            override fun onDeleteApp(item: ArchivedApp, onComplete: () -> Unit) {
                 deleteAppCompletely(item, onComplete)
             }
 
-            override fun onLockStateChanged(item: SnapedApp, isLocked: Boolean) {
+            override fun onLockStateChanged(item: ArchivedApp, isLocked: Boolean) {
                 groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
                 SnapshotApp.getViewModel().loadGroups()
             }
         }
 
 
-        private fun clearAllArchives(item: SnapedApp, onComplete: () -> Unit) {
+        private fun clearAllArchives(item: ArchivedApp, onComplete: () -> Unit) {
             viewModel.viewModelScope.launch {
                 val success = ArchiveManager.clearAllArchives(item)
                 withContext(Dispatchers.Main) {
@@ -318,7 +318,7 @@ class GroupItemAdapter(
             }
         }
 
-        private fun deleteAppCompletely(item: SnapedApp, onComplete: () -> Unit) {
+        private fun deleteAppCompletely(item: ArchivedApp, onComplete: () -> Unit) {
             viewModel.viewModelScope.launch {
                 val success = ArchiveManager.deleteAppCompletely(item, group)
                 withContext(Dispatchers.Main) {
@@ -347,7 +347,7 @@ class GroupItemAdapter(
         /**
          * 创建应用快照
          */
-        private fun createSnapshot(item: SnapedApp) {
+        private fun createSnapshot(item: ArchivedApp) {
             val snapshotCreator = SnapshotCreator(binding.root.context, viewModel.viewModelScope)
             snapshotCreator.createSnapshot(item, group, object : SnapshotCreator.Callback {
                 override fun onSuccess() {
@@ -365,12 +365,12 @@ class GroupItemAdapter(
         }
     }
 
-    private class ItemDiffCallback : DiffUtil.ItemCallback<SnapedApp>() {
-        override fun areItemsTheSame(oldItem: SnapedApp, newItem: SnapedApp): Boolean {
+    private class ItemDiffCallback : DiffUtil.ItemCallback<ArchivedApp>() {
+        override fun areItemsTheSame(oldItem: ArchivedApp, newItem: ArchivedApp): Boolean {
             return oldItem.packageDir == newItem.packageDir
         }
 
-        override fun areContentsTheSame(oldItem: SnapedApp, newItem: SnapedApp): Boolean {
+        override fun areContentsTheSame(oldItem: ArchivedApp, newItem: ArchivedApp): Boolean {
             return oldItem == newItem
         }
     }

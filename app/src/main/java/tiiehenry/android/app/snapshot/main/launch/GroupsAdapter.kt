@@ -21,23 +21,18 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.SortConfig
 import tiiehenry.android.app.snapshot.data.MetaInfoHelper
-import tiiehenry.android.app.snapshot.data.SnapshotCreator
+import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.databinding.ItemSuccessAppBinding
 import tiiehenry.android.app.snapshot.group.SelectAppFragment
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.group.ArchivedApp
+import tiiehenry.android.app.snapshot.main.launch.makearchive.SuccessSnapshotInfo
 import tiiehenry.android.app.snapshot.ui.dialog.MultiItemLoadingDialog
 import tiiehenry.android.app.snapshot.ui.group.GroupConfigFragment
 import tiiehenry.android.app.snapshot.ui.group.GroupShotConfigFragment
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
 import java.util.concurrent.atomic.AtomicBoolean
-
-data class SuccessSnapshotInfo(
-    val snapedApp: SnapedApp,
-    val timeMillis: Long,
-    val archiveSize: Long
-)
 
 class GroupsAdapter(
     private val viewModel: LauncherViewModel,
@@ -272,7 +267,7 @@ class GroupsAdapter(
                 .setPositiveButton("确认") { _, _ ->
                     val loadingDialog = MultiItemLoadingDialog(binding.root.context)
                     loadingDialog.setTotalProgress(installedApps.size)
-                    val erroredList = mutableMapOf<SnapedApp, Exception>()
+                    val erroredList = mutableMapOf<ArchivedApp, Exception>()
                     val succeedList = mutableListOf<SuccessSnapshotInfo>()
                     val isCancelled = AtomicBoolean(false)
                     val isForceCancelled = AtomicBoolean(false)
@@ -331,10 +326,10 @@ class GroupsAdapter(
          */
         private fun createSnapshotsSequentially(
             loadingDialog: MultiItemLoadingDialog,
-            apps: List<SnapedApp>,
+            apps: List<ArchivedApp>,
             group: SnapGroup,
             adapter: GroupItemAdapter,
-            erroredList: MutableMap<SnapedApp, Exception>,
+            erroredList: MutableMap<ArchivedApp, Exception>,
             succeedList: MutableList<SuccessSnapshotInfo>,
             isCancelled: AtomicBoolean,
             isForceCancelled: AtomicBoolean,
@@ -414,7 +409,7 @@ class GroupsAdapter(
                 })
         }
 
-        private fun calculateArchiveSize(item: SnapedApp): Long {
+        private fun calculateArchiveSize(item: ArchivedApp): Long {
             return try {
                 item.latestArchive?.let { archive ->
                     archive.dataItems.sumOf { it.targetSize } +
@@ -425,7 +420,7 @@ class GroupsAdapter(
             }
         }
 
-        private fun showErroredAppsDialog(erroredList: Map<SnapedApp, Exception>) {
+        private fun showErroredAppsDialog(erroredList: Map<ArchivedApp, Exception>) {
             val context = binding.root.context
             val items = erroredList.entries.toList()
 
@@ -517,7 +512,7 @@ class GroupsAdapter(
                         LayoutInflater.from(context), parent, false
                     )
                     val info = items[position]
-                    val snapedApp = info.snapedApp
+                    val snapedApp = info.archivedApp
 
                     itemBinding.appIcon.setImageBitmap(snapedApp.appInfo.icon)
                     itemBinding.appLabel.text = snapedApp.appInfo.label
@@ -683,7 +678,7 @@ class GroupsAdapter(
             adapter.notifyDataSetChanged()
         }
 
-        private fun saveSortOrderToConfig(sortedList: List<SnapedApp>, group: SnapGroup) {
+        private fun saveSortOrderToConfig(sortedList: List<ArchivedApp>, group: SnapGroup) {
             // 获取排序后的包名列表
             val sortedPackageNames = sortedList.map { it.appInfo.packageName }
 
@@ -744,10 +739,10 @@ class GroupsAdapter(
         }
 
         private fun applySorting(
-            apps: List<SnapedApp>,
+            apps: List<ArchivedApp>,
             sortConfig: SortConfig,
             group: SnapGroup
-        ): List<SnapedApp> {
+        ): List<ArchivedApp> {
             return when (sortConfig.sortType) {
                 SortConfig.SORT_TYPE_CUSTOM -> { // 自定义排序
                     val sortOrder = sortConfig.sortOrder.toMutableList()

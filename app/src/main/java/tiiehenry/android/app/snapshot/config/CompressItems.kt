@@ -1,7 +1,7 @@
 package tiiehenry.android.app.snapshot.config
 
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
-import tiiehenry.android.app.snapshot.data.MetaDataItem
+import tiiehenry.android.app.snapshot.data.bean.MetaDataItem
 
 object CompressItems {
     // 压缩项常量

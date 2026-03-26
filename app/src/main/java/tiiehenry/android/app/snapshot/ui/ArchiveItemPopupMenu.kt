@@ -20,7 +20,7 @@ import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.data.ArchiveManager
 import tiiehenry.android.app.snapshot.databinding.LayoutPopupMenuBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.ArchiveItemAdapter
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
 
@@ -39,23 +39,23 @@ class ArchiveItemPopupMenu(
      */
     interface Callback {
         fun onArchiveItemClick(
-            item: SnapedApp,
+            item: ArchivedApp,
             archiveItem: ArchiveItem,
             needConfirm: Boolean,
             archiveAdapter: ArchiveItemAdapter
         )
         fun onAdvancedRestoreClick(
-            item: SnapedApp,
+            item: ArchivedApp,
             archiveItem: ArchiveItem,
             selectedTypes: Set<String>
         )
 
-        fun onCreateSnapshot(item: SnapedApp)
-        fun onClearAllArchives(item: SnapedApp, onComplete: () -> Unit)
-        fun onDeleteApp(item: SnapedApp, onComplete: () -> Unit)
-        fun onLockStateChanged(item: SnapedApp, isLocked: Boolean)
+        fun onCreateSnapshot(item: ArchivedApp)
+        fun onClearAllArchives(item: ArchivedApp, onComplete: () -> Unit)
+        fun onDeleteApp(item: ArchivedApp, onComplete: () -> Unit)
+        fun onLockStateChanged(item: ArchivedApp, isLocked: Boolean)
         fun deleteArchive(
-            item: SnapedApp,
+            item: ArchivedApp,
             archiveItem: ArchiveItem,
             archiveAdapter: ArchiveItemAdapter
         )
@@ -70,7 +70,7 @@ class ArchiveItemPopupMenu(
      */
     fun showPopupMenu(
         anchor: View,
-        item: SnapedApp,
+        item: ArchivedApp,
         group: SnapGroup,
         callback: Callback
     ) {
@@ -109,7 +109,7 @@ class ArchiveItemPopupMenu(
      */
     private fun setupButtonListeners(
         popupBinding: LayoutPopupMenuBinding,
-        item: SnapedApp,
+        item: ArchivedApp,
         group: SnapGroup,
         popupWindow: PopupWindow,
         archiveItemAdapter: ArchiveItemAdapter,
@@ -191,7 +191,7 @@ class ArchiveItemPopupMenu(
      */
     private fun setupArchiveList(
         popupBinding: LayoutPopupMenuBinding,
-        item: SnapedApp,
+        item: ArchivedApp,
         callback: Callback,
         popupWindow: PopupWindow
     ): ArchiveItemAdapter {
@@ -266,7 +266,7 @@ class ArchiveItemPopupMenu(
      * 显示删除确认对话框
      */
     private fun showDeleteConfirmationDialog(
-        item: SnapedApp,
+        item: ArchivedApp,
         callback: Callback,
         onDismiss: () -> Unit
     ) {

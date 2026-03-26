@@ -5,7 +5,7 @@ import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.config.AppConfig
 import tiiehenry.android.app.snapshot.config.GroupConfig
 import tiiehenry.android.app.snapshot.config.VersionRetentionConfig
-import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 
 /**
  * 保留策略执行器
@@ -39,7 +39,7 @@ object RetentionPolicyExecutor {
      * @return 执行结果
      */
     suspend fun applyPolicy(
-        item: SnapedApp,
+        item: ArchivedApp,
         groupConfig: GroupConfig,
         appConfig: AppConfig
     ): RetentionResult {
@@ -116,7 +116,7 @@ object RetentionPolicyExecutor {
      * 分析需要删除的存档列表
      */
     fun analyzeArchivesToDelete(
-        item: SnapedApp,
+        item: ArchivedApp,
         config: VersionRetentionConfig
     ): List<ArchiveItem> {
         val sortedArchives = ArchiveManager.getSortedArchives(item)

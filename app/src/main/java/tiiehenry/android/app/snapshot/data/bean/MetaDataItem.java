@@ -1,4 +1,4 @@
-package tiiehenry.android.app.snapshot.data;
+package tiiehenry.android.app.snapshot.data.bean;
 
 import com.alibaba.fastjson2.annotation.JSONField;
 

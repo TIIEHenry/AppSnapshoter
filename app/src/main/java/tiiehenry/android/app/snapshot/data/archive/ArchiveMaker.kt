@@ -1,12 +1,19 @@
-package tiiehenry.android.app.snapshot.data
+package tiiehenry.android.app.snapshot.data.archive
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
+import android.util.Log
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.config.AppConfig
 import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.config.GroupConfig
-import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.data.ArchivedApks
+import tiiehenry.android.app.snapshot.data.MetaInfoHelper
+import tiiehenry.android.app.snapshot.data.bean.MetaDataItem
+import tiiehenry.android.app.snapshot.data.bean.MetaInfo
+import tiiehenry.android.app.snapshot.data.bean.MetaPackageInfo
+import tiiehenry.android.app.snapshot.data.bean.MetaPermission
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.util.ApkUtil
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.ICompressCallback
@@ -23,12 +30,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.isRegularFile
 
-object SnapShotMaker {
+object ArchiveMaker {
 
     fun makeSnapshot(
         fileSystem: IFileSystem,
         appManager: IAppManager,
-        snapedApp: SnapedApp,
+        archivedApp: ArchivedApp,
         appInfo: AppInfo,
         callback: ICompressCallback,
         groupConfig: GroupConfig,
@@ -133,7 +140,7 @@ object SnapShotMaker {
                 when (item) {
                     CompressItems.COMPRESS_ITEM_APK -> {
                         val apkDataItemDir = ArchivedApks.getArchivedApkDir(
-                            snapedApp.packageDir,
+                            archivedApp.packageDir,
                             packageInfo.longVersionCode
                         )
                         val apkPath = applicationInfo.publicSourceDir
@@ -397,7 +404,7 @@ object SnapShotMaker {
                     state = CompressState.COMPRESS_STATE_COMPLETE
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    android.util.Log.e("SnapShotMaker", "MetaInfo task error: ${e.message}", e)
+                    Log.e("SnapShotMaker", "MetaInfo task error: ${e.message}", e)
                     state = CompressState.COMPRESS_STATE_ERROR
                 }
             }
@@ -440,7 +447,7 @@ object SnapShotMaker {
                     state = CompressState.COMPRESS_STATE_COMPLETE
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    android.util.Log.e("SnapShotMaker", "Permission task error: ${e.message}", e)
+                    Log.e("SnapShotMaker", "Permission task error: ${e.message}", e)
                     state = CompressState.COMPRESS_STATE_ERROR
                 }
             }
@@ -532,7 +539,7 @@ object SnapShotMaker {
                     if (success) {
                         state = CompressState.COMPRESS_STATE_COMPLETE
                     } else {
-                        android.util.Log.e(
+                        Log.e(
                             "SnapShotMaker",
                             "Uninstall app failed: ${appInfo.packageName}"
                         )
@@ -540,7 +547,7 @@ object SnapShotMaker {
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    android.util.Log.e("SnapShotMaker", "Uninstall app error: ${e.message}", e)
+                    Log.e("SnapShotMaker", "Uninstall app error: ${e.message}", e)
                     state = CompressState.COMPRESS_STATE_ERROR
                 }
             }

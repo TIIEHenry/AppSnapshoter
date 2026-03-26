@@ -1,4 +1,4 @@
-package tiiehenry.android.app.snapshot.data
+package tiiehenry.android.app.snapshot.data.archive
 
 import tiiehenry.android.snapshot.task.ITaskHandler
 

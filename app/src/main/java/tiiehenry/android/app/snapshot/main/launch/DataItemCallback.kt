@@ -1,6 +1,6 @@
 package tiiehenry.android.app.snapshot.main.launch
 
-import tiiehenry.android.app.snapshot.data.MetaDataItem
+import tiiehenry.android.app.snapshot.data.bean.MetaDataItem
 
 interface DataItemCallback {
 

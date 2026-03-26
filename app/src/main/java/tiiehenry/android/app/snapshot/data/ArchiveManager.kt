@@ -1,12 +1,9 @@
 package tiiehenry.android.app.snapshot.data
 
-import android.util.Log
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.app.snapshot.group.SnapedApp
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 import java.io.File
 import kotlin.io.path.absolutePathString
 import java.nio.file.Paths
@@ -25,7 +22,7 @@ object ArchiveManager {
      * @param archiveItem 要删除的存档项
      * @return 是否删除成功
      */
-    suspend fun deleteArchive(item: SnapedApp, archiveItem: ArchiveItem): Boolean {
+    suspend fun deleteArchive(item: ArchivedApp, archiveItem: ArchiveItem): Boolean {
         val fs = SnapshotApp.getInstance().fileSystem
 
         val success = try {
@@ -48,7 +45,7 @@ object ArchiveManager {
      * @param item 应用快照项
      * @param archiveItem 存档项
      */
-    private fun cleanupArchivedApks(item: SnapedApp, archiveItem: ArchiveItem) {
+    private fun cleanupArchivedApks(item: ArchivedApp, archiveItem: ArchiveItem) {
         val archivedApkDirPath = ArchivedApks.getArchivedApkDir(
             item.packageDir,
             archiveItem.metaInfo.packageInfo.versionCode
@@ -91,7 +88,7 @@ object ArchiveManager {
      * @param item 应用快照项
      * @return 是否清空成功
      */
-    suspend fun clearAllArchives(item: SnapedApp): Boolean {
+    suspend fun clearAllArchives(item: ArchivedApp): Boolean {
         val fs = SnapshotApp.getInstance().fileSystem
 
         return try {
@@ -117,7 +114,7 @@ object ArchiveManager {
      * @param group 所属组
      * @return 是否删除成功
      */
-    suspend fun deleteAppCompletely(item: SnapedApp, group: SnapGroup): Boolean {
+    suspend fun deleteAppCompletely(item: ArchivedApp, group: SnapGroup): Boolean {
         val fs = SnapshotApp.getInstance().fileSystem
 
         return try {
@@ -136,7 +133,7 @@ object ArchiveManager {
      * @param item 应用快照项
      * @param forceReload 是否强制重新加载
      */
-    suspend fun reloadArchives(item: SnapedApp, forceReload: Boolean = true) {
+    suspend fun reloadArchives(item: ArchivedApp, forceReload: Boolean = true) {
         val fs = SnapshotApp.getInstance().fileSystem
         val appManager = SnapshotApp.getInstance().appManager
         try {
@@ -151,7 +148,7 @@ object ArchiveManager {
      * @param item 应用快照项
      * @return 按创建时间降序排列的存档列表
      */
-    fun getSortedArchives(item: SnapedApp): List<ArchiveItem> {
+    fun getSortedArchives(item: ArchivedApp): List<ArchiveItem> {
         return item.archives.values.toList().sortedByDescending { it.metaInfo.makeTime }
     }
 }

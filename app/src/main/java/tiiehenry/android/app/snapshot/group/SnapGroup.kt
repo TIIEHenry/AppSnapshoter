@@ -48,11 +48,11 @@ data class SnapGroup(
             mmkv.encode("isCollapsed", value)
         }
 
-    val apps: MutableList<SnapedApp> = mutableListOf()
+    val apps: MutableList<ArchivedApp> = mutableListOf()
 
     fun loadApps(
         context: Context, fs: IFileSystem, appManager: IAppManager, reload: Boolean
-    ): MutableList<SnapedApp> {
+    ): MutableList<ArchivedApp> {
         if (reload) {
             synchronized(apps) {
                 apps.clear()
@@ -93,7 +93,7 @@ data class SnapGroup(
                             Log.e(TAG, "Failed to load and save icon for $pkgName: ${e.message}", e)
                         }
                     }
-                    val app = SnapedApp(this, packageDir, iconFile)
+                    val app = ArchivedApp(this, packageDir, iconFile)
                     try {
                         app.loadArchives(fs, appManager, false)
                     } catch (e: Exception) {

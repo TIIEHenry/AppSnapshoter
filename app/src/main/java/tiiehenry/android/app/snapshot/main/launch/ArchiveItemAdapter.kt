@@ -23,6 +23,7 @@ import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.data.MetaInfoHelper
+import tiiehenry.android.app.snapshot.data.bean.MetaDataItem
 import tiiehenry.android.app.snapshot.databinding.ItemArchiveBinding
 import tiiehenry.android.app.snapshot.utils.ArchiveRenameHelper
 import java.text.SimpleDateFormat
@@ -394,8 +395,8 @@ class ArchiveItemAdapter(
         /**
          * 构建恢复选项列表
          */
-        private fun buildRestoreOptions(item: ArchiveItem): MutableList<Pair<tiiehenry.android.app.snapshot.data.MetaDataItem, String?>> {
-            val allRestoreOptions = mutableListOf<Pair<tiiehenry.android.app.snapshot.data.MetaDataItem, String?>>()
+        private fun buildRestoreOptions(item: ArchiveItem): MutableList<Pair<MetaDataItem, String?>> {
+            val allRestoreOptions = mutableListOf<Pair<MetaDataItem, String?>>()
             
             item.dataItems.forEach { dataItem ->
                 allRestoreOptions.add(Pair(dataItem, null))
@@ -412,7 +413,7 @@ class ArchiveItemAdapter(
          * 构建恢复选项名称数组
          */
         private fun buildRestoreOptionNames(
-            allRestoreOptions: List<Pair<tiiehenry.android.app.snapshot.data.MetaDataItem, String?>>
+            allRestoreOptions: List<Pair<MetaDataItem, String?>>
         ): Array<String> {
             val dataTypeNames = mapOf(
                 "apk" to "APK 安装包",
@@ -440,7 +441,7 @@ class ArchiveItemAdapter(
          * 收集选中的数据类型
          */
         private fun collectSelectedTypes(
-            allRestoreOptions: List<Pair<tiiehenry.android.app.snapshot.data.MetaDataItem, String?>>,
+            allRestoreOptions: List<Pair<MetaDataItem, String?>>,
             checkedItems: BooleanArray
         ): MutableSet<String> {
             val selectedTypes = mutableSetOf<String>()

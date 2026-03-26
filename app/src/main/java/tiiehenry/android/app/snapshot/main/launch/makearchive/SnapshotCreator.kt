@@ -1,22 +1,27 @@
-package tiiehenry.android.app.snapshot.data
+package tiiehenry.android.app.snapshot.main.launch.makearchive
 
 import android.content.Context
 import android.text.format.Formatter
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfigManager
+import tiiehenry.android.app.snapshot.data.ArchiveManager
+import tiiehenry.android.app.snapshot.data.RetentionPolicyExecutor
+import tiiehenry.android.app.snapshot.data.archive.ArchiveMaker
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.app.snapshot.group.SnapedApp
-import tiiehenry.android.app.snapshot.main.launch.ArchiveFailedException
+import tiiehenry.android.app.snapshot.group.ArchivedApp
+import tiiehenry.android.app.snapshot.main.launch.exception.ArchiveFailedException
 import tiiehenry.android.app.snapshot.ui.dialog.ILoadingDialog
 import tiiehenry.android.app.snapshot.ui.dialog.LoadingDialog
 import tiiehenry.android.app.snapshot.util.AppStatusHelper
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.fs.CompressState
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.collections.iterator
 
 /**
  * 快照创建管理类
@@ -24,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class SnapshotCreator(
     private val context: Context,
-    private val viewModelScope: kotlinx.coroutines.CoroutineScope
+    private val viewModelScope: CoroutineScope
 ) {
 
     companion object {
@@ -46,7 +51,7 @@ class SnapshotCreator(
      * @param group 所属组
      * @param callback 回调
      */
-    fun createSnapshot(item: SnapedApp, group: SnapGroup, callback: Callback? = null) {
+    fun createSnapshot(item: ArchivedApp, group: SnapGroup, callback: Callback? = null) {
         val loadingDialog = LoadingDialog(context)
         loadingDialog.setItemMessage("正在创建存档")
         loadingDialog.setItemStatus("...")
@@ -62,7 +67,7 @@ class SnapshotCreator(
      */
     fun createSnapshot(
         loadingDialog: ILoadingDialog,
-        item: SnapedApp,
+        item: ArchivedApp,
         group: SnapGroup,
         isCanceled: AtomicBoolean,
         callback: Callback? = null
@@ -75,12 +80,12 @@ class SnapshotCreator(
         }
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                val snapShotApp = SnapshotApp.getInstance()
+                val snapShotApp = SnapshotApp.Companion.getInstance()
                 val fs = snapShotApp.fileSystem
                 val appManager = snapShotApp.appManager
 
                 // 获取应用配置（使用 AppConfigManager 复用实例）
-                val appConfig = AppConfigManager.getInstance().getConfig(item.appInfo.packageName)
+                val appConfig = AppConfigManager.Companion.getInstance().getConfig(item.appInfo.packageName)
                 val groupConfig = group.config
 
                 // 挂起应用（应用进程暂停运行）
@@ -90,7 +95,7 @@ class SnapshotCreator(
                 val compressCallback =
                     createCompressCallback(context, loadingDialog, onErrorCallback)
 
-                val snapshotTasks = SnapShotMaker.makeSnapshot(
+                val snapshotTasks = ArchiveMaker.makeSnapshot(
                     fs, appManager, item, item.appInfo, compressCallback, groupConfig, appConfig
                 )
                 var currentIndex = 0

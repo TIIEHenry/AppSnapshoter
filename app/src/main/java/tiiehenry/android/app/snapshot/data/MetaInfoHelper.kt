@@ -2,6 +2,9 @@ package tiiehenry.android.app.snapshot.data
 
 import android.os.ParcelFileDescriptor
 import com.alibaba.fastjson2.JSON
+import tiiehenry.android.app.snapshot.data.bean.MetaDataItem
+import tiiehenry.android.app.snapshot.data.bean.MetaInfo
+import tiiehenry.android.app.snapshot.data.bean.MetaPermission
 import tiiehenry.android.app.snapshot.utils.JsonUtils
 import tiiehenry.android.snapshot.file.IFileSystem
 import java.io.File
