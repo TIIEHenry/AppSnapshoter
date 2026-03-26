@@ -22,6 +22,16 @@
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_copy_exclude"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:contentDescription="复制"
+            app:icon="@drawable/ic_content_copy"
+            app:iconTint="@color/material_on_surface_emphasis_medium" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_browse_exclude"
             style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="wrap_content"

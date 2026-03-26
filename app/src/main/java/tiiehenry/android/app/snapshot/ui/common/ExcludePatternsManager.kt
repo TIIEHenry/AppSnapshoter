@@ -1,16 +1,20 @@
 package tiiehenry.android.app.snapshot.ui.common
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.view.ContextThemeWrapper
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
+import com.alibaba.fastjson2.JSON
 import com.google.android.material.chip.Chip
-import com.google.android.material.R as MaterialR
-import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.config.ExcludeConfig
 import tiiehenry.android.app.snapshot.databinding.IncludeExcludePatternsBinding
 import tiiehenry.android.app.snapshot.ui.dialog.ExcludePatternBottomSheet
+import com.google.android.material.R as MaterialR
 
 class ExcludePatternsManager(
     private val binding: IncludeExcludePatternsBinding,
@@ -53,6 +57,114 @@ class ExcludePatternsManager(
         binding.btnBrowseExclude.setOnClickListener {
             showExcludePatternBottomSheet()
         }
+
+        // 添加按钮长按事件 - 解析剪切板并导入排除列表
+        binding.btnBrowseExclude.setOnLongClickListener {
+            parseAndImportFromClipboard()
+            true
+        }
+
+        // 复制按钮点击事件 - 复制当前排除列表到剪切板
+        binding.btnCopyExclude.setOnClickListener {
+            copyPatternsToClipboard()
+        }
+    }
+
+    /**
+     * 复制当前排除列表到剪切板
+     */
+    private fun copyPatternsToClipboard() {
+        if (itemPatterns.isEmpty()) {
+            Toast.makeText(context, "排除列表为空，无需复制", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val clipboardManager =
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val patternsJson = JSON.toJSONString(itemPatterns)
+        val clipData = ClipData.newPlainText("排除项目列表", patternsJson)
+        clipboardManager.setPrimaryClip(clipData)
+        Toast.makeText(context, "已复制排除列表到剪切板", Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * 解析剪切板并导入排除列表
+     */
+    private fun parseAndImportFromClipboard() {
+        val clipboardManager =
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        if (!clipboardManager.hasPrimaryClip()) {
+            Toast.makeText(context, "剪切板为空", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val clipData = clipboardManager.primaryClip
+        if (clipData == null || clipData.itemCount == 0) {
+            Toast.makeText(context, "剪切板为空", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val clipText = clipData.getItemAt(0).text?.toString()
+        if (clipText.isNullOrEmpty()) {
+            Toast.makeText(context, "剪切板内容为空", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val jsonObject = JSON.parseObject(clipText)
+            val parsedPatterns = mutableMapOf<String, MutableList<String>>()
+
+            for (key in jsonObject.keys) {
+                val jsonArray = jsonObject.getJSONArray(key)
+                val patterns = jsonArray.toList(String::class.java).toMutableList()
+                if (patterns.isNotEmpty()) {
+                    parsedPatterns[key] = patterns
+                }
+            }
+
+            if (parsedPatterns.isEmpty()) {
+                Toast.makeText(context, "剪切板中没有有效的排除项目", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // 显示导入确认对话框
+            showImportConfirmDialog(parsedPatterns)
+
+        } catch (e: Exception) {
+            Toast.makeText(context, "剪切板内容格式无效", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * 显示导入确认对话框
+     */
+    private fun showImportConfirmDialog(parsedPatterns: Map<String, List<String>>) {
+        val patternCount = parsedPatterns.values.sumOf { it.size }
+        val message = StringBuilder("检测到 $patternCount 个排除项目：\n\n")
+        parsedPatterns.forEach { (item, patterns) ->
+            val displayName = ExcludePatternBottomSheet.getCompressItemDisplayName(item)
+            message.append("[$displayName]: ${patterns.joinToString(", ")}\n")
+        }
+        message.append("\n是否导入？")
+
+        AlertDialog.Builder(context)
+            .setTitle("导入排除项目")
+            .setMessage(message.toString())
+            .setPositiveButton("导入") { _, _ ->
+                parsedPatterns.forEach { (item, patterns) ->
+                    val existing = itemPatterns.getOrPut(item) { mutableListOf() }
+                    for (pattern in patterns) {
+                        if (!existing.contains(pattern)) {
+                            existing.add(pattern)
+                        }
+                    }
+                }
+                refreshPatternsDisplay()
+                onPatternsChangedListener?.invoke(getItemPatternsMap())
+                Toast.makeText(context, "已导入排除项目", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     /**
@@ -60,17 +172,17 @@ class ExcludePatternsManager(
      */
     private fun showExcludePatternBottomSheet() {
         val fm = fragmentManager ?: (context as? FragmentActivity)?.supportFragmentManager ?: return
-        
+
         val bottomSheet = ExcludePatternBottomSheet.newInstance(
             packageName = packageName,
             itemPatternsMap = getItemPatternsMap()
         )
-        
+
         bottomSheet.setOnPatternsConfirmedListener { _, itemPatternsMap ->
             // 更新所有压缩项目的排除模式
             setItemPatternsMap(itemPatternsMap)
         }
-        
+
         bottomSheet.show(fm, "exclude_pattern_bottom_sheet")
     }
 
@@ -223,12 +335,17 @@ class ExcludePatternsManager(
      */
     private fun refreshPatternsDisplay() {
         binding.chipGroupExcludePatterns.removeAllViews()
-        
+
         itemPatterns.forEach { (compressItem, patterns) ->
             val displayName = ExcludePatternBottomSheet.getCompressItemDisplayName(compressItem)
-            
+
             for (pattern in patterns) {
-                val chip = Chip(ContextThemeWrapper(context, MaterialR.style.Widget_Material3_Chip_Filter)).apply {
+                val chip = Chip(
+                    ContextThemeWrapper(
+                        context,
+                        MaterialR.style.Widget_Material3_Chip_Filter
+                    )
+                ).apply {
                     text = "[$displayName] $pattern"
                     isCloseIconVisible = true
                     isCheckable = false
@@ -246,6 +363,7 @@ class ExcludePatternsManager(
      */
     fun setEnabled(enabled: Boolean) {
         binding.btnBrowseExclude.isEnabled = enabled
+        binding.btnCopyExclude.isEnabled = enabled
         binding.chipGroupExcludePatterns.isEnabled = enabled
         // 更新所有 chip 的启用状态
         for (i in 0 until binding.chipGroupExcludePatterns.childCount) {
