@@ -36,7 +36,7 @@
             android:id="@+id/cb_auto_snapshot"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="自动存档" />
+            android:text="跟随一键存档" />
 
         <CheckBox
             android:id="@+id/cb_uninstall_archived"

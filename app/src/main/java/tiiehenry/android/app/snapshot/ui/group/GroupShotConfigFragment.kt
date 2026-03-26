@@ -96,10 +96,6 @@ class GroupShotConfigFragment : BottomSheetDialogFragment() {
         }
         binding.btnSave.contentDescription = "保存"
 
-        binding.btnReset.setOnClickListener {
-            loadConfig()
-        }
-
         // 初始化截图选项管理器（分组配置不需要"启用单独控制"开关，始终启用）
         shotOptionsManager = ShotOptionsManager(
             binding.includeShotOptions,

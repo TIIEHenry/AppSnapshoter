@@ -80,12 +80,12 @@ class SnapshotCreator(
         }
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                val snapShotApp = SnapshotApp.Companion.getInstance()
+                val snapShotApp = SnapshotApp.getInstance()
                 val fs = snapShotApp.fileSystem
                 val appManager = snapShotApp.appManager
 
                 // 获取应用配置（使用 AppConfigManager 复用实例）
-                val appConfig = AppConfigManager.Companion.getInstance().getConfig(item.appInfo.packageName)
+                val appConfig = AppConfigManager.getInstance().getConfig(item.appInfo.packageName)
                 val groupConfig = group.config
 
                 // 挂起应用（应用进程暂停运行）

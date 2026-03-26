@@ -73,15 +73,6 @@
                     android:id="@+id/include_exclude_patterns"
                     layout="@layout/include_exclude_patterns" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_reset"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:layout_marginBottom="24dp"
-                    android:text="重置" />
-
             </LinearLayout>
 
             <!-- Tab 2: 行为 -->

@@ -19,14 +19,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.config.SortConfig
 import tiiehenry.android.app.snapshot.data.MetaInfoHelper
-import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.databinding.ItemSuccessAppBinding
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SelectAppFragment
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.app.snapshot.group.ArchivedApp
+import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SuccessSnapshotInfo
 import tiiehenry.android.app.snapshot.ui.dialog.MultiItemLoadingDialog
 import tiiehenry.android.app.snapshot.ui.group.GroupConfigFragment
@@ -177,6 +178,11 @@ class GroupsAdapter(
             binding.btnArchiveAll.setOnClickListener {
                 archiveAllApps(group, adapter)
             }
+            binding.btnArchiveAll.setOnLongClickListener {
+                Toast.makeText(it.context, "一键存档", Toast.LENGTH_SHORT).show()
+                true
+            }
+
             updateButtonVisibility(!isSortMode)
         }
 
@@ -253,7 +259,16 @@ class GroupsAdapter(
          * 批量归档组内所有已安装应用
          */
         private fun archiveAllApps(group: SnapGroup, adapter: GroupItemAdapter) {
-            val installedApps = group.apps.filter { AppStatusHelper.isAppInstalled(it) }
+            val installedApps = group.apps.filter { AppStatusHelper.isAppInstalled(it) }.filter {
+                val appConfig = AppConfigManager.getInstance().getConfig(it.appInfo.packageName)
+                val groupConfig = group.config
+                val actionConfig = if (appConfig.actionConfig.enabled) {
+                    appConfig.actionConfig
+                } else {
+                    groupConfig.actionConfig
+                }
+                actionConfig.isAutoSnapshot
+            }
             if (installedApps.isEmpty()) {
                 Toast.makeText(binding.root.context, "没有已安装的应用可归档", Toast.LENGTH_SHORT)
                     .show()
@@ -263,7 +278,7 @@ class GroupsAdapter(
             // 显示确认对话框
             MaterialAlertDialogBuilder(binding.root.context)
                 .setTitle("全部归档")
-                .setMessage("确定为 ${group.name} 中的 ${installedApps.size} 个应用创建快照？")
+                .setMessage("确定为 ${group.name} 中的 ${installedApps.size}/${group.apps.size} 个应用创建快照？")
                 .setPositiveButton("确认") { _, _ ->
                     val loadingDialog = MultiItemLoadingDialog(binding.root.context)
                     loadingDialog.setTotalProgress(installedApps.size)

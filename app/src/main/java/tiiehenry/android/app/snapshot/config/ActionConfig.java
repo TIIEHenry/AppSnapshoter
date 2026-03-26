@@ -9,11 +9,10 @@ import com.alibaba.fastjson2.JSONWriter;
  */
 public class ActionConfig {
     public boolean enabled = false; // 是否启用应用单独配置
-    // 配置字段
-    private boolean autoSnapshot = false;
+    private boolean autoSnapshot = true;
     private boolean uninstallArchived = false;
     private String compressAlgorithm = "";
-    private int compressLevel = 5; // 压缩级别：1 极快，3 快，5 平衡，7 略慢，9 极慢
+    private int compressLevel = 3; // 压缩级别：1 极快，3 快，5 平衡，7 略慢，9 极慢
 
     /**
      * 默认构造函数
