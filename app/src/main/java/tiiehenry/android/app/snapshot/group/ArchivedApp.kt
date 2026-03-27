@@ -3,7 +3,7 @@ package tiiehenry.android.app.snapshot.group
 import android.util.Log
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
-import tiiehenry.android.app.snapshot.data.MetaInfoHelper
+import tiiehenry.android.app.snapshot.archieve.MetaInfoHelper
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.IFileType

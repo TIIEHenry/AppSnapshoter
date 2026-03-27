@@ -6,10 +6,10 @@ import android.widget.SearchView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
-import tiiehenry.android.app.snapshot.app.AppConfigFragment
+import tiiehenry.android.app.snapshot.main.launch.app.AppConfigFragment
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.FragmentAppsBinding
-import tiiehenry.android.app.snapshot.ui.common.TagsFilterLayout
+import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
 
 class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
 

@@ -1,8 +1,8 @@
 package tiiehenry.android.app.snapshot.archive
 
 import tiiehenry.android.app.snapshot.app.AppInfo
-import tiiehenry.android.app.snapshot.data.bean.MetaDataItem
-import tiiehenry.android.app.snapshot.data.bean.MetaInfo
+import tiiehenry.android.app.snapshot.archieve.bean.MetaDataItem
+import tiiehenry.android.app.snapshot.archieve.bean.MetaInfo
 
 data class ArchiveItem(
     val metaInfo: MetaInfo,

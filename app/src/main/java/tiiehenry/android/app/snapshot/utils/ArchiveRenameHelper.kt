@@ -194,28 +194,4 @@ object ArchiveRenameHelper {
                 name != ".."
     }
 
-    /**
-     * 更新元信息文件中的存档名称（如果需要的话）
-     * @param fs 文件系统接口
-     * @param metaFilePath 元信息文件路径
-     * @param oldName 旧存档名称
-     * @param newName 新存档名称
-     * @return 是否更新成功
-     */
-    private suspend fun updateMetaInfoName(
-        fs: IFileSystem,
-        metaFilePath: String,
-        oldName: String,
-        newName: String
-    ): Boolean = withContext(Dispatchers.IO) {
-        try {
-            // 此处可以实现更新MetaInfo对象中的存档名称
-            // 目前MetaInfo类似乎没有直接存储存档名称字段
-            // 如果将来需要，可以在这里添加相关逻辑
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating meta info for archive rename", e)
-            false
-        }
-    }
 }

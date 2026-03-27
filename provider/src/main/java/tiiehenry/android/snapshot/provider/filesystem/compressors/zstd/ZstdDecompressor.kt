@@ -14,7 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import nota.io.StreamParallelTransformer
+import nota.io.FlowableStreamParallelCopier
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
@@ -200,7 +200,7 @@ object ZstdDecompressor {
                         }
                     }.use { fileOutput ->
 //                        43969ms->20210ms
-                        val transformer = StreamParallelTransformer(decompressedInput, fileOutput)
+                        val transformer = FlowableStreamParallelCopier(decompressedInput, fileOutput)
                         val progressJob = Job()
                         CoroutineScope(Dispatchers.Default + progressJob).launch {
                             transformer.progressFlow.collectLatest { progress ->

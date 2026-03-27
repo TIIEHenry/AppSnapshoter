@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.databinding.BottomSheetAddGroupBinding
 import tiiehenry.android.app.snapshot.main.launch.LauncherViewModel
-import tiiehenry.android.app.snapshot.util.GroupPathPickerHelper
+import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
 import tiiehenry.android.snapshot.app.UserInfoParcelable
 
 class AddGroupBottomSheet : BottomSheetDialogFragment() {

@@ -9,15 +9,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfigManager
-import tiiehenry.android.app.snapshot.data.ArchiveManager
-import tiiehenry.android.app.snapshot.data.RetentionPolicyExecutor
-import tiiehenry.android.app.snapshot.data.archive.ArchiveMaker
+import tiiehenry.android.app.snapshot.archieve.manage.ArchiveManager
+import tiiehenry.android.app.snapshot.archieve.manage.RetentionPolicyExecutor
+import tiiehenry.android.app.snapshot.archieve.make.ArchiveMaker
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.exception.ArchiveFailedException
-import tiiehenry.android.app.snapshot.ui.dialog.ILoadingDialog
-import tiiehenry.android.app.snapshot.ui.dialog.LoadingDialog
-import tiiehenry.android.app.snapshot.util.AppStatusHelper
+import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.IItemProgressDialog
+import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.ItemProgressDialog
+import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.fs.CompressState
 import java.util.concurrent.atomic.AtomicBoolean
@@ -52,7 +52,7 @@ class SnapshotCreator(
      * @param callback 回调
      */
     fun createSnapshot(item: ArchivedApp, group: SnapGroup, callback: Callback? = null) {
-        val loadingDialog = LoadingDialog(context)
+        val loadingDialog = ItemProgressDialog(context)
         loadingDialog.setItemMessage("正在创建存档")
         loadingDialog.setItemStatus("...")
         loadingDialog.showItem()
@@ -66,7 +66,7 @@ class SnapshotCreator(
      * @param callback 回调
      */
     fun createSnapshot(
-        loadingDialog: ILoadingDialog,
+        loadingDialog: IItemProgressDialog,
         item: ArchivedApp,
         group: SnapGroup,
         isCanceled: AtomicBoolean,
@@ -177,7 +177,7 @@ class SnapshotCreator(
      */
     private fun createCompressCallback(
         context: Context,
-        loadingDialog: ILoadingDialog,
+        loadingDialog: IItemProgressDialog,
         onErrorCallback: (String) -> Unit
     ): ICompressCallback {
         return object : ICompressCallback.Stub() {

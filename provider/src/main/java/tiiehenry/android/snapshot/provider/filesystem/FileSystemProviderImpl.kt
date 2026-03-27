@@ -13,7 +13,7 @@ import com.topjohnwu.superuser.ipc.RootService
 import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.runBlocking
 import tiiehenry.android.snapshot.provider.filesystem.root.fsm.FileSystemManagerRootService
-import tiiehenry.android.snapshot.provider.appmanager.root.SnapShotRootServiceClient
+import tiiehenry.android.snapshot.provider.service.SnapShotRootServiceClient
 import tiiehenry.android.snapshot.file.IFileCompressor
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.IFileType

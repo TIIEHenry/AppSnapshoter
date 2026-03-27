@@ -21,10 +21,10 @@ import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.provider.AppManagerProvider
 import tiiehenry.android.snapshot.provider.appmanager.model.AppInfo
 import tiiehenry.android.snapshot.provider.appmanager.model.AppStorage
-import tiiehenry.android.snapshot.provider.appmanager.root.SnapShotRootServiceClient
-import tiiehenry.android.snapshot.provider.appmanager.service.ISnapShotRootService
+import tiiehenry.android.snapshot.provider.service.SnapShotRootServiceClient
 import tiiehenry.android.snapshot.provider.appmanager.util.LogHelper
 import tiiehenry.android.snapshot.provider.appmanager.util.PathHelper
+import tiiehenry.android.snapshot.provider.service.ISnapShotRootService
 import java.lang.reflect.Field
 
 class AppManagerProviderImpl(

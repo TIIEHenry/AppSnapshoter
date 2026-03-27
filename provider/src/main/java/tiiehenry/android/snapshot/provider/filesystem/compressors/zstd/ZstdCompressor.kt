@@ -15,7 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import nota.io.StreamParallelTransformer
+import nota.io.FlowableStreamParallelCopier
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
@@ -244,7 +244,7 @@ object ZstdCompressor : IAlgorithmCompressor {
                         val zstdLevel = mapToZstdLevel(compressLevel)
                         zstdOutputStream.setLevel(zstdLevel)
                         //45532ms->34777ms
-                        val transformer = StreamParallelTransformer(fis, zstdOutputStream)
+                        val transformer = FlowableStreamParallelCopier(fis, zstdOutputStream)
                         val progressJob = Job()
                         CoroutineScope(Dispatchers.Default + progressJob).launch {
                             transformer.progressFlow.collectLatest { progress ->

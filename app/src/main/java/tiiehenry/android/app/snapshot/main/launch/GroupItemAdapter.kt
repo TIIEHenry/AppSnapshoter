@@ -16,14 +16,15 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
-import tiiehenry.android.app.snapshot.data.ArchiveManager
+import tiiehenry.android.app.snapshot.archieve.manage.ArchiveManager
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.databinding.ItemAppBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.ArchivedApp
-import tiiehenry.android.app.snapshot.model.PackageStatus
-import tiiehenry.android.app.snapshot.ui.ArchiveItemPopupMenu
-import tiiehenry.android.app.snapshot.util.AppStatusHelper
+import tiiehenry.android.app.snapshot.main.launch.popup.ArchiveItemAdapter
+import tiiehenry.android.app.snapshot.main.launch.group.item.PackageStatus
+import tiiehenry.android.app.snapshot.main.launch.popup.ArchiveItemPopupMenu
+import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 
 /**
  * 分组应用列表适配器

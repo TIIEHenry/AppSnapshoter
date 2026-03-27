@@ -53,7 +53,7 @@
         android:queryHint="搜索应用..." />
 
     <!-- Tags Filter Layout -->
-    <tiiehenry.android.app.snapshot.ui.common.TagsFilterLayout
+    <tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
         android:id="@+id/tags_filter_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

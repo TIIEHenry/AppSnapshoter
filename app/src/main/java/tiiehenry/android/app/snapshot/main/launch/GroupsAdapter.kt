@@ -21,18 +21,18 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.config.SortConfig
-import tiiehenry.android.app.snapshot.data.MetaInfoHelper
+import tiiehenry.android.app.snapshot.archieve.MetaInfoHelper
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.databinding.ItemSuccessAppBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
-import tiiehenry.android.app.snapshot.group.SelectAppFragment
+import tiiehenry.android.app.snapshot.main.selectapp.SelectAppFragment
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SuccessSnapshotInfo
-import tiiehenry.android.app.snapshot.ui.dialog.MultiItemLoadingDialog
-import tiiehenry.android.app.snapshot.ui.group.GroupConfigFragment
-import tiiehenry.android.app.snapshot.ui.group.GroupShotConfigFragment
-import tiiehenry.android.app.snapshot.util.AppStatusHelper
+import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.GroupItemsProgressDialog
+import tiiehenry.android.app.snapshot.main.launch.group.GroupSettingFragment
+import tiiehenry.android.app.snapshot.main.launch.group.GroupConfigFragment
+import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 import java.util.concurrent.atomic.AtomicBoolean
 
 class GroupsAdapter(
@@ -87,7 +87,7 @@ class GroupsAdapter(
             }
             binding.groupTitle.setOnLongClickListener {
                 // 显示GroupConfigFragment，保存后刷新列表
-                GroupConfigFragment.newInstance(group) {
+                GroupSettingFragment.newInstance(group) {
                     refresh(group, binding.groupRecyclerView)
                 }.show(fragmentManager, "GroupConfigFragment")
                 true
@@ -166,7 +166,7 @@ class GroupsAdapter(
 
             binding.btnTune.setOnClickListener {
                 // 显示 GroupConfigFragment，保存后刷新列表
-                GroupShotConfigFragment.newInstance(group) {
+                GroupConfigFragment.newInstance(group) {
                     refresh(group, binding.groupRecyclerView)
                 }.show(fragmentManager, "GroupShotConfigFragment")
             }
@@ -280,7 +280,7 @@ class GroupsAdapter(
                 .setTitle("全部归档")
                 .setMessage("确定为 ${group.name} 中的 ${installedApps.size}/${group.apps.size} 个应用创建快照？")
                 .setPositiveButton("确认") { _, _ ->
-                    val loadingDialog = MultiItemLoadingDialog(binding.root.context)
+                    val loadingDialog = GroupItemsProgressDialog(binding.root.context)
                     loadingDialog.setTotalProgress(installedApps.size)
                     val erroredList = mutableMapOf<ArchivedApp, Exception>()
                     val succeedList = mutableListOf<SuccessSnapshotInfo>()
@@ -340,7 +340,7 @@ class GroupsAdapter(
          * 顺序创建快照
          */
         private fun createSnapshotsSequentially(
-            loadingDialog: MultiItemLoadingDialog,
+            loadingDialog: GroupItemsProgressDialog,
             apps: List<ArchivedApp>,
             group: SnapGroup,
             adapter: GroupItemAdapter,
@@ -484,7 +484,7 @@ class GroupsAdapter(
         }
 
         private fun updateDialogFinishState(
-            loadingDialog: MultiItemLoadingDialog,
+            loadingDialog: GroupItemsProgressDialog,
             totalTime: Long,
             succeedCount: Int,
             errorCount: Int,

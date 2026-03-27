@@ -8,8 +8,8 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppFilterType
 import tiiehenry.android.app.snapshot.app.AppInfo
-import tiiehenry.android.app.snapshot.app.AppTag
-import tiiehenry.android.app.snapshot.app.AppTagHelper
+import tiiehenry.android.app.snapshot.app.tag.AppTag
+import tiiehenry.android.app.snapshot.app.tag.AppTagHelper
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.snapshot.app.UserInfoParcelable
 

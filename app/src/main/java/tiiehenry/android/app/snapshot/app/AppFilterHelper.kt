@@ -8,14 +8,6 @@ import com.google.android.material.R as MaterialR
 import tiiehenry.android.app.snapshot.R
 
 /**
- * 应用筛选类型
- */
-enum class AppFilterType {
-    SYSTEM, // 系统应用
-    USER    // 用户应用
-}
-
-/**
  * 应用过滤辅助类
  * 统一处理应用列表的筛选和搜索逻辑
  */

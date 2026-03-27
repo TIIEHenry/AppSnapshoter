@@ -37,7 +37,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".app.AppConfigActivity"
+            android:name=".main.launch.app.AppConfigActivity"
             android:exported="false" />
         <activity
             android:name=".main.settings.SettingsActivity"

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="blue_grey_200">#FFB0BEC5</color>
     <color name="blue_grey_500">#FF607D8B</color>
     <color name="blue_grey_700">#FF455A64</color>
     <color name="blue_grey_300">#FF90A4AE</color>
@@ -8,8 +7,6 @@
     <color name="white">#FFFFFFFF</color>
     <color name="light_gray_white">#FFF8F9FA</color>
     <color name="colorPrimary">#FF6200EE</color>
-    <color name="colorPrimaryDark">#FF3700B3</color>
-    <color name="colorAccent">#FF03DAC5</color>
 
     <!-- Chip colors for tags filter -->
     <color name="chip_builtin_background">#FFE3F2FD</color>

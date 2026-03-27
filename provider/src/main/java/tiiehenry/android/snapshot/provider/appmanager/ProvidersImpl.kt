@@ -4,7 +4,7 @@ import android.content.Context
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.provider.Providers
-import tiiehenry.android.snapshot.provider.appmanager.root.SnapShotRootServiceClient
+import tiiehenry.android.snapshot.provider.service.SnapShotRootServiceClient
 import tiiehenry.android.snapshot.provider.filesystem.FileSystemProviderImpl
 
 /**

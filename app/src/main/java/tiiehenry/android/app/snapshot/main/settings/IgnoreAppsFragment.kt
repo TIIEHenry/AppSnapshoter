@@ -17,10 +17,9 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppFilterType
 import tiiehenry.android.app.snapshot.app.AppInfo
-import tiiehenry.android.app.snapshot.config.IgnoreAppsConfig
 import tiiehenry.android.app.snapshot.databinding.FragmentIgnoreAppsBinding
 import tiiehenry.android.app.snapshot.databinding.ItemIgnoreAppBinding
-import tiiehenry.android.app.snapshot.group.SelectAppFragment
+import tiiehenry.android.app.snapshot.main.selectapp.SelectAppFragment
 
 /**
  * 忽略应用管理界面
