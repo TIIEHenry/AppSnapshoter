@@ -18,10 +18,9 @@ class ProvidersImpl(
     private val serviceClient = SnapShotRootServiceClient.getInstance()
 
     // 使用 lazy 延迟创建 Provider 实例，共享同一个 serviceClient
-    private val appManagerProvider by lazy { AppManagerProviderImpl(context, serviceClient) }
+    private val appManagerProvider by lazy { AppManagerImpl(context, serviceClient) }
     private val fileSystemProvider by lazy { FileSystemProviderImpl(context, serviceClient) }
 
-    private var _appManager: IAppManager? = null
     private var _fileSystem: IFileSystem? = null
 
     override fun bindRootService() {
@@ -34,10 +33,7 @@ class ProvidersImpl(
 
     @Throws(Exception::class)
     override fun getAppManager(): IAppManager {
-        _appManager?.let { return it }
-        val appManager = appManagerProvider.provide()
-        _appManager = appManager
-        return appManager
+        return appManagerProvider
     }
 
     @Throws(Exception::class)

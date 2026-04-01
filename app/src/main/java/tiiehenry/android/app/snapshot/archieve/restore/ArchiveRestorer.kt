@@ -34,7 +34,7 @@ import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
-import tiiehenry.android.snapshot.provider.root.SELinux
+import tiiehenry.android.snapshot.provider.root.SELinuxShell
 import java.io.File
 import java.nio.file.Paths
 import kotlin.collections.iterator
@@ -801,7 +801,7 @@ object  ArchiveRestorer {
 
         // Get the SELinux context of the path.
         val pathContext: String
-        SELinux.getContext(path = targetPath).also { result ->
+        SELinuxShell.getContext(path = targetPath).also { result ->
             pathContext = if (result.isSuccess) result.outString else ""
         }
 
@@ -852,7 +852,7 @@ object  ArchiveRestorer {
         } else {
             // Restore SELinux context.
             val out = mutableListOf<String>()
-            SELinux.chcon(context = pathContext, path = targetPath).also { result ->
+            SELinuxShell.chcon(context = pathContext, path = targetPath).also { result ->
                 isSuccess = isSuccess && result.isSuccess
                 out.addAll(result.out)
             }
@@ -891,7 +891,7 @@ object  ArchiveRestorer {
 
         // Get the SELinux context of the path.
         val pathContext: String
-        SELinux.getContext(path = targetDir).also { result ->
+        SELinuxShell.getContext(path = targetDir).also { result ->
             pathContext = if (result.isSuccess) result.outString else ""
         }
 
@@ -948,12 +948,12 @@ object  ArchiveRestorer {
                 gid = pathGid.toUInt()
             }
             val out = mutableListOf<String>()
-            SELinux.chown(uid = uid.toUInt(), gid = gid, path = targetDir).also { result ->
+            SELinuxShell.chown(uid = uid.toUInt(), gid = gid, path = targetDir).also { result ->
                 isSuccess = isSuccess && result.isSuccess
                 out.addAll(result.out)
             }
             if (pathContext.isNotEmpty()) {
-                SELinux.chcon(context = pathContext, path = targetDir).also { result ->
+                SELinuxShell.chcon(context = pathContext, path = targetDir).also { result ->
                     isSuccess = isSuccess && result.isSuccess
                     out.addAll(result.out)
                 }

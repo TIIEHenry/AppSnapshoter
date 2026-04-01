@@ -26,8 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public abstract class IServiceClient<I extends IInterface> {
-    public static final String EXTRA_CALLING_UID = "calling.uid";
-    public static final String EXTRA_CALLING_PID = "calling.pid";
 
     public static ThreadPoolExecutor executor = new ThreadPoolExecutor(
             1,

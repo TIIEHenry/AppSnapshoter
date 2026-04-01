@@ -36,7 +36,6 @@ import androidx.core.content.pm.PermissionInfoCompat
 import com.android.providers.settings.SettingsState
 import com.android.providers.settings.SettingsStateApi26
 import com.android.providers.settings.SettingsStateApi31
-import com.github.luben.zstd.ZstdOutputStream
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ShellUtils
 import com.topjohnwu.superuser.ipc.RootService
@@ -44,22 +43,18 @@ import nota.android.hiddenapi.castTo
 import nota.android.io.NativeFileSystem
 import nota.lang.reflect.ReflectionCache
 import tiiehenry.android.compress.zstd.TarJNI
+import tiiehenry.android.snapshot.app.AppDetail
+import tiiehenry.android.snapshot.app.AppInfo
 import tiiehenry.android.snapshot.app.AppPermission
+import tiiehenry.android.snapshot.app.AppStorage
+import tiiehenry.android.snapshot.app.AppStorageDetail
 import tiiehenry.android.snapshot.fs.IFileType
-import tiiehenry.android.snapshot.provider.appmanager.model.AppInfo
-import tiiehenry.android.snapshot.provider.appmanager.model.AppStorage
-import tiiehenry.android.snapshot.provider.appmanager.model.Info
-import tiiehenry.android.snapshot.provider.appmanager.model.Storage
-import tiiehenry.android.snapshot.provider.parcelables.BytesParcelable
-import tiiehenry.android.snapshot.provider.parcelables.FilePathParcelable
-import tiiehenry.android.snapshot.provider.parcelables.StatFsParcelable
-import tiiehenry.android.snapshot.provider.service.IBinaryCallback
-import tiiehenry.android.snapshot.provider.service.ISnapShotRootService
 import tiiehenry.android.snapshot.provider.appmanager.util.LogHelper
 import tiiehenry.android.snapshot.provider.appmanager.util.PathHelper
+import tiiehenry.android.snapshot.provider.root.PmShell
+import tiiehenry.android.snapshot.provider.service.bean.StatFsResult
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.security.MessageDigest
 
 class SnapshotRootService : RootService() {
@@ -136,89 +131,77 @@ class SnapshotRootService : RootService() {
             "com.android.shell",
         )
 
-        override fun getInstalledAppInfos(): ParcelFileDescriptor {
-            return writeToParcel(context) { parcel ->
-                val infos = mutableListOf<AppInfo>()
-                val users = mUserManager.users
-                users.forEach { user ->
-                    val installedPackagesAsUser =
-                        mPackageManagerHidden.getInstalledPackagesAsUser(0, user.id)
-                    installedPackagesAsUser.removeIf { it.packageName in CORE_SYSTEM_PACKAGES }
-                    infos.addAll(installedPackagesAsUser.map {
-                        AppInfo(
-                            packageName = it.packageName,
-                            userId = user.id,
-                            info = Info(
-                                uid = it.applicationInfo?.uid ?: 0,
-                                label = it.applicationInfo?.loadLabel(mPackageManager).toString(),
-                                versionName = it.versionName ?: "",
-                                versionCode = it.longVersionCode,
-                                flags = it.applicationInfo?.flags ?: 0,
-                                firstInstallTime = it.firstInstallTime,
-                                lastUpdateTime = it.lastUpdateTime
-                            )
-                        )
-                    })
-                }
-                parcel.writeTypedList(infos)
-            }
-        }
-
-        override fun getInstalledAppStorages(): ParcelFileDescriptor {
-            return writeToParcel(context) { parcel ->
-                val packages = mutableListOf<Pair<Int, PackageInfo>>()
-                val storages = mutableListOf<AppStorage>()
-                val users = mUserManager.users
-                users.forEach { user ->
-                    packages.addAll(
-                        mPackageManagerHidden.getInstalledPackagesAsUser(0, user.id)
-                            .map { user.id to it })
-                }
-                storages.addAll(packages.map { (userId, item) ->
-                    val apkBytes = runCatching {
-                        item.applicationInfo?.sourceDir?.let { path -> File(path).parent }
-                            ?.let { path -> NativeFileSystem.calculateTreeSize(path) }
-                    }.getOrNull() ?: 0
-                    val userBytes = NativeFileSystem.calculateTreeSize(
-                        PathHelper.getAppUserDir(userId, item.packageName)
-                    )
-                    val userDeBytes = NativeFileSystem.calculateTreeSize(
-                        PathHelper.getAppUserDeDir(userId, item.packageName)
-                    )
-                    val dataBytes = NativeFileSystem.calculateTreeSize(
-                        PathHelper.getAppDataDir(userId, item.packageName)
-                    )
-                    val obbBytes = NativeFileSystem.calculateTreeSize(
-                        PathHelper.getAppObbDir(userId, item.packageName)
-                    )
-                    val mediaBytes = NativeFileSystem.calculateTreeSize(
-                        PathHelper.getAppMediaDir(userId, item.packageName)
-                    )
-                    AppStorage(
-                        packageName = item.packageName,
-                        userId = userId,
-                        storage = Storage(
-                            apkBytes = apkBytes,
-                            internalDataBytes = userBytes + userDeBytes,
-                            externalDataBytes = dataBytes,
-                            additionalDataBytes = obbBytes + mediaBytes,
+        override fun getInstalledAppInfos(): List<AppInfo> {
+            val infos = mutableListOf<AppInfo>()
+            val users = mUserManager.users
+            users.forEach { user ->
+                val installedPackagesAsUser =
+                    mPackageManagerHidden.getInstalledPackagesAsUser(0, user.id)
+                installedPackagesAsUser.removeIf { it.packageName in CORE_SYSTEM_PACKAGES }
+                infos.addAll(installedPackagesAsUser.map {
+                    AppInfo(
+                        packageName = it.packageName,
+                        userId = user.id,
+                        detail = AppDetail(
+                            uid = it.applicationInfo?.uid ?: 0,
+                            label = it.applicationInfo?.loadLabel(mPackageManager).toString(),
+                            versionName = it.versionName ?: "",
+                            versionCode = it.longVersionCode,
+                            flags = it.applicationInfo?.flags ?: 0,
+                            firstInstallTime = it.firstInstallTime,
+                            lastUpdateTime = it.lastUpdateTime
                         )
                     )
                 })
-                parcel.writeTypedList(storages)
             }
+            return infos
+        }
+
+        override fun getInstalledAppStorages(): List<AppStorage> {
+            val packages = mutableListOf<Pair<Int, PackageInfo>>()
+            val storages = mutableListOf<AppStorage>()
+            val users = mUserManager.users
+            users.forEach { user ->
+                packages.addAll(
+                    mPackageManagerHidden.getInstalledPackagesAsUser(0, user.id)
+                        .map { user.id to it })
+            }
+            storages.addAll(packages.map { (userId, item) ->
+                val apkBytes = runCatching {
+                    item.applicationInfo?.sourceDir?.let { path -> File(path).parent }
+                        ?.let { path -> NativeFileSystem.calculateTreeSize(path) }
+                }.getOrNull() ?: 0
+                val userBytes = NativeFileSystem.calculateTreeSize(
+                    PathHelper.getAppUserDir(userId, item.packageName)
+                )
+                val userDeBytes = NativeFileSystem.calculateTreeSize(
+                    PathHelper.getAppUserDeDir(userId, item.packageName)
+                )
+                val dataBytes = NativeFileSystem.calculateTreeSize(
+                    PathHelper.getAppDataDir(userId, item.packageName)
+                )
+                val obbBytes = NativeFileSystem.calculateTreeSize(
+                    PathHelper.getAppObbDir(userId, item.packageName)
+                )
+                val mediaBytes = NativeFileSystem.calculateTreeSize(
+                    PathHelper.getAppMediaDir(userId, item.packageName)
+                )
+                AppStorage(
+                    packageName = item.packageName,
+                    userId = userId,
+                    detail = AppStorageDetail(
+                        apkBytes = apkBytes,
+                        internalDataBytes = userBytes + userDeBytes,
+                        externalDataBytes = dataBytes,
+                        additionalDataBytes = obbBytes + mediaBytes,
+                    )
+                )
+            })
+            return storages
         }
 
         override fun getUsers(): List<UserInfo> {
             return mUserManager.users
-        }
-
-        override fun getPrivilegedConfiguredNetworks(): List<BytesParcelable> {
-            return emptyList()
-        }
-
-        override fun addNetworks(configs: List<BytesParcelable>): IntArray {
-            return intArrayOf()
         }
 
         override fun getPackageSourceDir(packageName: String, userId: Int): List<String> {
@@ -422,7 +405,11 @@ class SnapshotRootService : RootService() {
 
         override fun isInstalled(packageName: String, userId: Int): Boolean {
             return try {
-                mPackageManagerHidden.getPackageInfoAsUser(packageName, 0, userId)
+                mPackageManagerHidden.getPackageInfoAsUser(
+                    packageName,
+                    PackageManager.GET_META_DATA,
+                    userId
+                )
                 true
             } catch (e: Exception) {
                 false
@@ -431,13 +418,15 @@ class SnapshotRootService : RootService() {
 
         override fun installApk(file: String, userId: Int): Boolean {
             return try {
-                val installCmd = "pm install -i com.android.vending -r -t -d --user $userId \"$file\""
-                val shell = Shell.Builder.create()
-                    .setFlags(Shell.FLAG_MOUNT_MASTER)
-                    .setTimeout(120)
-                    .build()
-                val result = shell.newJob().to(null, null).add(installCmd).exec()
-                shell.close()
+                val result = PmShell.install(userId, file)
+//                val installCmd =
+//                    "pm install -i com.android.vending -r -t -d --user $userId \"$file\""
+//                val shell = Shell.Builder.create()
+//                    .setFlags(Shell.FLAG_MOUNT_MASTER)
+//                    .setTimeout(120)
+//                    .build()
+//                val result = shell.newJob().to(null, null).add(installCmd).exec()
+//                shell.close()
                 if (result.isSuccess) {
                     LogHelper.i(
                         "SnapshotRootService",
@@ -461,16 +450,14 @@ class SnapshotRootService : RootService() {
                 return false
             }
             return try {
-                val shell = Shell.Builder.create()
-                    .setFlags(Shell.FLAG_MOUNT_MASTER)
-                    .setTimeout(300)
-                    .build()
-                val createCmd = "pm install-create --user $userId"
-                var createResult = shell.newJob().to(null, null).add(createCmd).exec()
-                var output = createResult.out.joinToString("\n")
-                val sessionMatch = Regex("\\[(\\d+)\\]").find(output)
+                val create = PmShell.Installer.create(userId)
+                val output = create.outString
+                if (!create.isSuccess) {
+                    throw Exception("Failed to create install session: $output")
+                }
+                val sessionMatch = Regex("\\[(\\d+)]").find(output)
                 if (sessionMatch == null) {
-                    shell.close()
+//                    shell.close()
                     LogHelper.e(
                         "SnapshotRootService",
                         "installApks",
@@ -485,23 +472,13 @@ class SnapshotRootService : RootService() {
                     val splitName = if (index == 0) "base" else "split_$index"
                     val writeCmd =
                         "pm install-write -S $fileSize - $sessionId $splitName \"$filePath\""
-                    createResult = shell.newJob().to(null, null).add(writeCmd).exec()
-                    output = createResult.out.joinToString("\n")
-                    if (!createResult.isSuccess && !output.contains("Success")) {
-                        shell.newJob().to(null, null).add("pm install-abandon $sessionId").exec()
-                        shell.close()
-                        LogHelper.e(
-                            "SnapshotRootService",
-                            "installApks",
-                            "Failed to write APK: $filePath"
-                        )
-                        return false
+                    if (!PmShell.Installer.write(sessionId, splitName, filePath).isSuccess) {
+                        PmShell.Installer.abandon(sessionId)
+                        throw Exception("Failed to write APK: $filePath")
                     }
                 }
-                val commitCmd = "pm install-commit $sessionId"
-                createResult = shell.newJob().to(null, null).add(commitCmd).exec()
-                shell.close()
-                if (createResult.isSuccess) {
+                val commit = PmShell.Installer.commit(sessionId)
+                if (commit.isSuccess) {
                     LogHelper.i(
                         "SnapshotRootService",
                         "installApks",
@@ -1007,21 +984,9 @@ class SnapshotRootService : RootService() {
 
         // ==================== 文件系统方法 ====================
 
-        override fun readStatFs(path: String): StatFsParcelable {
+        override fun readStatFs(path: String): StatFsResult {
             val statFs = StatFs(path)
-            return StatFsParcelable(statFs.availableBytes, statFs.totalBytes)
-        }
-
-        override fun listFilePaths(
-            path: String,
-            listFiles: Boolean,
-            listDirs: Boolean
-        ): List<FilePathParcelable> {
-            return File(path).listFiles()?.filter {
-                (it.isFile && listFiles) || (it.isDirectory && listDirs)
-            }?.map {
-                FilePathParcelable(it.path, if (it.isFile) 0 else if (it.isDirectory) 1 else -1)
-            } ?: listOf()
+            return StatFsResult(statFs.availableBytes, statFs.totalBytes)
         }
 
         override fun readText(path: String): ParcelFileDescriptor {

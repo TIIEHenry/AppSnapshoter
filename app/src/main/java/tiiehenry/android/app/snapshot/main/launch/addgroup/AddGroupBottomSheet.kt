@@ -17,7 +17,7 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.databinding.BottomSheetAddGroupBinding
 import tiiehenry.android.app.snapshot.main.launch.LauncherViewModel
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
-import tiiehenry.android.snapshot.app.UserInfoParcelable
+import tiiehenry.android.snapshot.app.UserInfoHide
 
 class AddGroupBottomSheet : BottomSheetDialogFragment() {
 
@@ -26,19 +26,19 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
     private val viewModel: LauncherViewModel by activityViewModels()
 
     private lateinit var userIdSpinner: Spinner
-    private val userInfoList = mutableListOf<UserInfoParcelable>()
+    private val userInfoList = mutableListOf<UserInfoHide>()
 
     private val pathPickerHelper = GroupPathPickerHelper(this) { absolutePath, uri ->
         binding.etGroupPath.setText(absolutePath)
-        GroupPathPickerHelper.Companion.takePersistablePermission(this, uri)
-        GroupPathPickerHelper.Companion.autoFillGroupName(
+        GroupPathPickerHelper.takePersistablePermission(this, uri)
+        GroupPathPickerHelper.autoFillGroupName(
             this,
             uri,
             absolutePath,
             binding.etGroupName
         )
         // 尝试从 group.json 自动解析 userId 并选中对应项
-        val configData = GroupPathPickerHelper.Companion.readGroupConfigData(this, uri)
+        val configData = GroupPathPickerHelper.readGroupConfigData(this, uri)
         if (configData != null) {
             val idx = userInfoList.indexOfFirst { it.id == configData.userId }
             if (idx >= 0) userIdSpinner.setSelection(idx)
@@ -66,7 +66,7 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
         lifecycleScope.launch {
             val users = withContext(Dispatchers.IO) {
                 try {
-                    SnapshotApp.Companion.getInstance().appManager.users ?: emptyList()
+                    SnapshotApp.getInstance().appManager.users ?: emptyList()
                 } catch (e: Exception) {
                     e.printStackTrace()
                     emptyList()
@@ -99,7 +99,7 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
                 val userId = if (selectedIndex >= 0 && selectedIndex < userInfoList.size) {
                     userInfoList[selectedIndex].id
                 } else 0
-                SnapshotApp.Companion.getViewModel().addGroup(groupName, groupPath, userId)
+                SnapshotApp.getViewModel().addGroup(groupName, groupPath, userId)
                 dismiss()
             } else {
                 if (groupName.isEmpty()) {

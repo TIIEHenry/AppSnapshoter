@@ -4,11 +4,12 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
 /**
- * UserInfo 的副本类，用于跨进程传递用户信息
+ *应用信息数据类
  */
 @Parcelize
-class UserInfoHide(
-    var id: Int,
-    var name: String?
+data class AppInfo(
+    val packageName: String,
+    val userId: Int,
+    val detail: AppDetail
 ) : Parcelable {
 }

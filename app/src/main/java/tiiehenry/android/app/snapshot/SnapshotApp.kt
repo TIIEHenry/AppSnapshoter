@@ -6,7 +6,7 @@ import android.os.Environment
 import android.util.Log
 import com.tencent.mmkv.MMKV
 import com.topjohnwu.superuser.Shell
-import tiiehenry.android.app.snapshot.utils.ShellHelper
+import tiiehenry.android.app.snapshot.utils.AppShell
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.provider.Providers
@@ -39,7 +39,7 @@ class SnapshotApp : Application() {
         MMKV.initialize(this)
         mmkv = MMKV.defaultMMKV()
 
-        ShellHelper.initMainShell(this)
+        AppShell.initMainShell(this)
 
         // 初始化全局ViewModel
         shotViewModel = SnapshotViewModel()

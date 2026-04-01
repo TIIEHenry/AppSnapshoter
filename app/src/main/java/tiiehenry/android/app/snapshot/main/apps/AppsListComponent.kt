@@ -18,7 +18,7 @@ import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.app.tag.AppTagHelper
 import tiiehenry.android.app.snapshot.main.settings.IgnoreAppsConfig
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
-import tiiehenry.android.snapshot.app.UserInfoParcelable
+import tiiehenry.android.snapshot.app.UserInfoHide
 
 /**
  * 应用列表 UI 组件的封装类
@@ -32,7 +32,7 @@ class AppsListComponent<VB : ViewBinding>(
     private val callbacks: Callbacks<VB>
 ) {
 
-    private var userList: List<UserInfoParcelable> = emptyList()
+    private var userList: List<UserInfoHide> = emptyList()
 
     interface Callbacks<VB : ViewBinding> {
         fun getRecyclerView(binding: VB): RecyclerView
@@ -48,7 +48,8 @@ class AppsListComponent<VB : ViewBinding>(
 
     fun onViewCreated(viewLifecycleOwner: LifecycleOwner) {
         // 设置 RecyclerView
-        callbacks.getRecyclerView(binding).layoutManager = LinearLayoutManager(fragment.requireContext())
+        callbacks.getRecyclerView(binding).layoutManager =
+            LinearLayoutManager(fragment.requireContext())
         callbacks.setupRecyclerViewAdapter(binding)
 
         // 设置 Filter ChipGroup
@@ -90,16 +91,17 @@ class AppsListComponent<VB : ViewBinding>(
         }
 
         // 搜索功能
-        callbacks.getSearchView(binding).setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
-            }
+        callbacks.getSearchView(binding)
+            .setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?): Boolean {
+                    return false
+                }
 
-            override fun onQueryTextChange(newText: String?): Boolean {
-                viewModel.filterApps(newText ?: "")
-                return true
-            }
-        })
+                override fun onQueryTextChange(newText: String?): Boolean {
+                    viewModel.filterApps(newText ?: "")
+                    return true
+                }
+            })
     }
 
     private fun setupUserTabs() {
@@ -108,8 +110,7 @@ class AppsListComponent<VB : ViewBinding>(
 
         val tabs = userList.map { userInfo ->
             val tab = tabLayout.newTab()
-            tab.text =
-                userInfo.name.ifEmpty { if (userInfo.id == 0) "主用户" else "用户 ${userInfo.id}" }
+            tab.text = userInfo.name ?: if (userInfo.id == 0) "主用户" else "用户 ${userInfo.id}"
             tab.tag = userInfo
             tab
         }
@@ -119,7 +120,7 @@ class AppsListComponent<VB : ViewBinding>(
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                val userInfo = tab.tag as UserInfoParcelable
+                val userInfo = tab.tag as UserInfoHide
                 viewModel.setUserFilter(userInfo.id)
             }
 

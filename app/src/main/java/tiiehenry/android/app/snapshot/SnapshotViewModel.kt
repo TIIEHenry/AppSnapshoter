@@ -1,7 +1,5 @@
 package tiiehenry.android.app.snapshot
 
-import android.graphics.Bitmap
-import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -13,8 +11,7 @@ import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.config.GlobalConfig
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.utils.AppIconUtils
-import tiiehenry.android.snapshot.app.UserInfoParcelable
-import java.io.ByteArrayOutputStream
+import tiiehenry.android.snapshot.app.UserInfoHide
 import java.nio.file.Paths
 import java.util.UUID
 import kotlin.io.path.absolutePathString
@@ -29,7 +26,7 @@ class SnapshotViewModel : ViewModel() {
     /**
      * UserInfoParcelable to appInfo list
      */
-    val appsList = MutableLiveData<Map<UserInfoParcelable, List<AppInfo>>>(emptyMap())
+    val appsList = MutableLiveData<Map<UserInfoHide, List<AppInfo>>>(emptyMap())
 
     /**
      * 应用列表加载状态
@@ -66,7 +63,7 @@ class SnapshotViewModel : ViewModel() {
         try {
             // 从系统加载已安装应用列表
             val appManager = SnapshotApp.getInstance().appManager
-            val appsMap = mutableMapOf<UserInfoParcelable, List<AppInfo>>()
+            val appsMap = mutableMapOf<UserInfoHide, List<AppInfo>>()
 
             // 获取所有用户列表
             val userInfos = appManager.users ?: listOf()

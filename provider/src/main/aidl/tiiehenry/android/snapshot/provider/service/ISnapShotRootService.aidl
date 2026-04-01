@@ -1,10 +1,9 @@
 package tiiehenry.android.snapshot.provider.service;
 
+import tiiehenry.android.snapshot.app.AppInfo;
+import tiiehenry.android.snapshot.app.AppStorage;
 import tiiehenry.android.snapshot.app.AppPermission;
-import tiiehenry.android.snapshot.provider.parcelables.BytesParcelable;
-import tiiehenry.android.snapshot.provider.parcelables.StatFsParcelable;
-import tiiehenry.android.snapshot.provider.parcelables.FilePathParcelable;
-import tiiehenry.android.snapshot.provider.service.IBinaryCallback;
+import tiiehenry.android.snapshot.provider.service.bean.StatFsResult;
 
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -19,11 +18,9 @@ interface ISnapShotRootService {
     boolean testConnection();
 
     // ==================== 应用管理方法 ====================
-    ParcelFileDescriptor getInstalledAppInfos();
-    ParcelFileDescriptor getInstalledAppStorages();
+    List<AppInfo> getInstalledAppInfos();
+    List<AppStorage> getInstalledAppStorages();
     List<UserInfo> getUsers();
-    List<BytesParcelable> getPrivilegedConfiguredNetworks();
-    int[] addNetworks(in List<BytesParcelable> configs);
     List<String> getPackageSourceDir(String packageName, int userId);
 
     // 应用信息获取方法
@@ -31,9 +28,6 @@ interface ISnapShotRootService {
     ApplicationInfo getApplicationInfo(String packageName, int flags, int userId);
     String loadLabel(String packageName, int userId);
     Bitmap loadIcon(String packageName, int userId);
-    List<AppPermission> getPermissions(String packageName, int userId);
-    boolean setAppPermission(String packageName, int userId, in AppPermission permission);
-    boolean setAppPermissions(String packageName, int userId, in List<AppPermission> permissions);
     boolean isInstalled(String packageName, int userId);
     boolean installApk(String file, int userId);
     boolean installApks(in List<String> files, int userId);
@@ -44,6 +38,9 @@ interface ISnapShotRootService {
     boolean unsuspendPackage(String packageName, int userId);
 
     // 权限管理方法
+    List<AppPermission> getPermissions(String packageName, int userId);
+    boolean setAppPermission(String packageName, int userId, in AppPermission permission);
+    boolean setAppPermissions(String packageName, int userId, in List<AppPermission> permissions);
     int grantRuntimePermission(String packageName, String permName, in UserHandle user);
     int revokeRuntimePermission(String packageName, String permName, in UserHandle user);
     int getPermissionFlags(String packageName, String permName, in UserHandle user);
@@ -66,8 +63,7 @@ interface ISnapShotRootService {
     boolean launchApp(String packageName, int userId);
 
     // ==================== 文件系统方法 ====================
-    StatFsParcelable readStatFs(String path);
-    List<FilePathParcelable> listFilePaths(String path, boolean listFiles, boolean listDirs);
+    StatFsResult readStatFs(String path);
     ParcelFileDescriptor readText(String path);
     boolean writeText(String path, in ParcelFileDescriptor pfd);
     long calculateTreeSize(String path);

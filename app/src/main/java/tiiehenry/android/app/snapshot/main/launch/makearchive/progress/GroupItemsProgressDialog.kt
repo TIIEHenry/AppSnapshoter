@@ -2,6 +2,7 @@ package tiiehenry.android.app.snapshot.main.launch.makearchive.progress
 
 import android.content.Context
 import android.view.LayoutInflater
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.databinding.DialogMultiItemLoadingBinding
 
 class GroupItemsProgressDialog(
@@ -53,7 +54,7 @@ class GroupItemsProgressDialog(
     }
 
     fun setFinishButtonAsClose(onClose: () -> Unit) {
-        binding.btnCancel.text = "关闭"
+        binding.btnCancel.setIconResource(R.drawable.close_circle_outline)
         setCancelable(true)
         setCanceledOnTouchOutside(true)
         binding.btnCancel.setOnClickListener {
@@ -62,7 +63,7 @@ class GroupItemsProgressDialog(
     }
 
     fun setFinishButtonAsForceCancel(onClose: () -> Unit) {
-        binding.btnCancel.text = "强行停止"
+        binding.btnCancel.setIconResource(R.drawable.stop_circle_outline)
         binding.btnCancel.setOnClickListener {
             onClose()
         }

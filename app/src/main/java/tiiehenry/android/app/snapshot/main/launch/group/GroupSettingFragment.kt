@@ -9,16 +9,16 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.GroupConfig
 import tiiehenry.android.app.snapshot.databinding.FragmentGroupSettingBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
-import tiiehenry.android.snapshot.app.UserInfoParcelable
+import tiiehenry.android.snapshot.app.UserInfoHide
 
 class GroupSettingFragment : BottomSheetDialogFragment() {
 
@@ -28,7 +28,7 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
     private lateinit var groupConfig: GroupConfig
     private var groupName: String = ""
     private lateinit var userIdSpinner: Spinner
-    private val userInfoList = mutableListOf<UserInfoParcelable>()
+    private val userInfoList = mutableListOf<UserInfoHide>()
     private var onConfigSavedListener: (() -> Unit)? = null
 
     private val pathPickerHelper = GroupPathPickerHelper(this) { absolutePath, uri ->
@@ -46,7 +46,10 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
     companion object {
         private const val ARG_GROUP_ID = "group_id"
 
-        fun newInstance(group: SnapGroup, onConfigSaved: (() -> Unit)? = null): GroupSettingFragment {
+        fun newInstance(
+            group: SnapGroup,
+            onConfigSaved: (() -> Unit)? = null
+        ): GroupSettingFragment {
             val fragment = GroupSettingFragment()
             val args = Bundle()
             args.putString(ARG_GROUP_ID, group.id)
@@ -116,7 +119,8 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
             userInfoList.clear()
             userInfoList.addAll(users)
             val userLabels = userInfoList.map { "${it.name} (${it.id})" }.toTypedArray()
-            val userAdapter = ArrayAdapter(requireContext(), R.layout.simple_spinner_item, userLabels)
+            val userAdapter =
+                ArrayAdapter(requireContext(), R.layout.simple_spinner_item, userLabels)
             userAdapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
             userIdSpinner.adapter = userAdapter
             // 填充完成后再同步选中项

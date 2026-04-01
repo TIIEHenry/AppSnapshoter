@@ -11,7 +11,7 @@ import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.app.tag.AppTag
 import tiiehenry.android.app.snapshot.app.tag.AppTagHelper
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.snapshot.app.UserInfoParcelable
+import tiiehenry.android.snapshot.app.UserInfoHide
 
 class AppsViewModel : ViewModel() {
 
@@ -29,7 +29,7 @@ class AppsViewModel : ViewModel() {
      * 设置应用列表（使用Map格式，包含用户分组信息）
      * @param appsMap UserInfoParcelable到应用列表的映射
      */
-    fun setAppsMap(appsMap: Map<UserInfoParcelable, List<AppInfo>>) {
+    fun setAppsMap(appsMap: Map<UserInfoHide, List<AppInfo>>) {
         this.appsMap = appsMap.map { it.key.id to it.value }.toMap()
         // 预计算所有应用的标签（轻量级）
         preloadAppTags()

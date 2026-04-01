@@ -19,19 +19,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.archieve.MetaInfoHelper
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.config.SortConfig
-import tiiehenry.android.app.snapshot.archieve.MetaInfoHelper
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.databinding.ItemSuccessAppBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
-import tiiehenry.android.app.snapshot.main.selectapp.SelectAppFragment
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.main.launch.group.GroupConfigFragment
+import tiiehenry.android.app.snapshot.main.launch.group.GroupSettingFragment
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SuccessSnapshotInfo
 import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.GroupItemsProgressDialog
-import tiiehenry.android.app.snapshot.main.launch.group.GroupSettingFragment
-import tiiehenry.android.app.snapshot.main.launch.group.GroupConfigFragment
+import tiiehenry.android.app.snapshot.main.selectapp.SelectAppFragment
 import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -534,10 +534,12 @@ class GroupsAdapter(
                     itemBinding.packageName.text = snapedApp.appInfo.packageName
 
                     val timeSeconds = info.timeMillis / 1000
-                    val timeStr = if (timeSeconds < 60) {
-                        "${timeSeconds}秒"
+                    val timeStr = if (timeSeconds < 1) {
+                        "${info.timeMillis}ms"
+                    } else if (timeSeconds < 60) {
+                        "${timeSeconds}s"
                     } else {
-                        "${timeSeconds / 60}分${timeSeconds % 60}秒"
+                        "${timeSeconds / 60}min${timeSeconds % 60}s"
                     }
                     val sizeStr = Formatter.formatFileSize(context, info.archiveSize)
                     itemBinding.successInfo.text = "耗时: $timeStr, 数据: $sizeStr"

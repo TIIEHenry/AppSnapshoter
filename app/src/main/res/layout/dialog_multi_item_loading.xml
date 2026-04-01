@@ -98,13 +98,11 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_cancel"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="0dp"
-                android:layout_weight="1"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="8dp"
-                android:maxLines="1"
-                android:text="中止" />
+                app:icon="@drawable/stop_circle_outline" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_fail"

@@ -3,7 +3,7 @@ package tiiehenry.android.app.snapshot.utils
 import android.content.Context
 import com.topjohnwu.superuser.Shell
 
-object ShellHelper {
+object AppShell {
     private const val TAG = "ShellHelper"
 
     private class EnvInitializer : Shell.Initializer() {

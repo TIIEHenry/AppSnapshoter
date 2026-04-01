@@ -9,8 +9,8 @@ data class ShellResult(
         get() = code == 0
 
     val inputString: String
-        get() = input.toSpaceString()
+        get() = input.joinToString(separator = " ")
 
     val outString: String
-        get() = out.toLineString()
+        get() = out.joinToString(separator = "\n")
 }
