@@ -65,7 +65,7 @@ data class SnapGroup(
             val files = fs.listDir(path)
             Log.i(TAG, "files: $files")
             for (pkgName in files) {
-                if (pkgName.startsWith(".")) {
+                if (pkgName.startsWith(".") || !pkgName.contains(".")) {
                     //ignore dir likes .stfolder
                     continue
                 }
