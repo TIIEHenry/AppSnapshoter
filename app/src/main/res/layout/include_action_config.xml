@@ -32,13 +32,13 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cb_auto_snapshot"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="跟随一键存档" />
 
-        <CheckBox
+        <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cb_uninstall_archived"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

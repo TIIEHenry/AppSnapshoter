@@ -29,7 +29,7 @@
         android:text="文件名"
         android:textSize="16sp" />
 
-    <CheckBox
+    <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/cb_file_selected"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
