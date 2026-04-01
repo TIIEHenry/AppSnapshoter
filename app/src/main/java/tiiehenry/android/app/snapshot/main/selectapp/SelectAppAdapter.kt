@@ -48,15 +48,15 @@ class SelectAppAdapter(
         onMultiSelectedAppsChanged(getSelectedApps())
     }
 
-    fun toggleAppSelection(appInfo: AppInfo) {
+    fun toggleAppSelection(appInfo: AppInfo, bindingAdapterPosition: Int, isSelected: Boolean) {
         if (isMultiSelectMode) {
-            if (selectedApps.contains(appInfo.packageName)) {
-                selectedApps.remove(appInfo.packageName)
-            } else {
+            if (isSelected) {
                 selectedApps.add(appInfo.packageName)
+            } else {
+                selectedApps.remove(appInfo.packageName)
             }
-            notifyItemChanged(getItemPosition(appInfo))
             onMultiSelectedAppsChanged(getSelectedApps())
+            notifyItemChanged(bindingAdapterPosition)
         }
     }
 
@@ -70,13 +70,17 @@ class SelectAppAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position), isMultiSelectMode, getItem(position).packageName in selectedApps)
+        holder.bind(
+            getItem(position),
+            isMultiSelectMode,
+            getItem(position).packageName in selectedApps
+        )
     }
 
     class ViewHolder(
         private val binding: ItemAppListBinding,
         private val onItemClick: (AppInfo) -> Unit,
-        private val onAppToggle: (AppInfo) -> Unit,
+        private val onAppToggle: (AppInfo, Int, Boolean) -> Unit,
         private val onLongPressEnterMultiSelectMode: () -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
@@ -94,6 +98,7 @@ class SelectAppAdapter(
             // 设置多选模式下的UI状态
             if (isMultiSelectMode) {
                 binding.appCheckbox.visibility = View.VISIBLE
+                binding.appCheckbox.setOnCheckedChangeListener(null)
                 binding.appCheckbox.isChecked = isSelected
                 binding.root.isActivated = isSelected
             } else {
@@ -104,12 +109,20 @@ class SelectAppAdapter(
             // 设置点击事件
             binding.root.setOnClickListener {
                 if (isMultiSelectMode) {
-                    onAppToggle(appInfo)
+                    onAppToggle(appInfo, bindingAdapterPosition, !binding.appCheckbox.isChecked)
                 } else {
                     onItemClick(appInfo)
                 }
             }
 
+            // 设置新的监听器
+            binding.appCheckbox.setOnCheckedChangeListener { _, isChecked ->
+                if (isMultiSelectMode) {
+                    binding.root.post {
+                        onAppToggle(appInfo, bindingAdapterPosition, isChecked)
+                    }
+                }
+            }
             // 设置长按事件进入多选模式
             binding.root.setOnLongClickListener {
                 onLongPressEnterMultiSelectMode() // 长按时进入多选模式
