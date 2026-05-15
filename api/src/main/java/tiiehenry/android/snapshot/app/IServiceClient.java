@@ -257,10 +257,6 @@ public abstract class IServiceClient<I extends IInterface> {
             Log.e(getLogTag(), "canceled: " + e.getMessage());
         } catch (Exception e) {
             Log.e(getLogTag(), "error: " + e.getMessage());
-        } finally {
-            // 不要在这里重置 future，因为 onServiceConnected 可能还在使用它
-            // 如果服务已经连接成功，client 不为 null，后续调用可以通过 isConnected() 检测到
-            // clientFuture = new CompletableFuture<>();
         }
         long endTime = System.currentTimeMillis();
         Log.d(getLogTag(), "bindService time: " + (endTime - startTime));
@@ -367,10 +363,7 @@ public abstract class IServiceClient<I extends IInterface> {
             }
         };
         ServiceConnection b = bindRemote(context, connection1);
-        if (b != null) {
-            return b;
-        }
-        return null;
+        return b;
     }
 
     /**

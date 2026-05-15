@@ -15,5 +15,4 @@ data class AppDetail(
     val flags: Int = 0,
     val firstInstallTime: Long = 0L,
     val lastUpdateTime: Long = 0L
-) : Parcelable {
-}
+) : Parcelable

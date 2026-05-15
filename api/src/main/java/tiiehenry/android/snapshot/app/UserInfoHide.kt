@@ -10,5 +10,4 @@ import kotlinx.parcelize.Parcelize
 class UserInfoHide(
     var id: Int,
     var name: String?
-) : Parcelable {
-}
+) : Parcelable

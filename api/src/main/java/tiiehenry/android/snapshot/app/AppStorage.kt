@@ -11,5 +11,4 @@ data class AppStorage(
     val packageName: String,
     val userId: Int,
     val detail: AppStorageDetail
-) : Parcelable {
-}
+) : Parcelable

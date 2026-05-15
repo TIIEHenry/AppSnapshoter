@@ -12,5 +12,4 @@ data class AppStorageDetail(
     val internalDataBytes: Long = 0L,
     val externalDataBytes: Long = 0L,
     val additionalDataBytes: Long = 0L
-) : Parcelable {
-}
+) : Parcelable

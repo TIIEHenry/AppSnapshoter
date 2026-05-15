@@ -11,5 +11,4 @@ data class AppInfo(
     val packageName: String,
     val userId: Int,
     val detail: AppDetail
-) : Parcelable {
-}
+) : Parcelable
