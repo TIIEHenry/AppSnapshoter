@@ -15,13 +15,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import nota.io.FlowableStreamParallelCopier
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
 import tiiehenry.android.snapshot.provider.filesystem.IAlgorithmCompressor
 import tiiehenry.android.snapshot.task.ITaskHandler
-import tiiehenry.android.snapshot.util.LogHelper
+import tiiehenry.android.snapshot.provider.appmanager.util.LogHelper
 import java.io.FileInputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -448,8 +449,16 @@ object ZstdCompressor : IAlgorithmCompressor {
                 }
 
                 val zstdCompression = async(Dispatchers.IO) {
-                    while (!fileSystem.exists(stdOut)) {
-                        delay(100)
+                    val fifoReady = withTimeoutOrNull(60_000) {
+                        while (!fileSystem.exists(stdOut)) {
+                            delay(100)
+                        }
+                        true
+                    }
+                    if (fifoReady == null) {
+                        errorMessage = "Timeout waiting for tar FIFO pipe"
+                        Log.e(TAG, errorMessage)
+                        throw IllegalStateException(errorMessage)
                     }
 
                     runCatching {

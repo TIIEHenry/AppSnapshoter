@@ -3,8 +3,9 @@ package tiiehenry.android.app.snapshot
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.app.AppInfo
@@ -21,6 +22,8 @@ class SnapshotViewModel : ViewModel() {
         const val TAG = "SnapShotViewModel"
     }
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     val groupList = MutableLiveData<List<SnapGroup>>()
 
     /**
@@ -34,7 +37,7 @@ class SnapshotViewModel : ViewModel() {
     val isAppsLoading = MutableLiveData<Boolean>(false)
 
     fun loadData() {
-        viewModelScope.launch(Dispatchers.IO) {
+        scope.launch {
             loadGroups()
             loadApps()
         }
@@ -107,7 +110,7 @@ class SnapshotViewModel : ViewModel() {
     }
 
     fun addGroup(name: String, path: String, userId: Int = 0) {
-        viewModelScope.launch {
+        scope.launch {
             withContext(Dispatchers.IO) {
                 // 生成唯一ID
                 val groupId = UUID.randomUUID().toString().substring(0, 7)
@@ -130,7 +133,7 @@ class SnapshotViewModel : ViewModel() {
     }
 
     fun addAppsToGroup(groupId: String, appInfos: List<AppInfo>, callback: () -> Unit) {
-        viewModelScope.launch {
+        scope.launch {
             try {
                 // 获取分组
                 val group = groupList.value?.find { it.id == groupId } ?: return@launch
@@ -181,7 +184,7 @@ class SnapshotViewModel : ViewModel() {
 
 
     fun deleteGroup(groupId: String, deleteFiles: Boolean = false) {
-        viewModelScope.launch {
+        scope.launch {
             try {
                 // 获取分组
                 val group = groupList.value?.find { it.id == groupId }

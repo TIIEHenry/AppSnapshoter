@@ -20,7 +20,7 @@ mmkv = "2.4.0"
 recyclerview = "1.4.0"
 refine = "4.4.0"
 libsu = "6.0.0"
-room = "2.8.4"
+
 
 [libraries]
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
@@ -48,10 +48,6 @@ libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu"
 libsu-service = { module = "com.github.topjohnwu.libsu:service", version.ref = "libsu" }
 libsu-nio = { module = "com.github.topjohnwu.libsu:nio", version.ref = "libsu" }
 
-# Room database
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
-androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
 
 [plugins]

@@ -12,7 +12,7 @@ import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
 import tiiehenry.android.snapshot.provider.filesystem.IAlgorithmCompressor
 import tiiehenry.android.snapshot.task.ITaskHandler
-import tiiehenry.android.snapshot.util.LogHelper
+import tiiehenry.android.snapshot.provider.appmanager.util.LogHelper
 import java.io.FileInputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
