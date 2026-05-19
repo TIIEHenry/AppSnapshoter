@@ -7,8 +7,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.GlobalConfig
 import tiiehenry.android.app.snapshot.databinding.BottomSheetGroupSortBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
@@ -18,6 +21,9 @@ class GroupSortBottomSheet : BottomSheetDialogFragment() {
 
     private var _binding: BottomSheetGroupSortBinding? = null
     private val binding get() = _binding!!
+    private val snapshotViewModel: SnapshotViewModel by activityViewModels {
+        SingletonViewModelFactory(SnapshotApp.getViewModel())
+    }
     private lateinit var adapter: GroupSortAdapter
     private val groups = mutableListOf<SnapGroup>()
     private var onSortSavedListener: (() -> Unit)? = null
@@ -96,7 +102,7 @@ class GroupSortBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun loadGroups() {
-        val currentGroups = SnapshotApp.Companion.getViewModel().groupList.value
+        val currentGroups = snapshotViewModel.groupList.value
         if (currentGroups != null) {
             groups.clear()
             groups.addAll(currentGroups)
@@ -112,7 +118,7 @@ class GroupSortBottomSheet : BottomSheetDialogFragment() {
         GlobalConfig.groups = sortedGroupIds
 
         // 重新加载分组列表以应用新顺序
-        SnapshotApp.Companion.getViewModel().loadGroups()
+        snapshotViewModel.loadGroups()
     }
 
     override fun onDestroyView() {

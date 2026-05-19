@@ -8,12 +8,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.GroupConfig
 import tiiehenry.android.app.snapshot.databinding.FragmentGroupSettingBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
@@ -24,6 +27,9 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
 
     private var _binding: FragmentGroupSettingBinding? = null
     private val binding get() = _binding!!
+    private val snapshotViewModel: SnapshotViewModel by activityViewModels {
+        SingletonViewModelFactory(SnapshotApp.getViewModel())
+    }
     private lateinit var groupId: String
     private lateinit var groupConfig: GroupConfig
     private var groupName: String = ""
@@ -170,7 +176,7 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
 
     private fun showDeleteConfirmDialog() {
         val context = requireContext()
-        val group = SnapshotApp.getViewModel().groupList.value?.find { it.id == groupId }
+        val group = snapshotViewModel.groupList.value?.find { it.id == groupId }
 
         if (group != null) {
             AlertDialog.Builder(context)
@@ -178,12 +184,12 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
                 .setMessage("确定要删除组 ${group.name}[${groupId}] 吗？\n此操作不可恢复。")
                 .setPositiveButton("仅删除组") { _, _ ->
                     // 仅删除组配置，不删除文件
-                    SnapshotApp.getViewModel().deleteGroup(groupId, deleteFiles = false)
+                    snapshotViewModel.deleteGroup(groupId, deleteFiles = false)
                     dismiss()
                 }
                 .setNeutralButton("包括文件") { _, _ ->
                     // 删除组配置及关联文件
-                    SnapshotApp.getViewModel().deleteGroup(groupId, deleteFiles = true)
+                    snapshotViewModel.deleteGroup(groupId, deleteFiles = true)
                     dismiss()
                 }
                 .setNegativeButton(R.string.cancel, null)

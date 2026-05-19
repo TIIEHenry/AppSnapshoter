@@ -13,6 +13,7 @@ import tiiehenry.android.snapshot.fs.CompressState
 import tiiehenry.android.snapshot.provider.filesystem.IAlgorithmCompressor
 import tiiehenry.android.snapshot.task.ITaskHandler
 import tiiehenry.android.snapshot.provider.appmanager.util.LogHelper
+import tiiehenry.android.snapshot.provider.utils.normalizeTarStdErr
 import java.io.FileInputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -84,13 +85,6 @@ object TarCompressor : IAlgorithmCompressor {
 
     const val TMP_FIFO_PREFIX = "fifo-"
     const val TMP_SUFFIX = ".tmp"
-
-    private fun normalizeTarStdErr(packageName: String, stderr: String): String {
-        if (stderr.isBlank()) return stderr
-        val prefixRegex = Regex("^${Regex.escape(packageName)}:root:\\d+:\\s*")
-        return stderr.lineSequence()
-            .joinToString(separator = "\n") { line -> line.replace(prefixRegex, "") }
-    }
 
     /**
      * 流式压缩处理，使用createTarArchive但以流式方式进行

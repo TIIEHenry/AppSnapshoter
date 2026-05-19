@@ -17,7 +17,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import tiiehenry.android.app.snapshot.R
+import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentLauncherBinding
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
 import tiiehenry.android.app.snapshot.main.launch.groupsort.GroupSortBottomSheet
@@ -27,6 +29,9 @@ class LauncherFragment : Fragment() {
     private var _binding: FragmentLauncherBinding? = null
     private val binding get() = _binding!!
     private val viewModel: LauncherViewModel by activityViewModels()
+    private val snapshotViewModel: SnapshotViewModel by activityViewModels {
+        SingletonViewModelFactory(SnapshotApp.getViewModel())
+    }
     private lateinit var groupsAdapter: GroupsAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,11 +52,11 @@ class LauncherFragment : Fragment() {
 
         binding.groupsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        groupsAdapter = GroupsAdapter(viewModel, childFragmentManager)
+        groupsAdapter = GroupsAdapter(viewModel, snapshotViewModel, childFragmentManager)
         binding.groupsRecyclerView.adapter = groupsAdapter
 
         // 观察数据
-        SnapshotApp.getViewModel().groupList.observe(viewLifecycleOwner) { groups ->
+        snapshotViewModel.groupList.observe(viewLifecycleOwner) { groups ->
             Log.d("LauncherFragment", "groupList changed")
             groupsAdapter.submitList(groups)
         }
@@ -89,7 +94,7 @@ class LauncherFragment : Fragment() {
         val bottomSheet = GroupSortBottomSheet.newInstance()
         bottomSheet.setOnSortSavedListener {
             // 保存后刷新 groupsAdapter
-            SnapshotApp.getViewModel().groupList.value?.let { groups ->
+            snapshotViewModel.groupList.value?.let { groups ->
                 groupsAdapter.submitList(groups)
             }
         }
@@ -100,7 +105,7 @@ class LauncherFragment : Fragment() {
         super.onResume()
         // 刷新groupAdapter
         lifecycleScope.launch(Dispatchers.IO) {
-            SnapshotApp.getViewModel().loadGroups()
+            snapshotViewModel.loadGroups()
         }
     }
 

@@ -4,7 +4,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
-import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppFilterType
 import tiiehenry.android.app.snapshot.app.AppInfo
@@ -12,6 +11,7 @@ import tiiehenry.android.app.snapshot.app.tag.AppTag
 import tiiehenry.android.app.snapshot.app.tag.AppTagHelper
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.snapshot.app.UserInfoHide
+import tiiehenry.android.snapshot.file.IFileSystem
 
 class AppsViewModel : ViewModel() {
 
@@ -24,6 +24,10 @@ class AppsViewModel : ViewModel() {
 
     // 缓存每个应用的标签，避免重复计算
     private var appTagsCache: Map<String, List<AppTag>> = emptyMap()
+
+    // 依赖注入点，由 Fragment 在初始化后设置
+    var fileSystem: IFileSystem? = null
+    var groupsProvider: (() -> List<SnapGroup>)? = null
 
     /**
      * 设置应用列表（使用Map格式，包含用户分组信息）
@@ -121,12 +125,13 @@ class AppsViewModel : ViewModel() {
 
         val groupTagIds = selectedTagIds - builtinTagIds
 
-        // 从ViewModel获取已有的分组对象，避免重复创建
-        val viewModel = SnapshotApp.getViewModel()
+        // 从groupsProvider获取已有的分组对象，避免重复创建
         val groupsToCheck: List<SnapGroup> = groupTagIds.mapNotNull { groupTagId ->
             val groupId = groupTagId.removePrefix("group_")
-            viewModel.groupList.value?.find { group -> group.id == groupId }
+            groupsProvider?.invoke()?.find { group -> group.id == groupId }
         }
+
+        val fs = fileSystem
 
         return apps.filter { appInfo ->
             val cacheKey = appInfo.packageName
@@ -140,9 +145,8 @@ class AppsViewModel : ViewModel() {
                 builtinMatch
             } else {
                 // 需要检查分组标签 - 这个比较耗时
-                builtinMatch && groupsToCheck.all { group ->
+                builtinMatch && fs != null && groupsToCheck.all { group ->
                     // 通过检查分组路径下是否存在该应用的目录来判断
-                    val fs = tiiehenry.android.app.snapshot.SnapshotApp.getInstance().fileSystem
                     val appDir = "${group.path}/${appInfo.packageName}"
                     fs.fileType(appDir) == tiiehenry.android.snapshot.fs.IFileType.TYPE_DIR
                 }

@@ -3,7 +3,7 @@ agp = "9.0.0"
 ndkVersion = "25.2.9519653"
 cmakeVersion = "3.22.1"
 constraintlayout = "2.2.1"
-fastjson2 = "2.0.62"
+
 fragmentKtx = "1.8.9"
 glide = "5.0.7"
 kotlin = "2.3.0"
@@ -15,6 +15,7 @@ espressoCore = "3.7.0"
 appcompat = "1.7.1"
 kotlinxCoroutinesAndroid = "1.11.0"
 lifecycleLivedataKtx = "2.10.0"
+navigation = "2.8.9"
 material = "1.14.0"
 mmkv = "2.4.0"
 recyclerview = "1.4.0"
@@ -29,8 +30,10 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleLivedataKtx" }
+androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigation" }
+androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigation" }
 androidx-recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
-fastjson2 = { module = "com.alibaba.fastjson2:fastjson2", version.ref = "fastjson2" }
+fastjson2 = { module = "com.alibaba.fastjson2:fastjson2", version = "2.0.61.android8" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 glide-compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -56,5 +59,6 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "kotlin-ksp" }
+navigation-safe-args = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigation" }
 refine = { id = "dev.rikka.tools.refine", version.ref = "refine" }
 

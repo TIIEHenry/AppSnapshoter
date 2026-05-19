@@ -12,17 +12,25 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshot.R
+import tiiehenry.android.app.snapshot.SingletonViewModelFactory
+import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.FragmentSelectAppBinding
 import tiiehenry.android.app.snapshot.main.apps.AppsListComponent
 import tiiehenry.android.app.snapshot.main.apps.AppsViewModel
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
+import tiiehenry.android.snapshot.app.IAppManager
 
 class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbacks<FragmentSelectAppBinding> {
 
     private var _binding: FragmentSelectAppBinding? = null
     private val binding get() = _binding!!
     private val viewModel: AppsViewModel by activityViewModels()
+    private val snapshotViewModel: SnapshotViewModel by activityViewModels {
+        SingletonViewModelFactory(SnapshotApp.getViewModel())
+    }
+    private val appManager: IAppManager get() = SnapshotApp.getInstance().appManager
     private lateinit var selectAppAdapter: SelectAppAdapter
     private lateinit var appsListComponent: AppsListComponent<FragmentSelectAppBinding>
 
@@ -78,7 +86,7 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentSelectAppBinding.inflate(inflater, container, false)
-        appsListComponent = AppsListComponent(this, binding, viewModel, this)
+        appsListComponent = AppsListComponent(this, binding, viewModel, snapshotViewModel, appManager, this)
         return binding.root
     }
 

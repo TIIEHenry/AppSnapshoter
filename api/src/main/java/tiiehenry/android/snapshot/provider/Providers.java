@@ -33,6 +33,24 @@ public interface Providers {
     IFileSystem getFileSystem() throws Exception;
 
     /**
+     * 获取 IPackageManager 实例（包管理）
+     * 必须在非主线程调用，会阻塞等待 Service 连接
+     *
+     * @return IPackageManager 实例
+     * @throws Exception 如果 Service 未初始化或连接失败
+     */
+    tiiehenry.android.snapshot.app.IPackageManager getPackageManager() throws Exception;
+
+    /**
+     * 获取 IPermissionManager 实例（权限管理）
+     * 必须在非主线程调用，会阻塞等待 Service 连接
+     *
+     * @return IPermissionManager 实例
+     * @throws Exception 如果 Service 未初始化或连接失败
+     */
+    tiiehenry.android.snapshot.app.IPermissionManager getPermissionManager() throws Exception;
+
+    /**
      * 等待 RootService 连接完成
      * 必须在非主线程调用，会阻塞等待 Service 连接
      *

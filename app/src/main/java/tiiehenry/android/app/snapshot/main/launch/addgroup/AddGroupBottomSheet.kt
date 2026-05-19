@@ -13,7 +13,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.BottomSheetAddGroupBinding
 import tiiehenry.android.app.snapshot.main.launch.LauncherViewModel
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
@@ -24,6 +26,9 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
     private var _binding: BottomSheetAddGroupBinding? = null
     private val binding get() = _binding!!
     private val viewModel: LauncherViewModel by activityViewModels()
+    private val snapshotViewModel: SnapshotViewModel by activityViewModels {
+        SingletonViewModelFactory(SnapshotApp.getViewModel())
+    }
 
     private lateinit var userIdSpinner: Spinner
     private val userInfoList = mutableListOf<UserInfoHide>()
@@ -99,7 +104,7 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
                 val userId = if (selectedIndex >= 0 && selectedIndex < userInfoList.size) {
                     userInfoList[selectedIndex].id
                 } else 0
-                SnapshotApp.getViewModel().addGroup(groupName, groupPath, userId)
+                snapshotViewModel.addGroup(groupName, groupPath, userId)
                 dismiss()
             } else {
                 if (groupName.isEmpty()) {

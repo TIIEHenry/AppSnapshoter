@@ -100,11 +100,19 @@ data class SnapGroup(
                         e.printStackTrace()
                     }
                     try {
-                        val newAppInfo = app.latestArchive?.appInfo ?: AppInfo.from(
-                            appManager.getPackageInfo(
-                                pkgName, 0, config.groupConfigData.userId
-                            )
+                        val packageInfo = appManager.getPackageInfo(
+                            pkgName, 0, config.groupConfigData.userId
                         )
+                        val newAppInfo = if (packageInfo != null) {
+                            app.latestArchive?.appInfo ?: AppInfo.from(packageInfo)
+                        } else {
+                            app.latestArchive?.appInfo ?: AppInfo(
+                                fs = fs,
+                                appManager = appManager,
+                                packageName = pkgName,
+                                userId = config.groupConfigData.userId
+                            )
+                        }
                         // 先设置存档图标文件路径，再赋值给 app.appInfo
                         newAppInfo.archiveIconFile = iconFile
                         Log.d(TAG, "Setting archiveIconFile for $pkgName: $iconFile")

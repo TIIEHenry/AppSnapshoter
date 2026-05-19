@@ -13,11 +13,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.app.tag.AppTagHelper
 import tiiehenry.android.app.snapshot.main.settings.IgnoreAppsConfig
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
+import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.app.UserInfoHide
 
 /**
@@ -29,6 +31,8 @@ class AppsListComponent<VB : ViewBinding>(
     private val fragment: Fragment,
     private val binding: VB,
     private val viewModel: AppsViewModel,
+    private val snapshotViewModel: SnapshotViewModel,
+    private val appManager: IAppManager,
     private val callbacks: Callbacks<VB>
 ) {
 
@@ -47,6 +51,10 @@ class AppsListComponent<VB : ViewBinding>(
     }
 
     fun onViewCreated(viewLifecycleOwner: LifecycleOwner) {
+        // 注入依赖
+        viewModel.fileSystem = SnapshotApp.getInstance().fileSystem
+        viewModel.groupsProvider = { snapshotViewModel.groupList.value ?: emptyList() }
+
         // 设置 RecyclerView
         callbacks.getRecyclerView(binding).layoutManager =
             LinearLayoutManager(fragment.requireContext())
@@ -59,11 +67,11 @@ class AppsListComponent<VB : ViewBinding>(
         setupTagsFilter()
 
         // 设置用户Tab
-        userList = SnapshotApp.getInstance().appManager.users
+        userList = appManager.users
         setupUserTabs()
 
         // 观察全局ViewModel的appList
-        SnapshotApp.getViewModel().appsList.observe(viewLifecycleOwner) { apps ->
+        snapshotViewModel.appsList.observe(viewLifecycleOwner) { apps ->
             callbacks.onAppsLoadingStateChanged(true)
             fragment.lifecycleScope.launch(Dispatchers.Default) {
                 // 过滤已忽略的应用并排序

@@ -17,8 +17,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.MenuProvider
 import androidx.core.view.WindowCompat
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
+import androidx.navigation.NavController
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,14 +32,13 @@ import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.databinding.ActivityMainBinding
 import tiiehenry.android.app.snapshot.databinding.DialogProviderCheckBinding
-import tiiehenry.android.app.snapshot.main.apps.AppsFragment
-import tiiehenry.android.app.snapshot.main.launch.LauncherFragment
 import tiiehenry.android.app.snapshot.main.settings.SettingsActivity
 import android.R as AndroidR
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var navController: NavController
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private val providers = SnapshotApp.getInstance().getProviders()
 
@@ -71,28 +72,14 @@ class MainActivity : AppCompatActivity() {
         // 使用MenuProvider实现菜单
         setupMenuProvider()
 
-        val launcherFragment = LauncherFragment()
-        val appsFragment = AppsFragment()
-        binding.bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_launcher -> {
-                    switchFragment(launcherFragment)
-                    true
-                }
+        // 设置 Navigation
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        navController = navHostFragment.navController
+        binding.bottomNavigation.setupWithNavController(navController)
 
-                R.id.nav_apps -> {
-                    switchFragment(appsFragment)
-                    true
-                }
-
-                else -> false
-            }
-        }
-
-        // 默认显示LauncherFragment
+        // 先检查权限，检查通过后再加载数据
         if (savedInstanceState == null) {
-            switchFragment(launcherFragment)
-            // 先检查权限，检查通过后再加载数据
             showProviderCheckDialog()
         }
     }
@@ -126,12 +113,6 @@ class MainActivity : AppCompatActivity() {
 
         // 设置状态栏图标为深色（在浅色背景下）
         windowInsetsController.isAppearanceLightStatusBars = true
-    }
-
-    private fun switchFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .commit()
     }
 
     private fun showProviderCheckDialog() {

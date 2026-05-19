@@ -5,14 +5,11 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.graphics.createBitmap
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.snapshot.provider.utils.drawableToBitmap
 import tiiehenry.android.snapshot.app.AppPermission
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
@@ -37,7 +34,7 @@ data class AppInfo(
                 SnapshotApp.getInstance().fileSystem,
                 SnapshotApp.getInstance().appManager,
                 packageInfo.packageName,
-                (packageInfo.applicationInfo!!.uid) / 100000,
+                (packageInfo.applicationInfo?.uid ?: 0) / 100000,
                 packageInfo.versionName,
                 packageInfo.longVersionCode
             ).apply {
@@ -64,7 +61,7 @@ data class AppInfo(
                 SnapshotApp.getContext(),
                 android.R.drawable.sym_def_app_icon
             )!!
-        ).also {
+        )!!.also {
             Log.w("AppInfo", "Using default icon for $packageName")
         }
     }
@@ -72,25 +69,6 @@ data class AppInfo(
 
     val label: String by lazy {
         loadLabel(appManager) ?: archiveLabel ?: packageName
-    }
-
-    private fun drawableToBitmap(drawable: Drawable): Bitmap {
-        if (drawable is BitmapDrawable) {
-            if (drawable.bitmap != null) {
-                return drawable.bitmap
-            }
-        }
-
-        val bitmap = if (drawable.intrinsicWidth <= 0 || drawable.intrinsicHeight <= 0) {
-            createBitmap(1, 1)
-        } else {
-            createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-        }
-
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return bitmap
     }
 
     fun loadArchiveIcon(fs: IFileSystem, path: String): Bitmap? {

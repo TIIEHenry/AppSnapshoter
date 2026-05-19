@@ -4,35 +4,27 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.SortConfig
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
-import tiiehenry.android.app.snapshot.main.launch.group.GroupConfigFragment
-import tiiehenry.android.app.snapshot.main.launch.group.GroupSettingFragment
-import tiiehenry.android.app.snapshot.main.selectapp.SelectAppFragment
 
 class GroupsAdapter(
     private val viewModel: LauncherViewModel,
+    private val snapshotViewModel: SnapshotViewModel,
     private val fragmentManager: FragmentManager
 ) : ListAdapter<SnapGroup, GroupsAdapter.GroupViewHolder>(GroupDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
         val binding = ItemGroupBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return GroupViewHolder(binding, viewModel, fragmentManager)
+        return GroupViewHolder(binding, viewModel, snapshotViewModel, fragmentManager)
     }
 
     override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
@@ -42,50 +34,26 @@ class GroupsAdapter(
     class GroupViewHolder(
         val binding: ItemGroupBinding,
         private val viewModel: LauncherViewModel,
+        private val snapshotViewModel: SnapshotViewModel,
         val fragmentManager: FragmentManager
     ) : RecyclerView.ViewHolder(binding.root) {
 
         var isSortMode = false
         private var itemTouchHelper: ItemTouchHelper? = null
-        private var archiver: GroupBatchArchiver? = null
-
-        fun addNewApp(group: SnapGroup) {
-            SelectAppFragment.newInstance(group.id) { appInfos ->
-                SnapshotApp.getViewModel().addAppsToGroup(group.id, appInfos) {
-                    val updatedGroup =
-                        SnapshotApp.getViewModel().groupList.value?.find { it.id == group.id }
-                    refresh(updatedGroup ?: group, binding.groupRecyclerView)
-                }
-            }.show(fragmentManager, "SelectAppFragment")
-        }
+        private lateinit var actionsController: GroupActionsController
 
         fun bind(groupsAdapter: GroupsAdapter, group: SnapGroup) {
             binding.groupTitle.text = group.name
             updateCollapseState(group.isCollapsed)
 
-            archiver = GroupBatchArchiver(binding.root.context, viewModel.viewModelScope) { g ->
-                refresh(g, binding.groupRecyclerView)
-            }
-
-            binding.groupTitle.setOnClickListener {
-                group.isCollapsed = !group.isCollapsed
-                updateCollapseState(group.isCollapsed)
-            }
-            binding.groupTitle.setOnLongClickListener {
-                GroupSettingFragment.newInstance(group) {
-                    refresh(group, binding.groupRecyclerView)
-                }.show(fragmentManager, "GroupConfigFragment")
-                true
-            }
-
-            binding.expandGroup.setOnClickListener {
-                group.isCollapsed = false
-                updateCollapseState(group.isCollapsed)
-            }
+            actionsController = GroupActionsController(
+                binding, viewModel, snapshotViewModel, fragmentManager
+            ) { g -> refresh(g, binding.groupRecyclerView) }
+            actionsController.setupActions(group, groupsAdapter, this)
 
             binding.groupRecyclerView.layoutManager = GridLayoutManager(binding.root.context, 4)
 
-            val adapter = GroupItemAdapter(this, groupsAdapter, viewModel, group) { adapter, item ->
+            val adapter = GroupItemAdapter(this, groupsAdapter, viewModel, snapshotViewModel, group) { adapter, item ->
                 val currentList = ArrayList(group.apps)
                 val index = currentList.indexOfFirst { it.appInfo.packageName == item.appInfo.packageName }
                 if (index != -1) {
@@ -95,117 +63,26 @@ class GroupsAdapter(
             }
             binding.groupRecyclerView.adapter = adapter
 
-            binding.btnRefresh.setOnClickListener {
-                viewModel.viewModelScope.launch {
-                    group.loadApps(
-                        SnapshotApp.getContext(),
-                        SnapshotApp.getInstance().fileSystem,
-                        SnapshotApp.getInstance().appManager,
-                        reload = true
-                    )
-                    withContext(Dispatchers.Main) { refresh(group, binding.groupRecyclerView) }
-                }
-            }
-            binding.btnRefresh.setOnLongClickListener {
-                archiver?.showGroupStatistics(group)
-                true
-            }
             refresh(group, binding.groupRecyclerView)
 
-            binding.btnAdd.setOnClickListener { addNewApp(group) }
-            binding.btnAdd.setOnLongClickListener {
-                Toast.makeText(it.context, "添加新应用到分组", Toast.LENGTH_SHORT).show()
-                true
+            binding.emptyLayout.setOnClickListener {
+                actionsController.setupActions(group, groupsAdapter, this)
             }
 
-            binding.emptyLayout.setOnClickListener { addNewApp(group) }
-
-            binding.btnMove.setOnClickListener { v -> showSortTypePopupMenu(v, group, adapter) }
-            if (group.config.sortConfig.sortType == SortConfig.SORT_TYPE_CUSTOM) {
-                binding.btnMove.setOnLongClickListener {
-                    toggleSortMode(group, adapter)
-                    true
-                }
-            }
-            binding.btnConfirm.setOnClickListener { toggleSortMode(group, adapter) }
-
-            binding.btnTune.setOnClickListener {
-                GroupConfigFragment.newInstance(group) {
-                    refresh(group, binding.groupRecyclerView)
-                }.show(fragmentManager, "GroupShotConfigFragment")
-            }
-            binding.btnTune.setOnLongClickListener {
-                Toast.makeText(it.context, "设置分组配置", Toast.LENGTH_SHORT).show()
-                true
-            }
-
-            binding.btnArchiveAll.setOnClickListener {
-                archiver?.archiveAllApps(group)
-            }
-            binding.btnArchiveAll.setOnLongClickListener {
-                Toast.makeText(it.context, "一键存档", Toast.LENGTH_SHORT).show()
-                true
-            }
-
-            updateButtonVisibility(!isSortMode)
+            actionsController.updateButtonVisibility(!isSortMode)
         }
 
-        private fun showSortTypePopupMenu(anchor: View, group: SnapGroup, adapter: GroupItemAdapter) {
-            val popup = PopupMenu(anchor.context, anchor)
-            val menu = popup.menu
-            val sortTypes = listOf(
-                SortConfig.SORT_TYPE_DEFAULT to "默认排序",
-                SortConfig.SORT_TYPE_NAME_ASC to "按名称升序",
-                SortConfig.SORT_TYPE_NAME_DESC to "按名称降序",
-                SortConfig.SORT_TYPE_INSTALL_TIME_ASC to "按安装时间升序",
-                SortConfig.SORT_TYPE_INSTALL_TIME_DESC to "按安装时间降序",
-                SortConfig.SORT_TYPE_CUSTOM to "自定义排序"
-            )
-            val currentSortType = group.config.sortConfig.sortType
-            sortTypes.forEachIndexed { index, (type, label) ->
-                val item = menu.add(0, type, index, label)
-                item.isCheckable = true
-                item.isChecked = (type == currentSortType)
-            }
-            popup.setOnMenuItemClickListener { menuItem ->
-                val newSortType = menuItem.itemId
-                group.config.sortConfig.sortType = newSortType
-                group.config.save()
-                if (newSortType == SortConfig.SORT_TYPE_CUSTOM) {
-                    binding.btnMove.setOnLongClickListener {
-                        toggleSortMode(group, adapter)
-                        true
-                    }
-                } else {
-                    binding.btnMove.setOnLongClickListener(null)
-                    if (isSortMode) toggleSortMode(group, adapter)
-                }
-                refresh(group, binding.groupRecyclerView)
-                true
-            }
-            popup.show()
-        }
-
-        private fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {
+        fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {
             isSortMode = !isSortMode
             if (isSortMode) {
                 startDragSortMode(adapter, group)
                 binding.groupTitle.text = "${group.name} (排序模式)"
-                updateButtonVisibility(false)
+                actionsController.updateButtonVisibility(false)
             } else {
                 binding.groupTitle.text = group.name
                 stopDragSortMode(adapter)
-                updateButtonVisibility(true)
+                actionsController.updateButtonVisibility(true)
             }
-        }
-
-        private fun updateButtonVisibility(show: Boolean) {
-            binding.btnMove.visibility = if (show) View.VISIBLE else View.GONE
-            binding.btnAdd.visibility = if (show) View.VISIBLE else View.GONE
-            binding.btnTune.visibility = if (show) View.VISIBLE else View.GONE
-            binding.btnRefresh.visibility = if (show) View.VISIBLE else View.GONE
-            binding.btnArchiveAll.visibility = if (show) View.VISIBLE else View.GONE
-            binding.btnConfirm.visibility = if (show) View.GONE else View.VISIBLE
         }
 
         private fun startDragSortMode(adapter: GroupItemAdapter, group: SnapGroup) {
@@ -273,7 +150,7 @@ class GroupsAdapter(
             updateCollapseState(group.isCollapsed)
         }
 
-        private fun updateCollapseState(isCollapsed: Boolean) {
+        fun updateCollapseState(isCollapsed: Boolean) {
             binding.appLayout.visibility = if (isCollapsed) View.GONE else View.VISIBLE
             binding.expandGroup.visibility = if (isCollapsed) View.VISIBLE else View.GONE
         }

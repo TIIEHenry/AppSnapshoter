@@ -28,6 +28,8 @@ class SnapshotApp : Application() {
 
     val fileSystem: IFileSystem get() = _providers.fileSystem
     val appManager: IAppManager get() = _providers.appManager
+    val packageManager: tiiehenry.android.snapshot.app.IPackageManager get() = _providers.packageManager
+    val permissionManager: tiiehenry.android.snapshot.app.IPermissionManager get() = _providers.permissionManager
 
     override fun onCreate() {
         super.onCreate()

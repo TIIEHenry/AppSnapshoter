@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
     id("kotlin-kapt")
     alias(libs.plugins.refine)
+    alias(libs.plugins.navigation.safe.args)
 }
 
 android {
@@ -41,7 +42,7 @@ android {
     }
     kotlin {
         compilerOptions {
-            languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3
+            languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.fromVersion("2.3")
         }
     }
 }
@@ -64,6 +65,10 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.constraintlayout)
+
+    // Navigation
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
     
     // MMKV
     implementation(libs.mmkv)

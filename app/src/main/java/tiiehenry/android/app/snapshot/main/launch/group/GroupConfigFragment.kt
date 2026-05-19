@@ -10,6 +10,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.app.snapshot.config.GroupConfig
 import tiiehenry.android.app.snapshot.databinding.FragmentGroupConfigBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
@@ -24,6 +25,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private lateinit var groupId: String
     private lateinit var groupConfig: GroupConfig
+    private val fileSystem: IFileSystem get() = SnapshotApp.getInstance().fileSystem
     private lateinit var shotOptionsManager: ShotOptionsManager
     private lateinit var versionRetentionManager: VersionRetentionManager
     private lateinit var excludePatternsManager: ExcludePatternsManager
@@ -136,8 +138,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         )
 
         // 设置压缩算法选项
-        val algorithms =
-            SnapshotApp.getInstance().fileSystem.compressor.supportedAlgorithms()
+        val algorithms = fileSystem.compressor.supportedAlgorithms()
         actionConfigManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
     }
 

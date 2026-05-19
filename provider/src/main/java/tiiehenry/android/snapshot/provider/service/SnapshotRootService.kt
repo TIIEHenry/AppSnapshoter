@@ -41,8 +41,8 @@ class SnapshotRootService : RootService() {
         private val ssaidManager = SsaidManagementHandler()
 
         fun onBind() {
-            val systemContext = ActivityThread.systemMain().systemContext
-            val packageManager = systemContext.packageManager
+            val systemContext: Context = ActivityThread.systemMain().systemContext
+            val packageManager = systemContext.getPackageManager()
             val packageManagerHidden: PackageManagerHidden = packageManager.castTo()
             val userManager: UserManagerHidden = UserManagerHidden.get(systemContext).castTo()
             val appOpsManager: AppOpsManager = systemContext.getSystemService(APP_OPS_SERVICE).castTo()

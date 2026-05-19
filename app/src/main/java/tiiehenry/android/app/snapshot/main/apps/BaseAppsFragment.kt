@@ -11,8 +11,12 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
+import tiiehenry.android.app.snapshot.SingletonViewModelFactory
+import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
+import tiiehenry.android.snapshot.app.IAppManager
 
 /**
  * 应用列表 Fragment 的抽象基类（适用于普通 Fragment）
@@ -22,6 +26,10 @@ abstract class BaseAppsFragment<VB : ViewBinding> : Fragment(), AppsListComponen
     protected var _binding: VB? = null
     protected val binding get() = _binding!!
     protected val viewModel: AppsViewModel by activityViewModels()
+    protected val snapshotViewModel: SnapshotViewModel by activityViewModels {
+        SingletonViewModelFactory(SnapshotApp.getViewModel())
+    }
+    protected val appManager: IAppManager get() = SnapshotApp.getInstance().appManager
 
     /**
      * 是否过滤已忽略的应用，子类可覆盖此属性
@@ -81,7 +89,7 @@ abstract class BaseAppsFragment<VB : ViewBinding> : Fragment(), AppsListComponen
         savedInstanceState: Bundle?
     ): View {
         _binding = createBinding(inflater, container)
-        appsListComponent = AppsListComponent(this, binding, viewModel, this)
+        appsListComponent = AppsListComponent(this, binding, viewModel, snapshotViewModel, appManager, this)
         return binding.root
     }
 

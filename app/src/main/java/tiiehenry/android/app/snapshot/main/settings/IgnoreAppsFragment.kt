@@ -11,9 +11,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import tiiehenry.android.app.snapshot.R
+import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppFilterType
 import tiiehenry.android.app.snapshot.app.AppInfo
@@ -29,6 +32,9 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
 
     private var _binding: FragmentIgnoreAppsBinding? = null
     private val binding get() = _binding!!
+    private val snapshotViewModel: SnapshotViewModel by activityViewModels {
+        SingletonViewModelFactory(SnapshotApp.getViewModel())
+    }
     private lateinit var adapter: IgnoredAppsAdapter
 
     private var allApps: List<AppInfo> = emptyList()
@@ -101,7 +107,7 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
 
     private fun loadAllApps() {
         // 从全局 ViewModel 获取所有应用
-        val appsMap = SnapshotApp.getViewModel().appsList.value
+        val appsMap = snapshotViewModel.appsList.value
         allApps = appsMap?.values?.flatten() ?: emptyList()
     }
 

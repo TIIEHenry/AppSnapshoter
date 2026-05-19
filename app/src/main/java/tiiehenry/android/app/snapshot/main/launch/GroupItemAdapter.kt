@@ -14,7 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
-import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.archieve.manage.ArchiveManager
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
@@ -38,6 +38,7 @@ class GroupItemAdapter(
     private val groupsHolder: GroupsAdapter.GroupViewHolder,
     private val groupsAdapter: GroupsAdapter,
     private val viewModel: LauncherViewModel,
+    private val snapshotViewModel: SnapshotViewModel,
     private val group: SnapGroup,
     private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit = { _, _ -> }
 ) : ListAdapter<ArchivedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
@@ -46,7 +47,7 @@ class GroupItemAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding, groupsHolder, viewModel, group, onItemUpdated, this)
+        return ViewHolder(binding, groupsHolder, viewModel, snapshotViewModel, group, onItemUpdated, this)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -62,6 +63,7 @@ class GroupItemAdapter(
         private val binding: ItemAppBinding,
         private val groupsHolder: GroupsAdapter.GroupViewHolder,
         private val viewModel: LauncherViewModel,
+        private val snapshotViewModel: SnapshotViewModel,
         private val group: SnapGroup,
         private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit,
         private val adapter: GroupItemAdapter
@@ -298,7 +300,7 @@ class GroupItemAdapter(
 
             override fun onLockStateChanged(item: ArchivedApp, isLocked: Boolean) {
                 groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
-                SnapshotApp.getViewModel().loadGroups()
+                snapshotViewModel.loadGroups()
             }
         }
 
@@ -331,7 +333,7 @@ class GroupItemAdapter(
                     }
                     group.apps.remove(item)
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
-                    SnapshotApp.getViewModel().loadGroups()
+                    snapshotViewModel.loadGroups()
                     onComplete()
                 }
             }
@@ -360,7 +362,7 @@ class GroupItemAdapter(
 
                 override fun onFinish() {
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
-                    SnapshotApp.getViewModel().loadGroups()
+                    snapshotViewModel.loadGroups()
                 }
             })
         }

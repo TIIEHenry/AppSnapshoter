@@ -37,6 +37,16 @@ class ProvidersImpl(
     }
 
     @Throws(Exception::class)
+    override fun getPackageManager(): tiiehenry.android.snapshot.app.IPackageManager {
+        return appManagerProvider
+    }
+
+    @Throws(Exception::class)
+    override fun getPermissionManager(): tiiehenry.android.snapshot.app.IPermissionManager {
+        return appManagerProvider
+    }
+
+    @Throws(Exception::class)
     override fun getFileSystem(): IFileSystem {
         _fileSystem?.let { return it }
         val fileSystem = fileSystemProvider.provide()

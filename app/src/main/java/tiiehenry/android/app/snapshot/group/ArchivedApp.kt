@@ -35,10 +35,11 @@ data class ArchivedApp(val group: SnapGroup, val packageDir: String, val iconFil
         Log.i("SnapedApp", "Loading archives: $archiveNames")
         for (archiveName in archiveNames) {
             if (!reload) {
-                synchronized(archives) {
-                    if (archives.get(archiveName) != null) {
-                        continue
-                    }
+                val exists = synchronized(archives) {
+                    archives.get(archiveName) != null
+                }
+                if (exists) {
+                    continue
                 }
             }
             val archiveDir = Paths.get(packageDir, archiveName).absolutePathString()
@@ -50,26 +51,30 @@ data class ArchivedApp(val group: SnapGroup, val packageDir: String, val iconFil
                 .absolutePathString()
             if (fs.fileType(jsonFile) == IFileType.TYPE_FILE) {
                 val metaInfo = MetaInfoHelper.read(fs, jsonFile)
-                val appInfo = AppInfo(
-                    fs,
-                    appManager,
-                    metaInfo.packageInfo.packageName,
-                    group.userId,
-                    metaInfo.packageInfo.versionName,
-                    metaInfo.packageInfo.versionCode
-                )
-                appInfo.archiveLabel = metaInfo.packageInfo.label
-                appInfo.archiveIconFile = iconFile
-                val dataItems = MetaInfoHelper.readDataItems(
-                    metaInfo.dataItems,
-                    archiveDir
-                )
-                val extraItems =
-                    metaInfo.extraItems.mapKeys { MetaInfoHelper.readDataItem(it.key, archiveDir) }
-                val archiveItem =
-                    ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems, extraItems)
-                synchronized(archives) {
-                    archives[archiveName] = archiveItem
+                if (metaInfo != null) {
+                    val appInfo = AppInfo(
+                        fs,
+                        appManager,
+                        metaInfo.packageInfo.packageName,
+                        group.userId,
+                        metaInfo.packageInfo.versionName,
+                        metaInfo.packageInfo.versionCode
+                    )
+                    appInfo.archiveLabel = metaInfo.packageInfo.label
+                    appInfo.archiveIconFile = iconFile
+                    val dataItems = MetaInfoHelper.readDataItems(
+                        metaInfo.dataItems,
+                        archiveDir
+                    )
+                    val extraItems =
+                        metaInfo.extraItems.mapKeys { MetaInfoHelper.readDataItem(it.key, archiveDir) }
+                    val archiveItem =
+                        ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems, extraItems)
+                    synchronized(archives) {
+                        archives[archiveName] = archiveItem
+                    }
+                } else {
+                    Log.e("SnapedApp", "Failed to parse meta info: $jsonFile")
                 }
             } else {
                 Log.e("SnapedApp", "Invalid meta info file: $jsonFile")

@@ -12,6 +12,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.app.snapshot.config.AppConfig
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.databinding.FragmentAppConfigBinding
@@ -27,6 +28,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private lateinit var packageName: String
     private lateinit var appConfig: AppConfig
+    private val fileSystem: IFileSystem get() = SnapshotApp.getInstance().fileSystem
     
     private var dismissListener: (() -> Unit)? = null
     private lateinit var shotOptionsManager: ShotOptionsManager
@@ -136,7 +138,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
         )
         
         // 设置压缩算法选项
-        val algorithms = SnapshotApp.getInstance().fileSystem.compressor.supportedAlgorithms()
+        val algorithms = fileSystem.compressor.supportedAlgorithms()
         actionConfigManager.setCompressAlgorithmOptions(algorithms.toTypedArray())
     }
 

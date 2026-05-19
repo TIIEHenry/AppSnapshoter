@@ -9,14 +9,11 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.UserInfo
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.os.UserHandle
 import android.util.Log
-import androidx.core.graphics.createBitmap
 import kotlinx.coroutines.runBlocking
 import tiiehenry.android.snapshot.app.AppInfo
+import tiiehenry.android.snapshot.provider.utils.drawableToBitmap
 import tiiehenry.android.snapshot.app.AppPermission
 import tiiehenry.android.snapshot.app.AppStorage
 import tiiehenry.android.snapshot.app.IAppManager
@@ -309,19 +306,6 @@ class AppManagerImpl(
     }
 
     // ==================== 工具方法 ====================
-
-    private fun drawableToBitmap(drawable: Drawable): Bitmap {
-        if (drawable is BitmapDrawable && drawable.bitmap != null) return drawable.bitmap
-        val bitmap = if (drawable.intrinsicWidth <= 0 || drawable.intrinsicHeight <= 0) {
-            createBitmap(1, 1)
-        } else {
-            createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-        }
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return bitmap
-    }
 
     companion object {
         private const val TAG = "AppManagerImpl"

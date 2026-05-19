@@ -157,10 +157,15 @@ object MetaInfoHelper {
         return readDataItems(fileNames, File(archivePath))
     }
 
-    fun read(fs: IFileSystem, jsonFile: String): MetaInfo {
-        fs.openFile(jsonFile, ParcelFileDescriptor.MODE_READ_ONLY).use {
-            val jsonStr = FileReader(it.fileDescriptor).readText()
-            return JSON.parseObject(jsonStr, MetaInfo::class.java)
+    fun read(fs: IFileSystem, jsonFile: String): MetaInfo? {
+        return try {
+            fs.openFile(jsonFile, ParcelFileDescriptor.MODE_READ_ONLY).use {
+                val jsonStr = FileReader(it.fileDescriptor).readText()
+                JSON.parseObject(jsonStr, MetaInfo::class.java)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MetaInfoHelper", "Failed to parse meta info: $jsonFile", e)
+            null
         }
     }
 

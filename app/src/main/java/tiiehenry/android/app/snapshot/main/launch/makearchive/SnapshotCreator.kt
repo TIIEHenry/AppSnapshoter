@@ -128,16 +128,12 @@ class SnapshotCreator(
                         }
                         entry.value.start()
                         if (entry.value.state() == CompressState.COMPRESS_STATE_ERROR) {
-                            if (false == job?.isCompleted) {
-                                job.await()// wait finish writing
-                            }
+                            job?.await() // wait finish writing and propagate exception
                             fs.delete(snapshotTasks.dir)
                             return@launch
                         }
                     }
-                    if (false == job?.isCompleted) {
-                        job.await()// wait finish writing
-                    }
+                    job?.await() // wait finish writing and propagate exception
                     if (isCanceled.get()) {
                         fs.delete(snapshotTasks.dir)
                         return@launch
