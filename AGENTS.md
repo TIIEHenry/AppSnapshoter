@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI agents when working with code in this repository.
 
 ## Project Overview
 
@@ -17,7 +17,7 @@ AppSnapshoter is a root-required Android backup/restore app that creates compres
 ./gradlew :provider:build        # Build a single module
 ```
 
-Build uses Gradle 8.13, AGP 8.13.2, Kotlin 2.2.0, Java 17, compileSdk 36, minSdk 28. NDK 25.2.9519653 with CMake 3.22.1 for native builds.
+Build uses Gradle 9.2.1, AGP 9.0.0, Kotlin 2.3.0, Java 21, compileSdk 36, minSdk 28. NDK 25.2.9519653 with CMake 3.22.1 for native builds.
 
 ## Module Architecture
 
@@ -45,7 +45,7 @@ provider → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 
 **Compression pipeline**: App data → `IFileSystem.createTarArchive()` (JNI tar) → `IFileCompressor.compress()` (zstd) → `.tar.zst`. Supports streaming via FIFO pipes (`mkfifo`) and `ParcelFileDescriptor`-based I/O to avoid intermediate files.
 
-**Config**: MMKV is the sole persistence mechanism. `GlobalConfig` (Kotlin object singleton) stores group ID ordering. Per-group config uses separate MMKV instances. Room is used only in the `provider` module for other data.
+**Config**: MMKV is the sole persistence mechanism. `GlobalConfig` (Kotlin object singleton) stores group ID ordering. Per-group config uses separate MMKV instances.
 
 **ViewModels**: `SnapshotApp` instantiates `SnapshotViewModel` directly in `onCreate()` (not via `ViewModelProvider`) and exposes it as a top-level property. `AppsViewModel` filters the app list from `SnapshotViewModel` using multi-dimensional filters.
 

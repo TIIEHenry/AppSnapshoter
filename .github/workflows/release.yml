@@ -26,6 +26,13 @@ jobs:
       - name: Build release APK
         run: ./gradlew assembleRelease
 
+      - name: Check APK output
+        run: |
+          echo "=== APK output directory ==="
+          ls -la app/build/outputs/apk/release/ || echo "Directory not found!"
+          echo "=== APK files ==="
+          find app/build/outputs/apk/release/ -name "*.apk" -type f || echo "No APK files found!"
+
       - name: Extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
