@@ -84,6 +84,14 @@
 
 感谢本人：我的第一款稍微结合了一点VibeCoding的项目，大部分还是纯手写，可能不太优雅，但是古法编程的应用更香。
 
+## 捐助
+
+如果您觉得这个项目对您有帮助，欢迎捐赠支持开发。您的捐赠将全部用于购买 Claude API Token，以持续完善和优化应用功能。
+
+| 微信支付 | 支付宝 |
+|:---:|:---:|
+| ![微信支付](docs/screenshots/weixin.png) | ![支付宝](docs/screenshots/alipay.jpg) |
+
 ## 许可证
 
 本项目采用 [GNU General Public License v3.0](LICENSE) 许可证。

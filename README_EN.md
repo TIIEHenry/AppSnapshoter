@@ -84,6 +84,14 @@ This project references the design of [Android-DataBackup](https://github.com/Xa
 
 Special thanks to myself: this is my first project that incorporates a bit of VibeCoding, though most of it is still hand-written. It may not be the most elegant, but old-school coding has its own charm.
 
+## Donate
+
+If you find this project helpful, donations are welcome to support development. All donations will be used to purchase Claude API tokens to continuously improve and optimize app features.
+
+| WeChat Pay | Alipay |
+|:---:|:---:|
+| ![WeChat Pay](docs/screenshots/weixin.png) | ![Alipay](docs/screenshots/alipay.jpg) |
+
 ## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
