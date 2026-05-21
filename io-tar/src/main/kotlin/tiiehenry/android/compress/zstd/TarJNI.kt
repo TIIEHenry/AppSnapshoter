@@ -1,5 +1,8 @@
 package tiiehenry.android.compress.zstd
 
+import androidx.annotation.Keep
+
+@Keep
 object TarJNI {
 
     init {

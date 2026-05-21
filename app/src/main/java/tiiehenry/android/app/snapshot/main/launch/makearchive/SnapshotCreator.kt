@@ -9,9 +9,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfigManager
-import tiiehenry.android.app.snapshot.archieve.manage.ArchiveManager
-import tiiehenry.android.app.snapshot.archieve.manage.RetentionPolicyExecutor
-import tiiehenry.android.app.snapshot.archieve.make.ArchiveMaker
+import tiiehenry.android.app.snapshot.archive.manage.ArchiveManager
+import tiiehenry.android.app.snapshot.archive.manage.RetentionPolicyExecutor
+import tiiehenry.android.app.snapshot.archive.make.ArchiveMaker
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.exception.ArchiveFailedException

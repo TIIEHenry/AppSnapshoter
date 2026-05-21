@@ -21,7 +21,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            java.srcDir("src/main/jni/zstd-jni/src/main/java")
+            java.directories += "src/main/jni/zstd-jni/src/main/java"
         }
     }
 
@@ -29,6 +29,12 @@ android {
         minSdk = 28
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        consumerProguardFiles("consumer-rules.pro")
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
 
         externalNativeBuild {
             cmake {

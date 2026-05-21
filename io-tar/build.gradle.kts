@@ -17,6 +17,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        consumerProguardFiles("consumer-rules.pro")
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
+
         externalNativeBuild {
             cmake {
                 arguments.addAll(listOf("-DANDROID_PLATFORM=28"))
@@ -26,7 +32,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
         }
     }
     externalNativeBuild {

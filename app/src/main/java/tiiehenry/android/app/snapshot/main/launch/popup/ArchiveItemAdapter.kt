@@ -23,8 +23,8 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
-import tiiehenry.android.app.snapshot.archieve.MetaInfoHelper
-import tiiehenry.android.app.snapshot.archieve.bean.MetaDataItem
+import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
+import tiiehenry.android.app.snapshot.archive.bean.MetaDataItem
 import tiiehenry.android.app.snapshot.databinding.ItemArchiveBinding
 import tiiehenry.android.app.snapshot.utils.ArchiveRenameHelper
 import java.text.SimpleDateFormat

@@ -1,0 +1,1 @@
+需要 Root 权限的 Android 应用快照工具，使用原生 JNI TAR+ZSTD 压缩打包应用数据。

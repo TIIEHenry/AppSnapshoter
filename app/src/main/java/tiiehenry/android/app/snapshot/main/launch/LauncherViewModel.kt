@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.tencent.mmkv.MMKV
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.group.ArchivedApp
-import tiiehenry.android.app.snapshot.archieve.restore.ArchiveRestorer
+import tiiehenry.android.app.snapshot.archive.restore.ArchiveRestorer
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 

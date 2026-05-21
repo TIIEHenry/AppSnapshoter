@@ -18,7 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.main.launch.app.AppConfigFragment
-import tiiehenry.android.app.snapshot.archieve.manage.ArchiveManager
+import tiiehenry.android.app.snapshot.archive.manage.ArchiveManager
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.databinding.LayoutPopupMenuBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp

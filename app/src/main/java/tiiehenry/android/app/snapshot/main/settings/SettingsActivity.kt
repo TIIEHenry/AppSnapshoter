@@ -50,6 +50,13 @@ class SettingsActivity : AppCompatActivity() {
                     // 以 BottomSheet 样式显示忽略应用页面
                     IgnoreAppsFragment().show(supportFragmentManager, "ignore_apps")
                 }
+            ),
+            SettingItem(
+                title = getString(R.string.about),
+                description = getString(R.string.about_description),
+                onClick = {
+                    AboutFragment().show(supportFragmentManager, "about")
+                }
             )
         )
     }

@@ -13,6 +13,8 @@ android {
         minSdk = 28
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {
@@ -32,7 +34,7 @@ android {
     sourceSets {
         getByName("main") {
             aidl {
-                srcDirs("src/main/aidl")
+                directories += "src/main/aidl"
             }
         }
     }
@@ -51,7 +53,7 @@ dependencies {
     // Hidden API
     implementation(project(":hiddenapi"))
     implementation(project(":systemapi"))
-    implementation("tiiehenry.nota.toolkit:android-common:+")
+
 
     // Native library
     implementation(project(":io-nativefs"))

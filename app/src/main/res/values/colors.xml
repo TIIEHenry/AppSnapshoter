@@ -13,4 +13,6 @@
     <color name="chip_builtin_text">#FF1565C0</color>
     <color name="chip_group_background">#FFF3E5F5</color>
     <color name="chip_group_text">#FF7B1FA2</color>
+
+    <color name="github_link">#FF1565C0</color>
 </resources>

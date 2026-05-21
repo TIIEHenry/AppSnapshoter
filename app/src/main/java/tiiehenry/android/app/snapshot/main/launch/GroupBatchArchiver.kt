@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.lifecycle.viewModelScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import tiiehenry.android.app.snapshot.SnapshotApp
@@ -248,7 +247,7 @@ class GroupBatchArchiver(
         val archivedApps = group.apps.count { it.archives.isNotEmpty() }
         val totalArchives = group.apps.sumOf { it.archives.size }
         val totalSize = group.apps.flatMap { it.archives.values }.sumOf { archive ->
-            try { tiiehenry.android.app.snapshot.archieve.MetaInfoHelper.getTotalSize(archive.metaInfo, archive.path) }
+            try { tiiehenry.android.app.snapshot.archive.MetaInfoHelper.getTotalSize(archive.metaInfo, archive.path) }
             catch (e: Exception) { 0L }
         }
         val avgArchives = if (archivedApps > 0) totalArchives.toDouble() / archivedApps else 0.0

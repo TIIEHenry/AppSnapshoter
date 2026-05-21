@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
-import tiiehenry.android.app.snapshot.archieve.manage.ArchiveManager
+import tiiehenry.android.app.snapshot.archive.manage.ArchiveManager
 import tiiehenry.android.app.snapshot.main.launch.makearchive.SnapshotCreator
 import tiiehenry.android.app.snapshot.databinding.ItemAppBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup

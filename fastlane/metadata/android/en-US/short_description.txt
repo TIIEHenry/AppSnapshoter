@@ -1,0 +1,1 @@
+Root-required backup tool that creates compressed snapshots of app data using native JNI TAR+ZSTD.

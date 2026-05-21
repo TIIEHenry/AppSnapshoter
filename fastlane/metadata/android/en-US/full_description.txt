@@ -1,0 +1,15 @@
+AppSnapshoter is a root-required Android backup/restore tool that creates compressed snapshots of app data (APK, data directories, OBB, media files).
+
+Features:
+- One-tap backup and restore: long-press an app to create a snapshot, select an archive to restore instantly
+- Fast native compression: JNI-based TAR packaging + ZSTD compression, much faster than pure Java solutions
+- APK deduplication: shared APKs across apps are not duplicated, saving storage and time
+- Multiple archives per app: keep historical snapshots and restore to any version
+- Customizable contents: choose which directories to include (data, OBB, media) plus custom paths
+- Streaming pipeline: FIFO pipes and ParcelFileDescriptor for compression without intermediate files
+- Group management: organize apps into groups for batch operations
+- Lightweight UI: built with ViewBinding + DataBinding, no Compose dependency
+
+Requires root access. Minimum Android 9 (API 28).
+
+This app is free and open source, licensed under GPL-3.0.

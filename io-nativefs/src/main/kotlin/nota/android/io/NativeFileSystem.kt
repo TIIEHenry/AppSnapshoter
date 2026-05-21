@@ -1,5 +1,8 @@
 package nota.android.io
 
+import androidx.annotation.Keep
+
+@Keep
 object NativeFileSystem {
     init {
         System.loadLibrary("native-filesystem")

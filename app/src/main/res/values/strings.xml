@@ -20,6 +20,14 @@
     <string name="no_ignored_apps">暂无忽略的应用</string>
     <string name="long_press_to_remove">长按可移除应用</string>
 
+    <!-- 关于 -->
+    <string name="about">关于</string>
+    <string name="about_description">查看应用信息和开源组件</string>
+    <string name="about_github_url">github.com/TIIEHenry/AppSnapshoter</string>
+    <string name="about_license">本项目基于 GNU General Public License v3.0 开源</string>
+    <string name="about_open_source">引用的开源组件</string>
+    <string name="about_open_source_list">libsu - topjohnwu (Apache-2.0)\nMMKV - Tencent (BSD-3-Clause)\nFastJSON2 - Alibaba (Apache-2.0)\nGlide - bumptech (BSD-2-Clause)\nKotlin Coroutines - JetBrains (Apache-2.0)\nAndroidX - Google (Apache-2.0)\nMaterial Components - Google (Apache-2.0)\nGNU Tar - FSF (GPL-3.0)\nZstandard - Facebook (BSD-3-Clause)</string>
+
     <!-- 额外项目 -->
     <string name="extra_item_excludes_count">%d 个排除模式</string>
     <string name="extra_item_no_excludes">无排除模式</string>

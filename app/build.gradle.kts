@@ -28,14 +28,30 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
-    
+
     buildFeatures {
         viewBinding = true
         dataBinding = true
+        buildConfig = true
     }
-    
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "x86_64")
+            isUniversalApk = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -49,7 +65,7 @@ android {
 
 dependencies {
     implementation(project(":api"))
-    
+
     // Provider implementations
     implementation(project(":provider"))
     implementation(project(":hiddenapi"))
@@ -58,7 +74,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    
+
     // Jetpack Components
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
@@ -69,17 +85,17 @@ dependencies {
     // Navigation
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-    
+
     // MMKV
     implementation(libs.mmkv)
-    
+
     // FastJSON2
     implementation(libs.fastjson2)
-    
+
     // Glide
     implementation(libs.glide)
     kapt(libs.glide.compiler)
-    
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
@@ -89,7 +105,7 @@ dependencies {
     // Root service libraries
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
-    
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
