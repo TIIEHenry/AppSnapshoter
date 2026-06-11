@@ -8,6 +8,7 @@ import tiiehenry.android.app.snapshot.utils.AppIconUtils
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.IFileType
+import android.os.ParcelFileDescriptor
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
@@ -50,6 +51,22 @@ data class SnapGroup(
 
     val apps: MutableList<ArchivedApp> = mutableListOf()
 
+    private fun ensureNoMedia(fs: IFileSystem) {
+        val nomediaPath = Paths.get(path, ".nomedia").absolutePathString()
+        if (!fs.exists(nomediaPath)) {
+            try {
+                fs.openFile(
+                    nomediaPath,
+                    ParcelFileDescriptor.MODE_CREATE or ParcelFileDescriptor.MODE_WRITE_ONLY
+                ).use { pfd ->
+                    ParcelFileDescriptor.AutoCloseOutputStream(pfd).close()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to create .nomedia: ${e.message}")
+            }
+        }
+    }
+
     fun loadApps(
         context: Context, fs: IFileSystem, appManager: IAppManager, reload: Boolean
     ): MutableList<ArchivedApp> {
@@ -62,6 +79,8 @@ data class SnapGroup(
             if (apps.isNotEmpty() && !reload) {
                 return apps
             }
+            // 创建 .nomedia 文件，防止图库扫描图标文件
+            ensureNoMedia(fs)
             val files = fs.listDir(path)
             Log.i(TAG, "files: $files")
             for (pkgName in files) {
