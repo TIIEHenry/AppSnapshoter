@@ -64,4 +64,7 @@ public interface IFileSystem {
 
     // 移动/重命名操作
     boolean move(String sourcePath, String targetPath);
+
+    // 递归复制
+    boolean copyRecursively(String source, String target, boolean overwrite);
 }

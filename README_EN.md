@@ -25,6 +25,7 @@ A root-required Android app snapshot tool that quickly packages an app's APK, da
 - **Streaming Pipeline**: FIFO pipes and `ParcelFileDescriptor`-based streaming compression — no intermediate files, saving storage
 - **Root Service Architecture**: AIDL + libsu root service IPC — UI layer never touches root kernel logic directly, safe and reliable
 - **Group Management**: Group apps and perform batch snapshot/restore operations by group
+- **Timeline View**: Browse snapshots across groups by time range; multi-select batch restore (newest/oldest strategy), delete, and export
 - **Pure Native UI**: Built with ViewBinding + DataBinding, no Compose dependency, lightweight
 
 ## Screenshots
@@ -52,7 +53,8 @@ A root-required Android app snapshot tool that quickly packages an app's APK, da
 4. **Configure Snapshot** (optional): Tap an app to enter the config page, select directories to include (data, obb, media) and custom directories, and choose whether to include split APKs
 5. **Create Snapshot**: Long-press an app to quickly create a snapshot — progress shows the current stage (preprocessing → packaging)
 6. **View Archives**: Switch to the "Archives" tab to view completed snapshot files, including timestamps, filenames, and sizes. Each app can retain multiple archives
-7. **One-tap Restore**: Long-press an app and select the target archive to restore app data in one tap
+7. **Timeline**: Switch to the "Timeline" tab to filter snapshots by today/yesterday/7 days/30 days or a custom range; multi-select for batch restore, delete, or export
+8. **One-tap Restore**: Long-press an app and select the target archive to restore app data in one tap
 
 ### Group Management
 

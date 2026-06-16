@@ -10,6 +10,11 @@
         android:label="@string/app_name" />
 
     <fragment
+        android:id="@+id/timelineFragment"
+        android:name="tiiehenry.android.app.snapshot.main.timeline.TimelineFragment"
+        android:label="@string/timeline" />
+
+    <fragment
         android:id="@+id/appsFragment"
         android:name="tiiehenry.android.app.snapshot.main.apps.AppsFragment"
         android:label="@string/apps" />

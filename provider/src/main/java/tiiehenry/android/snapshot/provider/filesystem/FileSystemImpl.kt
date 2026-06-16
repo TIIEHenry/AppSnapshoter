@@ -388,4 +388,14 @@ import java.io.File
             false
         }
     }
+
+    override fun copyRecursively(source: String, target: String, overwrite: Boolean): Boolean {
+        return try {
+            val rootService = getRootService()
+            rootService.copyRecursively(source, target, overwrite)
+        } catch (e: Exception) {
+            Log.e("FileSystemProvider", "Failed to copy from '$source' to '$target'", e)
+            false
+        }
+    }
 }

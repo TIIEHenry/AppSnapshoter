@@ -16,12 +16,20 @@ data class SnapGroup(
     val id: String,
 ) {
     val TAG = "SnapGroup"
-    val config = GroupConfig(id)
-    val mmkv = config.mmkv
+    val config by lazy { GroupConfig(id) }
+    val mmkv by lazy { config.mmkv }
 
     var name: String
         get() {
-            return config.groupConfigData.name
+            val configName = config.groupConfigData.name
+            if (!configName.isNullOrEmpty()) {
+                return configName
+            }
+            val pathName = Paths.get(path).fileName?.toString()
+            if (!pathName.isNullOrEmpty()) {
+                return pathName
+            }
+            return id
         }
         set(value) {
             config.groupConfigData.name = value

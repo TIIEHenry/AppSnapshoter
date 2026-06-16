@@ -28,6 +28,9 @@ class SnapshotViewModel : ViewModel() {
     val appsList: MutableLiveData<Map<UserInfoHide, List<AppInfo>>> get() = repository.appsList
     val isAppsLoading: MutableLiveData<Boolean> get() = repository.isAppsLoading
 
+    /** Event: timeline requests scrolling to a specific group in the archive tab */
+    val navigateToGroup = MutableLiveData<String?>(null)
+
     fun loadData() {
         viewModelScope.launch(Dispatchers.IO) {
             val app = SnapshotApp.getInstance()

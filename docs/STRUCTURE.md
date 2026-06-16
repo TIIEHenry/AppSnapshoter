@@ -26,7 +26,8 @@ AppSnapshoter/
 ### 1. app (主应用模块)
 - **UI 框架**: ViewBinding + DataBinding（不使用 Compose）
 - **语言**: Kotlin
-- **功能**: 应用列表展示、备份/恢复操作、设置界面
+- **功能**: 应用列表展示、备份/恢复操作、分组存档、时间线批量操作、设置界面
+- **主要界面**: `LauncherFragment`（存档）、`TimelineFragment`（时间线）、`AppsFragment`（应用）
 
 ### 2. api (API 接口模块)
 - **用途**: 定义 AIDL 接口，供进程间通信使用

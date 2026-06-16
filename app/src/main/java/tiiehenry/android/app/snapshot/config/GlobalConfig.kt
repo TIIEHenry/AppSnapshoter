@@ -5,6 +5,9 @@ import com.tencent.mmkv.MMKV
 object GlobalConfig {
     private const val KEY_GROUPS = "groups"
     private const val KEY_GROUPS_ORDER = "groups_order"
+    private const val KEY_TIMELINE_PRESET = "timeline_preset"
+    private const val KEY_TIMELINE_CUSTOM_START = "timeline_custom_start"
+    private const val KEY_TIMELINE_CUSTOM_END = "timeline_custom_end"
 
     private val mmkv: MMKV
         get() = MMKV.defaultMMKV()
@@ -29,4 +32,16 @@ object GlobalConfig {
             // 同时保存到Set用于兼容
             mmkv.encode(KEY_GROUPS, value.toSet())
         }
+
+    var timelinePreset: String?
+        get() = mmkv.decodeString(KEY_TIMELINE_PRESET, null)
+        set(value) { mmkv.encode(KEY_TIMELINE_PRESET, value) }
+
+    var timelineCustomStart: Long
+        get() = mmkv.decodeLong(KEY_TIMELINE_CUSTOM_START, 0L)
+        set(value) { mmkv.encode(KEY_TIMELINE_CUSTOM_START, value) }
+
+    var timelineCustomEnd: Long
+        get() = mmkv.decodeLong(KEY_TIMELINE_CUSTOM_END, 0L)
+        set(value) { mmkv.encode(KEY_TIMELINE_CUSTOM_END, value) }
 }

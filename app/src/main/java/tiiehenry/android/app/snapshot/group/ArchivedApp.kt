@@ -66,10 +66,26 @@ data class ArchivedApp(val group: SnapGroup, val packageDir: String, val iconFil
                         metaInfo.dataItems,
                         archiveDir
                     )
-                    val extraItems =
-                        metaInfo.extraItems.mapKeys { MetaInfoHelper.readDataItem(it.key, archiveDir) }
+                    val extraItems = try {
+                        metaInfo.extraItems.mapKeys {
+                            MetaInfoHelper.readDataItem(
+                                it.key,
+                                archiveDir
+                            )
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        emptyMap()
+                    }
                     val archiveItem =
-                        ArchiveItem(metaInfo, appInfo, archiveName, archiveDir, dataItems, extraItems)
+                        ArchiveItem(
+                            metaInfo,
+                            appInfo,
+                            archiveName,
+                            archiveDir,
+                            dataItems,
+                            extraItems
+                        )
                     synchronized(archives) {
                         archives[archiveName] = archiveItem
                     }

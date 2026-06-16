@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicReference
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
@@ -33,6 +34,71 @@ import tiiehenry.android.snapshot.file.IFileSystem
 object ArchiveRestorer {
 
     private const val TAG = "ArchiveRestorer"
+
+    suspend fun restoreArchiveSuspend(
+        context: Context,
+        archivedApp: ArchivedApp,
+        archiveItem: ArchiveItem
+    ) {
+        val snapShotApp = SnapshotApp.getInstance()
+        val fs = snapShotApp.fileSystem
+        val appManager = snapShotApp.appManager
+        val errorRef = AtomicReference<Exception?>(null)
+        val noOpDialog = NoOpItemProgressDialog(errorRef)
+
+        restoreArchive(context, fs, appManager, archivedApp, archiveItem, noOpDialog)
+
+        errorRef.get()?.let { throw it }
+    }
+
+    private class NoOpItemProgressDialog(
+        private val errorRef: AtomicReference<Exception?>
+    ) : IItemProgressDialog {
+        override fun setItemMessage(message: String) {}
+        override fun setItemStatus(message: String) {}
+        override fun setItemProgress(progress: Int) {}
+        override fun setCurrentItem(item: String) {}
+        override fun showItem() {}
+        override fun post(runnable: Runnable) { runnable.run() }
+        override fun dismissItem() {}
+        override fun setItemException(e: Exception) { errorRef.compareAndSet(null, e) }
+    }
+
+    fun restoreArchiveItem(
+        context: Context,
+        archivedApp: ArchivedApp,
+        archiveItem: ArchiveItem,
+        updateCurrent: () -> Unit,
+        scope: CoroutineScope
+    ) {
+        val snapShotApp = SnapshotApp.getInstance()
+        val fs = snapShotApp.fileSystem
+        val appManager = snapShotApp.appManager
+
+        val loadingDialog = ItemProgressDialog(context)
+        loadingDialog.setItemMessage("正在准备恢复存档")
+        loadingDialog.setItemStatus("...")
+        loadingDialog.showItem()
+
+        scope.launch(Dispatchers.IO) {
+            try {
+                val startTime = System.currentTimeMillis()
+                restoreArchive(context, fs, appManager, archivedApp, archiveItem, loadingDialog)
+                val endTime = System.currentTimeMillis()
+                Log.i(TAG, "恢复存档耗时: ${endTime - startTime} ms")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    loadingDialog.dismissItem()
+                    Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    updateCurrent()
+                }
+            }
+        }
+    }
 
     fun restoreAdvanced(
         context: Context,

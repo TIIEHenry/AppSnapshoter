@@ -45,9 +45,11 @@ provider → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 
 **Compression pipeline**: App data → `IFileSystem.createTarArchive()` (JNI tar) → `IFileCompressor.compress()` (zstd) → `.tar.zst`. Supports streaming via FIFO pipes (`mkfifo`) and `ParcelFileDescriptor`-based I/O to avoid intermediate files.
 
-**Config**: MMKV is the sole persistence mechanism. `GlobalConfig` (Kotlin object singleton) stores group ID ordering. Per-group config uses separate MMKV instances.
+**Config**: MMKV is the sole persistence mechanism. `GlobalConfig` (Kotlin object singleton) stores group ID ordering and timeline filter presets (`timelinePreset`, `timelineCustomStart`, `timelineCustomEnd`). Per-group config uses separate MMKV instances; `group.json` `name` may be absent — `SnapGroup.name` falls back to directory basename then group `id`.
 
-**ViewModels**: `SnapshotApp` instantiates `SnapshotViewModel` directly in `onCreate()` (not via `ViewModelProvider`) and exposes it as a top-level property. `AppsViewModel` filters the app list from `SnapshotViewModel` using multi-dimensional filters.
+**ViewModels**: `SnapshotApp` instantiates `SnapshotViewModel` directly in `onCreate()` (not via `ViewModelProvider`) and exposes it as a top-level property. `AppsViewModel` filters the app list from `SnapshotViewModel` using multi-dimensional filters. `TimelineViewModel` queries in-memory snapshots from `groupList` by time range; `navigateToGroup` on `SnapshotViewModel` scrolls the archive tab to a group when invoked from the timeline tab.
+
+**Timeline tab**: Bottom nav order is `存档 | 时间线 | 应用`. Implementation lives under `app/.../main/timeline/` — see `docs/TIMELINE_FEATURE.md`.
 
 ## Conventions
 

@@ -61,6 +61,16 @@ class LauncherFragment : Fragment() {
             groupsAdapter.submitList(groups)
         }
 
+        // 从时间线跳转到指定分组
+        snapshotViewModel.navigateToGroup.observe(viewLifecycleOwner) { groupId ->
+            if (groupId == null) return@observe
+            snapshotViewModel.navigateToGroup.value = null // 消费事件
+            val index = groupsAdapter.currentList.indexOfFirst { it.id == groupId }
+            if (index >= 0) {
+                binding.groupsRecyclerView.scrollToPosition(index)
+            }
+        }
+
         // 添加菜单
         requireActivity().addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {

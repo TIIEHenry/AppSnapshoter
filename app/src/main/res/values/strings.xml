@@ -28,6 +28,48 @@
     <string name="about_open_source">引用的开源组件</string>
     <string name="about_open_source_list">libsu - topjohnwu (Apache-2.0)\nMMKV - Tencent (BSD-3-Clause)\nFastJSON2 - Alibaba (Apache-2.0)\nGlide - bumptech (BSD-2-Clause)\nKotlin Coroutines - JetBrains (Apache-2.0)\nAndroidX - Google (Apache-2.0)\nMaterial Components - Google (Apache-2.0)\nGNU Tar - FSF (GPL-3.0)\nZstandard - Facebook (BSD-3-Clause)</string>
 
+    <!-- 时间线 -->
+    <string name="timeline">时间线</string>
+    <string name="timeline_today">今天</string>
+    <string name="timeline_yesterday">昨天</string>
+    <string name="timeline_7days">7天</string>
+    <string name="timeline_30days">30天</string>
+    <string name="timeline_custom">自定义</string>
+    <string name="timeline_search_hint">搜索应用或分组…</string>
+    <string name="timeline_empty">该时间范围内没有备份快照</string>
+    <string name="timeline_app_icon_desc">应用图标</string>
+    <string name="timeline_restore">恢复</string>
+    <string name="timeline_export">导出</string>
+    <string name="timeline_delete">删除</string>
+    <string name="timeline_export_confirm">确定导出 %d 个应用的快照？</string>
+    <string name="timeline_export_select_dir">选择导出目录</string>
+    <string name="timeline_export_done">导出完成: %1$d 成功, %2$d 失败</string>
+    <string name="timeline_no_selection">请先选择要操作的应用</string>
+    <string name="timeline_restore_confirm">确定为 %d 个应用恢复快照？</string>
+    <string name="timeline_delete_confirm">将删除 %1$d 个应用在时间区域内的 %2$d 个快照（%3$d 个已锁定将跳过），是否继续？</string>
+    <string name="timeline_batch_cancelled">已中止</string>
+    <string name="timeline_batch_finished">已完成</string>
+    <string name="timeline_batch_no_errors">暂无错误</string>
+    <string name="timeline_batch_no_success">暂无成功</string>
+    <string name="timeline_batch_total_time">总耗时: %s</string>
+    <string name="timeline_batch_success_count">成功: %d</string>
+    <string name="timeline_batch_fail_count">失败: %d</string>
+    <string name="timeline_batch_error_title">操作失败 (%d个)</string>
+    <string name="timeline_batch_error_detail_title">错误: %s</string>
+    <string name="timeline_batch_success_title">操作成功 (%d个)</string>
+    <string name="timeline_batch_time_seconds">%d秒</string>
+    <string name="timeline_batch_time_minutes">%1$d分%2$d秒</string>
+    <string name="timeline_batch_delete_done">删除完成: %1$d 成功, %2$d 失败%3$s</string>
+    <string name="timeline_batch_skipped_locked">，跳过锁定 %d</string>
+    <string name="timeline_entry_stale">应用数据已失效</string>
+    <string name="timeline_restore_strategy_title">批量恢复 (%d 个应用)</string>
+    <string name="timeline_restore_strategy_desc">%d 个应用在选定时间区域内有多个快照，请选择恢复策略：</string>
+    <string name="timeline_restore_strategy_confirm">开始恢复</string>
+    <string name="timeline_restore_newest">新快照优先 — 每个应用恢复时间最新的那个快照</string>
+    <string name="timeline_restore_oldest">旧快照优先 — 每个应用恢复时间最旧的那个快照</string>
+    <string name="timeline_snapshot_count_single">1 个快照  %1$s</string>
+    <string name="timeline_snapshot_count_multi">%1$d 个快照  %2$s ~ %3$s</string>
+
     <!-- 额外项目 -->
     <string name="extra_item_excludes_count">%d 个排除模式</string>
     <string name="extra_item_no_excludes">无排除模式</string>
