@@ -48,6 +48,7 @@ private val snapshotViewModel: SnapshotViewModel by activityViewModels {
 | 单快照恢复 | `ArchiveRestorer.restoreLatest()` | 提取 `restoreArchiveItem()` 后，批量按指定 `ArchiveItem` 调用 |
 | 单快照删除 | `ArchiveManager.deleteArchive()` | 批量删除循环调用 |
 | 多选 UI | `SelectAppFragment` + `layout_multi_select_toolbar.xml` | include 工具栏 + 隐藏 `confirm_button`，另加恢复/删除按钮 |
+| 可折叠搜索 | `CollapsibleSearchController` + `layout_search_field.xml` | Chip 行图标展开搜索；`AppsListComponent` 回调接入 |
 | 批量进度 | `GroupBatchArchiver` + `GroupItemsProgressDialog` | **直接照搬**串行执行 + 取消 + 成功/失败汇总模式 |
 | 锁定保护 | `MetaInfo.locked` | 删除时跳过已锁定快照 |
 

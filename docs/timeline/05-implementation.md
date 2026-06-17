@@ -19,7 +19,13 @@ app/src/main/java/tiiehenry/android/app/snapshot/main/timeline/
 app/src/main/res/layout/
 ├── fragment_timeline.xml
 ├── item_timeline_entry.xml
+├── item_timeline_date_header.xml
+├── layout_search_field.xml         # 共享搜索框（Dense Outlined）
 └── dialog_restore_strategy.xml   # 或用 MaterialAlertDialogBuilder 内联，二选一
+
+app/src/main/java/tiiehenry/android/app/snapshot/ui/widget/
+├── CollapsibleSearchController.kt  # 可折叠搜索（Chip 行图标 ↔ 输入框）
+└── SearchFieldExt.kt               # TextInputLayout 文本监听扩展
 
 app/src/main/res/drawable/
 └── tab_timeline.xml
@@ -40,6 +46,9 @@ app/src/main/res/drawable/
 | `SnapGroup.kt` | `name` 空值回退，避免标签筛选等场景 NPE |
 | `IFileSystem.java` / `FileSystemImpl.kt` | 新增 `copyRecursively()`（批量导出） |
 | `strings.xml` | 时间线相关文案 |
+| `fragment_apps.xml` / `fragment_select_app.xml` / `fragment_ignore_apps.xml` | 与 Timeline 相同的 Chip 行 + 可折叠搜索 |
+| `values/dimens.xml` | `filter_horizontal_padding`、`filter_icon_button_size` 等筛选区尺寸 |
+| `values/themes.xml` | `Widget.AppSnapshot.SearchField`、`Widget.AppSnapshot.IconButton` |
 
 单元测试：`app/src/test/.../TimelineRepositoryTest.kt`
 
@@ -56,6 +65,7 @@ class TimelineViewModel : ViewModel() {
     val isMultiSelectMode = MutableLiveData(false)
     val isQuerying = MutableLiveData(false)
     val isBatchRunning = MutableLiveData(false)
+    val searchQuery = MutableLiveData("")   // 搜索词，驱动 Adapter 高亮与过滤
 
     fun bindGroupList(groupList: LiveData<List<SnapGroup>>) {
         // 观察 groupList，与 timeRange 任一变化时在 Default 线程 requery

@@ -10,15 +10,33 @@
 ┌─────────────────────────────────────────────────┐
 │                  时间线 Tab                      │
 ├─────────────────────────────────────────────────┤
-│  [今天] [昨天] [7天] [30天] [自定义]              │  ← 时间筛选 ChipGroup
+│  filter_header (colorSurface)                    │
+│  ┌───────────────────────────────────────────┐  │
+│  │ [今天][昨天][7天][30天][自定义]  …  [🔍]   │  │  ← Chip 行 + 搜索图标（同排）
+│  │ [搜索应用或分组…              ✕]          │  │  ← 点击图标展开（默认隐藏）
+│  │ ■■■□□ ■■□□□ …（热力图）                  │  │
+│  └───────────────────────────────────────────┘  │
+│  ─── outline_variant 分隔线 ───                 │
 ├─────────────────────────────────────────────────┤
 │  ☐ 微信          分组A    3个快照 03/08~03/11    │
-│  ☐ 支付宝        分组B    1个快照 03/10          │  ← 应用列表
+│  ☐ 支付宝        分组B    1个快照 03/10          │  ← 应用列表（日期粘性头）
 │  ☐ ...                                          │
 ├─────────────────────────────────────────────────┤
 │  [已选 N 项]  [全选] [取消] [恢复] [删除]          │  ← 多选操作栏
 └─────────────────────────────────────────────────┘
 ```
+
+### 3.1.1 筛选区（filter_header）
+
+| 区域 | 实现 | 说明 |
+|------|------|------|
+| 时间 Chip | `ChipGroup` + `HorizontalScrollView` | 与搜索按钮同一行；Chip 可横滑 |
+| 搜索入口 | `btn_search_toggle`（44dp IconButton） | 默认仅图标；有过滤词且收起时图标变主题色 |
+| 搜索输入 | `layout_search_field` + `CollapsibleSearchController` | 展开后显示 Dense Outlined 输入框（14sp）；`endIcon` 清除文字；行内 ✕ 关闭面板 |
+| 热力图 | `TimelineHeatmapView` | 点击某天 → 切到自定义单日范围 |
+| 底部分隔 | 1dp `outline_variant` | 与列表区视觉分离 |
+
+搜索交互由 `CollapsibleSearchController` 统一驱动（180ms `AutoTransition`），与「应用」Tab、`SelectAppFragment`、`IgnoreAppsFragment` 一致。
 
 ## 3.2 列表展示粒度
 
@@ -67,7 +85,16 @@ startTime <= archive.metaInfo.makeTime < endTimeExclusive
 - 筛选变更 → 重新 query → 刷新列表 → **清空多选并退出多选模式**
 - Phase 2：上次筛选 preset 存入 MMKV（`GlobalConfig` 同级独立 key）
 
-## 3.4 多选交互
+## 3.4 搜索
+
+| 项 | 说明 |
+|----|------|
+| 入口 | 筛选 Chip 行右侧 `Widget.AppSnapshot.IconButton`（`filter_icon_button_size` 44dp，图标 24dp） |
+| 输入框 | 共享布局 `layout_search_field.xml`，样式 `Widget.AppSnapshot.SearchField` |
+| 过滤逻辑 | `TimelineViewModel.searchQuery` → `TimelineAdapter` + `TimelineTextHighlight` |
+| 持久化 | 搜索词不持久化；收起后过滤条件保留，图标高亮提示 |
+
+## 3.5 多选交互
 
 参考 `SelectAppFragment` + `SelectAppAdapter` 模式：
 

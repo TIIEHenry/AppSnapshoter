@@ -122,7 +122,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 |---|------|
 | `TagsFilterLayout` | 标签筛选 ChipGroup 自定义 LinearLayout |
 | `SearchFieldExt` | 搜索框扩展函数 |
-| `CollapsibleSearchController` | 图标按钮展开/收起 `layout_search_field`（时间线、应用 Tab） |
+| `CollapsibleSearchController` | Chip 行搜索图标 ↔ `layout_search_field` 展开/收起（时间线、应用 Tab、选应用、忽略应用） |
 | `FloatingBottomNav` | 悬浮底栏 `BlurView` 毛玻璃初始化 |
 
 ## 主界面布局（`activity_main.xml`）
