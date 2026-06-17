@@ -23,6 +23,7 @@ import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.FragmentIgnoreAppsBinding
 import tiiehenry.android.app.snapshot.databinding.ItemIgnoreAppBinding
 import tiiehenry.android.app.snapshot.main.selectapp.SelectAppFragment
+import tiiehenry.android.app.snapshot.ui.widget.CollapsibleSearchController
 
 /**
  * 忽略应用管理界面
@@ -40,6 +41,7 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
     private var allApps: List<AppInfo> = emptyList()
     private var filteredApps: List<AppInfo> = emptyList()
     private var currentFilterType: Set<AppFilterType> = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
+    private lateinit var searchController: CollapsibleSearchController
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -54,8 +56,8 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
-        setupFilterChips()
         setupSearchView()
+        setupFilterChips()
         setupFab()
 
         // 加载已安装应用列表
@@ -82,21 +84,18 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
     private fun setupFilterChips() {
         AppFilterHelper.setupFilterChips(binding.chipGroupAppFilter, requireContext()) { filterTypes ->
             currentFilterType = filterTypes
-            filterApps(binding.searchView.query.toString())
+            filterApps(searchController.currentQuery())
         }
     }
 
     private fun setupSearchView() {
-        binding.searchView.setOnQueryTextListener(object : android.widget.SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                filterApps(newText ?: "")
-                return true
-            }
-        })
+        searchController = CollapsibleSearchController(
+            toggle = binding.btnSearchToggle,
+            searchField = binding.searchField,
+            transitionHost = binding.root,
+            onQueryChanged = { query -> filterApps(query) },
+            hint = getString(R.string.search_apps_hint)
+        )
     }
 
     private fun setupFab() {
@@ -112,25 +111,24 @@ class IgnoreAppsFragment : BottomSheetDialogFragment() {
     }
 
     private fun loadIgnoredApps() {
-        val ignoredPackageNames = IgnoreAppsConfig.getIgnoredPackageNames()
+        val ignoredKeys = IgnoreAppsConfig.getIgnoredAppKeys()
 
-        if (ignoredPackageNames.isEmpty()) {
+        if (ignoredKeys.isEmpty()) {
             binding.tvEmpty.visibility = View.VISIBLE
             adapter.submitList(emptyList())
         } else {
             binding.tvEmpty.visibility = View.GONE
-            filterApps(binding.searchView.query.toString())
+            filterApps(searchController.currentQuery())
         }
     }
 
     @SuppressLint("NotifyDataSetChanged")
     private fun filterApps(query: String) {
-        val ignoredSet = IgnoreAppsConfig.getIgnoredPackageNames().toSet()
+        val ignoredSet = IgnoreAppsConfig.getIgnoredAppKeys().toSet()
 
-        // 从所有应用中过滤出已忽略的应用，并按 packageName 去重（只保留第一个）
-        val appsToShow = allApps
-            .filter { it.packageName in ignoredSet }
-            .distinctBy { it.packageName }
+        val appsToShow = allApps.filter {
+            IgnoreAppsConfig.appKey(it.packageName, it.userId) in ignoredSet
+        }
 
         // 应用筛选器和搜索
         filteredApps = AppFilterHelper.filterApps(appsToShow, query, currentFilterType)

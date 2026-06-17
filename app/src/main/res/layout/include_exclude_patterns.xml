@@ -29,7 +29,7 @@
             android:layout_marginStart="4dp"
             android:contentDescription="复制"
             app:icon="@drawable/ic_content_copy"
-            app:iconTint="@color/material_on_surface_emphasis_medium" />
+            app:iconTint="@color/icon_secondary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_browse_exclude"
@@ -39,7 +39,7 @@
             android:layout_marginStart="4dp"
             android:contentDescription="添加"
             app:icon="@drawable/plus"
-            app:iconTint="@color/material_on_surface_emphasis_medium" />
+            app:iconTint="@color/icon_secondary" />
 
     </LinearLayout>
 

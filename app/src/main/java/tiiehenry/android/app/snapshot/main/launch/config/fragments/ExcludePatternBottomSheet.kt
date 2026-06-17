@@ -1,6 +1,6 @@
 package tiiehenry.android.app.snapshot.main.launch.config.fragments
 
-import android.R
+import android.R as AndroidR
 import android.app.Dialog
 import android.os.Bundle
 import android.view.ContextThemeWrapper
@@ -12,7 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
-import com.google.android.material.R as MaterialR
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.databinding.BottomSheetExcludePatternBinding
 import com.alibaba.fastjson2.JSON
@@ -29,6 +29,7 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
 
     private var compressItem: String = ""
     private var packageName: String = ""
+    private var userId: Int = 0
     // 按压缩项目分类的排除模式映射，用于保存所有压缩项目的排除模式
     private val itemPatternsMap = mutableMapOf<String, MutableList<String>>()
     // 当前选中压缩项目的排除模式列表（引用自 itemPatternsMap）
@@ -49,6 +50,7 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
     companion object {
         private const val ARG_COMPRESS_ITEM = "compress_item"
         private const val ARG_PACKAGE_NAME = "package_name"
+        private const val ARG_USER_ID = "user_id"
         private const val ARG_ITEM_PATTERNS_MAP = "item_patterns_map"
 
         /**
@@ -60,12 +62,14 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
         fun newInstance(
             compressItem: String = "",
             packageName: String = "",
+            userId: Int = 0,
             itemPatternsMap: Map<String, List<String>> = emptyMap()
         ): ExcludePatternBottomSheet {
             return ExcludePatternBottomSheet().apply {
                 arguments = Bundle().apply {
                     putString(ARG_COMPRESS_ITEM, compressItem)
                     putString(ARG_PACKAGE_NAME, packageName)
+                    putInt(ARG_USER_ID, userId)
                     // 将 Map 序列化为 JSON 字符串传递
                     val jsonString = JSON.toJSONString(itemPatternsMap)
                     putString(ARG_ITEM_PATTERNS_MAP, jsonString)
@@ -94,6 +98,7 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
         arguments?.let {
             compressItem = it.getString(ARG_COMPRESS_ITEM, "")
             packageName = it.getString(ARG_PACKAGE_NAME, "")
+            userId = it.getInt(ARG_USER_ID, 0)
             // 解析按压缩项目分类的排除模式映射
             val jsonString = it.getString(ARG_ITEM_PATTERNS_MAP, "{}")
             itemPatternsMap.clear()
@@ -172,7 +177,7 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
     private fun setupCompressItemSpinner() {
         val adapter = ArrayAdapter(
             requireContext(),
-            R.layout.simple_dropdown_item_1line,
+            AndroidR.layout.simple_dropdown_item_1line,
             compressItemOptions.map { it.second }
         )
         binding.spinnerCompressItem.setAdapter(adapter)
@@ -204,12 +209,12 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
         val activity = requireActivity()
         // 根据 compressItem 和 packageName 构建对应的根路径
         val rootPath = when (compressItem) {
-            CompressItems.COMPRESS_ITEM_DATA -> "/data/data/$packageName"
-            CompressItems.COMPRESS_ITEM_USER -> "/data/user/0/$packageName"
-            CompressItems.COMPRESS_ITEM_USER_DE -> "/data/user_de/0/$packageName"
-            CompressItems.COMPRESS_ITEM_OBB -> "/storage/emulated/0/Android/obb/$packageName"
-            CompressItems.COMPRESS_ITEM_MEDIA -> "/storage/emulated/0/Android/media/$packageName"
-            else -> "/data/data/$packageName"
+            CompressItems.COMPRESS_ITEM_DATA -> "/data/media/$userId/Android/data/$packageName"
+            CompressItems.COMPRESS_ITEM_USER -> "/data/user/$userId/$packageName"
+            CompressItems.COMPRESS_ITEM_USER_DE -> "/data/user_de/$userId/$packageName"
+            CompressItems.COMPRESS_ITEM_OBB -> "/data/media/$userId/Android/obb/$packageName"
+            CompressItems.COMPRESS_ITEM_MEDIA -> "/data/media/$userId/Android/media/$packageName"
+            else -> "/data/media/$userId/Android/data/$packageName"
         }
         val filePicker = FilePickerBottomSheet.newInstance(
             rootPath = rootPath
@@ -250,7 +255,7 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
 
         val patterns = currentPatterns
         for (pattern in patterns) {
-            val chip = Chip(ContextThemeWrapper(requireContext(), MaterialR.style.Widget_Material3_Chip_Filter)).apply {
+            val chip = Chip(ContextThemeWrapper(requireContext(), R.style.Widget_AppSnapshot_Chip_Filter)).apply {
                 text = pattern
                 isCloseIconVisible = true
                 isCheckable = false

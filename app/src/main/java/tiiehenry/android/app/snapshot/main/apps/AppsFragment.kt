@@ -2,13 +2,14 @@ package tiiehenry.android.app.snapshot.main.apps
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.SearchView
-import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
+import androidx.recyclerview.widget.RecyclerView
 import tiiehenry.android.app.snapshot.main.launch.app.AppConfigFragment
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.FragmentAppsBinding
+import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
 
 class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
@@ -27,12 +28,19 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
 
     override fun getTagsFilterLayout(binding: FragmentAppsBinding): TagsFilterLayout = binding.tagsFilterLayout
 
-    override fun getSearchView(binding: FragmentAppsBinding): SearchView = binding.searchView
+    override fun getSearchFieldBinding(binding: FragmentAppsBinding): LayoutSearchFieldBinding =
+        binding.searchField
+
+    override fun getSearchToggle(binding: FragmentAppsBinding): MaterialButton =
+        binding.btnSearchToggle
+
+    override fun getSearchTransitionHost(binding: FragmentAppsBinding): ViewGroup =
+        binding.root
 
     override fun setupRecyclerViewAdapter(binding: FragmentAppsBinding) {
         appsAdapter = AppsAdapter { appInfo ->
             // 显示AppConfigFragment作为BottomSheet
-            val fragment = AppConfigFragment.newInstance(appInfo.packageName)
+            val fragment = AppConfigFragment.newInstance(appInfo.packageName, appInfo.userId)
             fragment.show(parentFragmentManager, fragment.tag)
         }
         binding.appsRecyclerView.adapter = appsAdapter

@@ -2,6 +2,9 @@
     <string name="app_name">AppSnapshot</string>
     <string name="apps">应用</string>
 
+    <!-- 搜索 -->
+    <string name="search_apps_hint">搜索应用…</string>
+
     <!-- 应用筛选 -->
     <string name="app_filter_system">系统应用</string>
     <string name="app_filter_user">用户应用</string>
@@ -36,7 +39,13 @@
     <string name="timeline_30days">30天</string>
     <string name="timeline_custom">自定义</string>
     <string name="timeline_search_hint">搜索应用或分组…</string>
+    <string name="timeline_search_toggle">搜索</string>
+    <string name="timeline_search_close">关闭搜索</string>
     <string name="timeline_empty">该时间范围内没有备份快照</string>
+    <string name="timeline_empty_hint">前往归档页创建或查看备份</string>
+    <string name="timeline_go_archive">去归档页</string>
+    <string name="timeline_expand_desc">展开快照详情</string>
+    <string name="timeline_collapse_desc">收起快照详情</string>
     <string name="timeline_app_icon_desc">应用图标</string>
     <string name="timeline_restore">恢复</string>
     <string name="timeline_export">导出</string>

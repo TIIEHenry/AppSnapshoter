@@ -7,8 +7,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
@@ -32,6 +34,8 @@ class GroupSortBottomSheet : BottomSheetDialogFragment() {
         onSortSavedListener = listener
     }
 
+    override fun getTheme(): Int = R.style.ThemeOverlay_AppSnapshot_BottomSheet
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -43,6 +47,12 @@ class GroupSortBottomSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        binding.btnSave.apply {
+            backgroundTintList = null
+            setBackgroundResource(R.drawable.bg_button_filled_primary)
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.on_primary))
+        }
 
         setupRecyclerView()
         loadGroups()

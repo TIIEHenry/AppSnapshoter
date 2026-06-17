@@ -81,15 +81,14 @@ class AppManagerImpl(
 
     override fun getInstalledPackages(flags: Int, userId: Int): List<String> {
         fetchInstalledAppInfos()
-        return getInstalledAppInfosCached().map { it.packageName }
+        return getInstalledAppInfosCached()
+            .filter { it.userId == userId }
+            .map { it.packageName }
     }
 
     override fun getPackageInfo(packageName: String, flags: Int, userId: Int): PackageInfo? {
-        return try {
-            runBlocking { safeCall("getPackageInfo", null) { getPackageInfo(packageName, flags, userId) } }
-        } catch (e: Exception) {
-            LogHelper.w(TAG, "getPackageInfo", "Falling back to PackageManager", e)
-            packageManager.getPackageInfo(packageName, flags)
+        return runBlocking {
+            safeCall("getPackageInfo", null) { getPackageInfo(packageName, flags, userId) }
         }
     }
 

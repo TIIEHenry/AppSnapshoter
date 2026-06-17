@@ -4,12 +4,10 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.LinearLayout
-import androidx.core.content.ContextCompat
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.app.tag.AppTag
-import tiiehenry.android.app.snapshot.app.tag.TagType
 
 /**
  * 标签过滤器布局
@@ -61,34 +59,17 @@ class TagsFilterLayout @JvmOverloads constructor(
      * 创建Chip视图
      */
     private fun createChip(tag: AppTag): Chip {
-        return Chip(context).apply {
+        return Chip(context, null, R.style.Widget_AppSnapshot_Chip_Filter).apply {
             text = tag.name
             isCheckable = true
             isChecked = selectedTagIds.contains(tag.id)
-
-            // 根据标签类型设置不同样式
-            when (tag.type) {
-                TagType.BUILTIN -> {
-                    setChipBackgroundColorResource(R.color.chip_builtin_background)
-                    setTextColor(ContextCompat.getColor(context, R.color.chip_builtin_text))
-                    chipStrokeWidth = if (!isChecked) 0f else 2f
-                    setChipStrokeColorResource(R.color.chip_builtin_text)
-                }
-                TagType.GROUP -> {
-                    setChipBackgroundColorResource(R.color.chip_group_background)
-                    setTextColor(ContextCompat.getColor(context, R.color.chip_group_text))
-                    chipStrokeWidth = if (!isChecked) 0f else 2f
-                    setChipStrokeColorResource(R.color.chip_group_text)
-                }
-            }
+            chipStrokeWidth = resources.displayMetrics.density // 1dp
 
             setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) {
                     selectedTagIds.add(tag.id)
-                    chipStrokeWidth = 2f
                 } else {
                     selectedTagIds.remove(tag.id)
-                    chipStrokeWidth = 0f
                 }
                 onTagSelectionChangedListener?.invoke(selectedTagIds.toSet())
             }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 横屏 / 宽屏下保持与竖屏一致的紧凑 Tab 宽度，避免 BottomNavigationView 被拉宽 -->
+    <dimen name="design_bottom_navigation_item_min_width">44dp</dimen>
+    <dimen name="design_bottom_navigation_item_max_width">48dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_min_width">44dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_max_width">48dp</dimen>
+    <dimen name="floating_nav_horizontal_padding">8dp</dimen>
+</resources>

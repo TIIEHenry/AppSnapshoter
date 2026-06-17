@@ -74,7 +74,7 @@ class ProcessManager(
 
     fun suspendPackage(packageName: String, userId: Int): Boolean {
         return try {
-            val cmd = "pm suspend $packageName"
+            val cmd = "pm suspend --user $userId $packageName"
             val shell = Shell.Builder.create()
                 .setFlags(Shell.FLAG_MOUNT_MASTER)
                 .setTimeout(30)
@@ -104,7 +104,7 @@ class ProcessManager(
 
     fun unsuspendPackage(packageName: String, userId: Int): Boolean {
         return try {
-            val cmd = "pm unsuspend $packageName"
+            val cmd = "pm unsuspend --user $userId $packageName"
             val shell = Shell.Builder.create()
                 .setFlags(Shell.FLAG_MOUNT_MASTER)
                 .setTimeout(30)
@@ -136,8 +136,11 @@ class ProcessManager(
         return try {
             val runningProcesses = mActivityManagerHidden.getRunningAppProcesses()
             runningProcesses?.any { process ->
-                process.processName == packageName ||
+                val processUserId = process.uid / 100000
+                processUserId == userId && (
+                    process.processName == packageName ||
                         process.processName.startsWith("$packageName:")
+                    )
             } ?: false
         } catch (e: Exception) {
             throw RemoteException("Failed to check if package is running: $packageName: ${e.message}")

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fluent 2 corner radii: Control = 4dp, Overlay = 8dp -->
+
+    <style name="ShapeAppearance.AppSnapshot.Corner.Control" parent="ShapeAppearance.Material3.Corner.Small">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/fluent_corner_radius_control</item>
+    </style>
+
+    <style name="ShapeAppearance.AppSnapshot.Corner.Overlay" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/fluent_corner_radius_overlay</item>
+    </style>
+
+    <style name="ShapeAppearance.AppSnapshot.Corner.Large" parent="ShapeAppearance.Material3.Corner.Large">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/fluent_corner_radius_overlay</item>
+    </style>
+
+    <style name="ShapeAppearance.AppSnapshot.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/fluent_corner_radius_control</item>
+    </style>
+
+    <style name="ShapeAppearance.AppSnapshot.MediumComponent" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/fluent_corner_radius_overlay</item>
+    </style>
+
+    <style name="ShapeAppearance.AppSnapshot.LargeComponent" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/fluent_corner_radius_overlay</item>
+    </style>
+</resources>

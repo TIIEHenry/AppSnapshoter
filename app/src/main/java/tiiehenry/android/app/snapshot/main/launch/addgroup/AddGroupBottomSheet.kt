@@ -1,18 +1,19 @@
 package tiiehenry.android.app.snapshot.main.launch.addgroup
 
-import android.R
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
@@ -50,6 +51,8 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    override fun getTheme(): Int = R.style.ThemeOverlay_AppSnapshot_BottomSheet
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pathPickerHelper.register()
@@ -67,6 +70,12 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.btnConfirm.apply {
+            backgroundTintList = null
+            setBackgroundResource(R.drawable.bg_button_filled_primary)
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.on_primary))
+        }
+
         userIdSpinner = binding.spinnerUserId
         lifecycleScope.launch {
             val users = withContext(Dispatchers.IO) {
@@ -81,8 +90,8 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             userInfoList.addAll(users)
             val userLabels = userInfoList.map { "${it.name} (${it.id})" }.toTypedArray()
             val userAdapter =
-                ArrayAdapter(requireContext(), R.layout.simple_spinner_item, userLabels)
-            userAdapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
+                ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, userLabels)
+            userAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             userIdSpinner.adapter = userAdapter
         }
 

@@ -85,7 +85,10 @@ class SnapshotCreator(
                 val appManager = snapShotApp.appManager
 
                 // 获取应用配置（使用 AppConfigManager 复用实例）
-                val appConfig = AppConfigManager.getInstance().getConfig(item.appInfo.packageName)
+                val appConfig = AppConfigManager.getInstance().getConfig(
+                    item.appInfo.packageName,
+                    item.appInfo.userId
+                )
                 val groupConfig = group.config
 
                 // 挂起应用（应用进程暂停运行）

@@ -3,57 +3,70 @@
     android:id="@+id/multi_select_toolbar"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:background="@color/colorPrimary"
-    android:padding="8dp"
+    android:orientation="vertical"
+    android:background="?attr/colorSurface"
+    android:elevation="2dp"
     android:visibility="gone">
 
-    <TextView
-        android:id="@+id/selected_count_text"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="已选择 0 项"
-        android:textColor="@android:color/white"
-        android:textSize="16sp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp">
 
-    <Button
-        android:id="@+id/select_all_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:text="全选"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:minWidth="0dp"
-        android:minHeight="0dp"
-        android:padding="8dp" />
+        <TextView
+            android:id="@+id/selected_count_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="已选择 0 项"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="16sp" />
 
-    <Button
-        android:id="@+id/cancel_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:text="取消"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:minWidth="0dp"
-        android:minHeight="0dp"
-        android:padding="8dp" />
+        <Button
+            android:id="@+id/select_all_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="全选"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="14sp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="8dp" />
 
-    <Button
-        android:id="@+id/confirm_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="确定"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:minWidth="0dp"
-        android:minHeight="0dp"
-        android:padding="8dp" />
+        <Button
+            android:id="@+id/cancel_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="取消"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="14sp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="8dp" />
+
+        <Button
+            android:id="@+id/confirm_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="确定"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="14sp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="8dp" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/toolbar_divider" />
 
 </LinearLayout>

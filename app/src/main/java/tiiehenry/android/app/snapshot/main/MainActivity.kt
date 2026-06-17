@@ -1,6 +1,7 @@
 package tiiehenry.android.app.snapshot.main
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -10,16 +11,23 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +41,8 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.databinding.ActivityMainBinding
 import tiiehenry.android.app.snapshot.databinding.DialogProviderCheckBinding
 import tiiehenry.android.app.snapshot.main.settings.SettingsActivity
+import tiiehenry.android.app.snapshot.main.timeline.TimelineFragment
+import tiiehenry.android.app.snapshot.ui.widget.FloatingBottomNav
 import android.R as AndroidR
 
 class MainActivity : AppCompatActivity() {
@@ -61,13 +71,16 @@ class MainActivity : AppCompatActivity() {
     private var checkDialog: AlertDialog? = null
     private var dialogBinding: DialogProviderCheckBinding? = null
 
+    private var navigationBarInsetBottom = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 实现沉浸式状态栏
-        setupImmersiveStatusBar()
+        setupSystemBars()
+        setupWindowInsets()
+        setSupportActionBar(binding.toolbar)
 
         // 使用MenuProvider实现菜单
         setupMenuProvider()
@@ -76,7 +89,22 @@ class MainActivity : AppCompatActivity() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         navController = navHostFragment.navController
+
+        val appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.launcherFragment,
+                R.id.timelineFragment,
+                R.id.appsFragment,
+            )
+        )
+        binding.toolbar.setupWithNavController(navController, appBarConfiguration)
         binding.bottomNavigation.setupWithNavController(navController)
+        FloatingBottomNav.setup(this, binding.bottomNavigationContainer, binding.bottomNavigation)
+        applyToolbarStyle()
+        navController.addOnDestinationChangedListener { _, _, _ ->
+            applyToolbarStyle()
+            binding.navHostFragment.post { applyFloatingNavContentPadding() }
+        }
 
         // 先检查权限，检查通过后再加载数据
         if (savedInstanceState == null) {
@@ -104,15 +132,69 @@ class MainActivity : AppCompatActivity() {
         }, this, Lifecycle.State.CREATED)
     }
 
-    private fun setupImmersiveStatusBar() {
-        // 启用内容延伸到状态栏和导航栏下方
+    private fun applyToolbarStyle() {
+        val surfaceColor = ContextCompat.getColor(this, R.color.surface)
+        binding.toolbar.setBackgroundColor(surfaceColor)
+        binding.toolbar.backgroundTintList = null
+        binding.toolbarHeader.setBackgroundColor(surfaceColor)
+    }
+
+    private fun setupSystemBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        // 获取系统窗口控制器
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        val isLightTheme = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) !=
+            Configuration.UI_MODE_NIGHT_YES
+        windowInsetsController.isAppearanceLightStatusBars = isLightTheme
+    }
 
-        // 设置状态栏图标为深色（在浅色背景下）
-        windowInsetsController.isAppearanceLightStatusBars = true
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.toolbarHeader) { view, windowInsets ->
+            val statusBarInsets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.updatePadding(top = statusBarInsets.top)
+            windowInsets
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.coordinator) { _, windowInsets ->
+            val navInsets = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            navigationBarInsetBottom = navInsets.bottom
+            val baseMargin = resources.getDimensionPixelSize(R.dimen.floating_nav_bottom_margin)
+            val lp = binding.bottomNavigationContainer.layoutParams as
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            lp.bottomMargin = baseMargin + navInsets.bottom
+            lp.marginStart = navInsets.left
+            lp.marginEnd = navInsets.right
+            binding.bottomNavigationContainer.layoutParams = lp
+            FloatingBottomNav.applyCompactWidth(binding.bottomNavigationContainer, binding.bottomNavigation)
+            applyFloatingNavContentPadding()
+            windowInsets
+        }
+        ViewCompat.requestApplyInsets(binding.coordinator)
+    }
+
+    fun floatingNavContentPaddingBottom(): Int {
+        val margin = resources.getDimensionPixelSize(R.dimen.floating_nav_bottom_margin)
+        val navHeight = resources.getDimensionPixelSize(R.dimen.floating_nav_height)
+        val gap = resources.getDimensionPixelSize(R.dimen.floating_nav_content_gap)
+        return navigationBarInsetBottom + margin + navHeight + gap
+    }
+
+    private fun applyFloatingNavContentPadding() {
+        val fragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+            ?.childFragmentManager?.primaryNavigationFragment ?: return
+        if (fragment is TimelineFragment) {
+            fragment.updateBottomContentPadding()
+            return
+        }
+        fragment.view?.findRecyclerView()?.updatePadding(bottom = floatingNavContentPaddingBottom())
+    }
+
+    private fun View.findRecyclerView(): RecyclerView? {
+        if (this is RecyclerView) return this
+        if (this is ViewGroup) {
+            for (index in 0 until childCount) {
+                getChildAt(index).findRecyclerView()?.let { return it }
+            }
+        }
+        return null
     }
 
     private fun showProviderCheckDialog() {
@@ -352,9 +434,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun setItemSuccess(icon: ImageView, status: TextView, progress: ProgressBar) {
         icon.setImageResource(R.drawable.check_success)
-        icon.setColorFilter(0xFF4CAF50.toInt()) // green
+        icon.setColorFilter(ContextCompat.getColor(this, R.color.status_success))
         status.text = "已连接"
-        status.setTextColor(0xFF4CAF50.toInt())
+        status.setTextColor(ContextCompat.getColor(this, R.color.status_success))
         progress.visibility = View.GONE
     }
 
@@ -365,9 +447,9 @@ class MainActivity : AppCompatActivity() {
         errorMsg: String?
     ) {
         icon.setImageResource(R.drawable.check_error)
-        icon.setColorFilter(0xFFF44336.toInt()) // red
+        icon.setColorFilter(ContextCompat.getColor(this, R.color.status_error))
         status.text = "失败 (点击重试)"
-        status.setTextColor(0xFFF44336.toInt())
+        status.setTextColor(ContextCompat.getColor(this, R.color.status_error))
         progress.visibility = View.GONE
     }
 

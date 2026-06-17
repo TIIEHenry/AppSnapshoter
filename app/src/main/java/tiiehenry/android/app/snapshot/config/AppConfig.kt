@@ -7,11 +7,24 @@ import java.io.File
  * 应用配置管理类
  * 配置保存在应用私有目录下的 JSON 文件中
  */
-class AppConfig(val packageName: String) {
+class AppConfig(val packageName: String, val userId: Int = 0) {
 
-    // 获取应用配置存储目录（私有目录下的 app_configs/<packageName>/）
+    private fun canonicalConfigDir(): File {
+        return File(
+            SnapshotApp.getInstance().globalRootPath,
+            "app_configs/${AppConfigManager.configKey(packageName, userId)}"
+        )
+    }
+
+    // 获取应用配置存储目录；user 0 兼容旧版仅按包名的目录
     private val configDir: String by lazy {
-        File(SnapshotApp.getInstance().globalRootPath, "app_configs/$packageName").absolutePath
+        val canonical = canonicalConfigDir()
+        if (userId == 0) {
+            val legacy = File(SnapshotApp.getInstance().globalRootPath, "app_configs/$packageName")
+            if (!canonical.exists() && legacy.exists()) legacy.absolutePath else canonical.absolutePath
+        } else {
+            canonical.absolutePath
+        }
     }
 
     private val shotConfigFile by lazy { File(configDir, ConfigFiles.SHOT_CONFIG_FILE) }
@@ -57,13 +70,15 @@ class AppConfig(val packageName: String) {
     }
 
     /**
-     * 保存配置到文件
+     * 保存配置到文件（始终写入规范路径，便于从旧版目录迁移）
      */
     fun save() {
-        saveConfigToFile(shotConfigFile, shotConfig.toJson())
-        saveConfigToFile(excludeConfigFile, excludeConfig.toJson())
-        saveConfigToFile(actionConfigFile, actionConfig.toJson())
-        saveConfigToFile(extraConfigFile, extraItemsConfig.toJson())
+        val targetDir = canonicalConfigDir()
+        targetDir.mkdirs()
+        saveConfigToFile(File(targetDir, ConfigFiles.SHOT_CONFIG_FILE), shotConfig.toJson())
+        saveConfigToFile(File(targetDir, ConfigFiles.EXCLUDE_CONFIG_FILE), excludeConfig.toJson())
+        saveConfigToFile(File(targetDir, ConfigFiles.ACTION_CONFIG_FILE), actionConfig.toJson())
+        saveConfigToFile(File(targetDir, ConfigFiles.EXTRA_CONFIG_FILE), extraItemsConfig.toJson())
     }
 
     /**
@@ -71,7 +86,9 @@ class AppConfig(val packageName: String) {
      */
     fun saveExtraItems(items: List<ExtraCompressItem>) {
         extraItemsConfig.setItems(items)
-        saveConfigToFile(extraConfigFile, extraItemsConfig.toJson())
+        val targetDir = canonicalConfigDir()
+        targetDir.mkdirs()
+        saveConfigToFile(File(targetDir, ConfigFiles.EXTRA_CONFIG_FILE), extraItemsConfig.toJson())
     }
 
     /**
@@ -86,6 +103,7 @@ class AppConfig(val packageName: String) {
         excludeConfigFile.delete()
         actionConfigFile.delete()
         extraConfigFile.delete()
+        canonicalConfigDir().deleteRecursively()
     }
 
     private fun <T> loadConfigFromFile(file: File, parser: (String) -> T): T? {

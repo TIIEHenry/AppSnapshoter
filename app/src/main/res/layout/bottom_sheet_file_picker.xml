@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:icon="@drawable/ic_arrow_back"
-            app:iconTint="@color/material_on_surface_emphasis_medium"
+            app:iconTint="@color/icon_secondary"
             android:contentDescription="返回上级" />
 
         <TextView
@@ -40,7 +40,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:icon="@drawable/ic_close"
-            app:iconTint="@color/material_on_surface_emphasis_medium"
+            app:iconTint="@color/icon_secondary"
             android:contentDescription="关闭" />
 
         <com.google.android.material.button.MaterialButton
@@ -49,7 +49,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:icon="@drawable/check"
-            app:iconTint="@color/material_on_surface_emphasis_medium"
+            app:iconTint="@color/icon_secondary"
             android:contentDescription="确认" />
 
     </LinearLayout>
@@ -90,7 +90,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="目录为空"
-        android:textColor="@color/material_on_surface_emphasis_medium"
+        android:textColor="@color/icon_secondary"
         android:textSize="16sp"
         android:visibility="gone" />
 

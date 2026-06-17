@@ -3,37 +3,63 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     android:orientation="vertical">
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/user_tab_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        app:tabMode="scrollable"
-        app:tabGravity="start" />
+        android:layout_marginHorizontal="@dimen/filter_horizontal_padding"
+        android:layout_marginTop="@dimen/filter_row_padding_vertical"
+        app:tabGravity="start"
+        app:tabMode="scrollable" />
 
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group_app_filter"
+    <LinearLayout
+        android:id="@+id/filter_chip_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        app:singleSelection="true"
-        app:selectionRequired="true" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/filter_horizontal_padding"
+        android:paddingTop="@dimen/filter_row_padding_vertical"
+        android:paddingEnd="@dimen/filter_row_padding_vertical"
+        android:paddingBottom="@dimen/filter_row_padding_vertical">
 
-    <SearchView
-        android:id="@+id/search_view"
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_app_filter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:paddingEnd="@dimen/filter_chip_row_end_padding"
+            app:selectionRequired="true"
+            app:singleSelection="true" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_search_toggle"
+            style="@style/Widget.AppSnapshot.IconButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/timeline_search_toggle"
+            app:icon="@drawable/ic_search" />
+
+    </LinearLayout>
+
+    <include
+        android:id="@+id/search_field"
+        layout="@layout/layout_search_field"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:iconifiedByDefault="false"
-        android:queryHint="搜索应用..." />
+        android:layout_marginHorizontal="@dimen/filter_horizontal_padding"
+        android:layout_marginBottom="@dimen/filter_row_padding_vertical"
+        android:visibility="gone" />
 
     <!-- Tags Filter Layout -->
     <tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
         android:id="@+id/tags_filter_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="8dp" />
+        android:layout_marginHorizontal="@dimen/filter_horizontal_padding" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -51,7 +77,7 @@
             android:id="@+id/apps_recycler_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="8dp"
+            android:padding="@dimen/filter_row_padding_vertical"
             android:visibility="gone" />
 
     </FrameLayout>

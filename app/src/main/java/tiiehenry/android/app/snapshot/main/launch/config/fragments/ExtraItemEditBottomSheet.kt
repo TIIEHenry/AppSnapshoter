@@ -11,9 +11,9 @@ import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.config.ExtraCompressItem
 import tiiehenry.android.app.snapshot.databinding.BottomSheetExtraItemEditBinding
-import com.google.android.material.R as MaterialR
 
 /**
  * 额外项目编辑 BottomSheetDialogFragment
@@ -175,7 +175,7 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
         for (pattern in excludePatterns) {
             val chip = Chip(
                 ContextThemeWrapper(
-                    requireContext(), MaterialR.style.Widget_Material3_Chip_Filter
+                    requireContext(), R.style.Widget_AppSnapshot_Chip_Filter
                 )
             ).apply {
                 text = pattern

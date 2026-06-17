@@ -34,6 +34,7 @@
         android:contentDescription="App Lock Status"
         android:src="@drawable/lock_outline"
         android:visibility="gone"
+        app:tint="@color/status_warning"
         app:layout_constraintEnd_toEndOf="@id/app_icon"
         app:layout_constraintBottom_toBottomOf="@id/app_icon" />
 

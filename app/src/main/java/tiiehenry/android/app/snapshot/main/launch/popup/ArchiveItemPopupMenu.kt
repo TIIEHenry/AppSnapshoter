@@ -142,7 +142,10 @@ class ArchiveItemPopupMenu(
 
         // 设置按钮
         popupBinding.btnSettings.setOnClickListener {
-            val fragment = AppConfigFragment.Companion.newInstance(item.appInfo.packageName)
+            val fragment = AppConfigFragment.Companion.newInstance(
+                item.appInfo.packageName,
+                item.appInfo.userId
+            )
             fragment.show(fragmentManager, fragment.tag)
             popupWindow.dismiss()
         }

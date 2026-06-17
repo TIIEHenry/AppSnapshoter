@@ -1,11 +1,10 @@
 package tiiehenry.android.snapshot.provider.appmanager.util
 
-import android.os.Environment
-
 /**
  *路工具类，提供应用相关路径的获取方法
  */
 object PathHelper {
+    private const val DATA_MEDIA = "/data/media"
     const val TMP_PARCEL_PREFIX = "tmp_parcel_"
     const val TMP_SUFFIX = ".tmp"
 
@@ -35,27 +34,27 @@ object PathHelper {
      * 获取应用的数据目录
      */
     fun getAppDataDir(userId: Int, packageName: String): String {
-        return "${Environment.getExternalStorageDirectory()}/Android/data/$packageName"
+        return "$DATA_MEDIA/$userId/Android/data/$packageName"
     }
 
     /**
      * 获取应用的OBB目录
      */
     fun getAppObbDir(userId: Int, packageName: String): String {
-        return "${Environment.getExternalStorageDirectory()}/Android/obb/$packageName"
+        return "$DATA_MEDIA/$userId/Android/obb/$packageName"
     }
 
     /**
      * 获取应用的媒体目录
      */
     fun getAppMediaDir(userId: Int, packageName: String): String {
-        return "${Environment.getExternalStorageDirectory()}/Android/media/$packageName"
+        return "$DATA_MEDIA/$userId/Android/media/$packageName"
     }
 
     /**
      * 获取应用的缓存目录
      */
     fun getAppExCacheDir(userId: Int, packageName: String): String {
-        return "${Environment.getExternalStorageDirectory()}/Android/data/$packageName/cache"
+        return "$DATA_MEDIA/$userId/Android/data/$packageName/cache"
     }
 }

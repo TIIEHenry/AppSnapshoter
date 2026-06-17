@@ -28,7 +28,10 @@ class GroupBatchArchiver(
 
     fun archiveAllApps(group: SnapGroup) {
         val installedApps = group.apps.filter { AppStatusHelper.isAppInstalled(it) }.filter {
-            val appConfig = AppConfigManager.getInstance().getConfig(it.appInfo.packageName)
+            val appConfig = AppConfigManager.getInstance().getConfig(
+                it.appInfo.packageName,
+                it.appInfo.userId
+            )
             val actionConfig = if (appConfig.actionConfig.enabled) {
                 appConfig.actionConfig
             } else {

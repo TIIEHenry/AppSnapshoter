@@ -52,6 +52,12 @@ data class ArchivedApp(val group: SnapGroup, val packageDir: String, val iconFil
             if (fs.fileType(jsonFile) == IFileType.TYPE_FILE) {
                 val metaInfo = MetaInfoHelper.read(fs, jsonFile)
                 if (metaInfo != null) {
+                    if (metaInfo.userId != group.userId) {
+                        Log.w(
+                            "SnapedApp",
+                            "Archive $archiveName userId=${metaInfo.userId} differs from group userId=${group.userId}"
+                        )
+                    }
                     val appInfo = AppInfo(
                         fs,
                         appManager,

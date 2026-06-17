@@ -44,42 +44,42 @@
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_apk"
-            style="@style/Widget.Material3.Chip.Filter"
+            style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="APK" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_data"
-            style="@style/Widget.Material3.Chip.Filter"
+            style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="DATA" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_user"
-            style="@style/Widget.Material3.Chip.Filter"
+            style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="USER" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_user_de"
-            style="@style/Widget.Material3.Chip.Filter"
+            style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="USER_DE" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_obb"
-            style="@style/Widget.Material3.Chip.Filter"
+            style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="OBB" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_media"
-            style="@style/Widget.Material3.Chip.Filter"
+            style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="MEDIA" />

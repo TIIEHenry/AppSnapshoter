@@ -1,23 +1,29 @@
 package tiiehenry.android.app.snapshot.main.apps
 
-import android.widget.SearchView
+import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.app.tag.AppTagHelper
+import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
+import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.main.settings.IgnoreAppsConfig
+import tiiehenry.android.app.snapshot.ui.widget.CollapsibleSearchController
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.app.UserInfoHide
@@ -37,13 +43,16 @@ class AppsListComponent<VB : ViewBinding>(
 ) {
 
     private var userList: List<UserInfoHide> = emptyList()
+    private var searchController: CollapsibleSearchController? = null
 
     interface Callbacks<VB : ViewBinding> {
         fun getRecyclerView(binding: VB): RecyclerView
         fun getUserTabLayout(binding: VB): TabLayout
         fun getFilterChipGroup(binding: VB): ChipGroup
         fun getTagsFilterLayout(binding: VB): TagsFilterLayout
-        fun getSearchView(binding: VB): SearchView
+        fun getSearchFieldBinding(binding: VB): LayoutSearchFieldBinding
+        fun getSearchToggle(binding: VB): MaterialButton
+        fun getSearchTransitionHost(binding: VB): ViewGroup
         fun setupRecyclerViewAdapter(binding: VB)
         fun onAppsLoadingStateChanged(isLoading: Boolean)
         fun onFilteredAppsChanged(apps: List<AppInfo>)
@@ -56,8 +65,12 @@ class AppsListComponent<VB : ViewBinding>(
         viewModel.groupsProvider = { snapshotViewModel.groupList.value ?: emptyList() }
 
         // 设置 RecyclerView
-        callbacks.getRecyclerView(binding).layoutManager =
-            LinearLayoutManager(fragment.requireContext())
+        val recyclerView = callbacks.getRecyclerView(binding)
+        recyclerView.layoutManager = LinearLayoutManager(fragment.requireContext())
+        recyclerView.clipToPadding = false
+        (fragment.requireActivity() as? MainActivity)?.let { activity ->
+            recyclerView.updatePadding(bottom = activity.floatingNavContentPaddingBottom())
+        }
         callbacks.setupRecyclerViewAdapter(binding)
 
         // 设置 Filter ChipGroup
@@ -99,17 +112,13 @@ class AppsListComponent<VB : ViewBinding>(
         }
 
         // 搜索功能
-        callbacks.getSearchView(binding)
-            .setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String?): Boolean {
-                    return false
-                }
-
-                override fun onQueryTextChange(newText: String?): Boolean {
-                    viewModel.filterApps(newText ?: "")
-                    return true
-                }
-            })
+        searchController = CollapsibleSearchController(
+            toggle = callbacks.getSearchToggle(binding),
+            searchField = callbacks.getSearchFieldBinding(binding),
+            transitionHost = callbacks.getSearchTransitionHost(binding),
+            onQueryChanged = { query -> viewModel.filterApps(query) },
+            hint = fragment.getString(R.string.search_apps_hint)
+        )
     }
 
     private fun setupUserTabs() {

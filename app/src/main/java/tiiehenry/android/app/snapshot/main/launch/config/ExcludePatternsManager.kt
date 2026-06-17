@@ -10,16 +10,17 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import com.alibaba.fastjson2.JSON
 import com.google.android.material.chip.Chip
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.config.ExcludeConfig
 import tiiehenry.android.app.snapshot.databinding.IncludeExcludePatternsBinding
 import tiiehenry.android.app.snapshot.main.launch.config.fragments.ExcludePatternBottomSheet
-import com.google.android.material.R as MaterialR
 
 class ExcludePatternsManager(
     private val binding: IncludeExcludePatternsBinding,
     private val context: Context,
     private var packageName: String = "",
+    private var userId: Int = 0,
     private var excludeConfig: ExcludeConfig? = null,
     private var fragmentManager: FragmentManager? = null
 ) {
@@ -36,6 +37,10 @@ class ExcludePatternsManager(
      */
     fun setPackageName(name: String) {
         packageName = name
+    }
+
+    fun setUserId(id: Int) {
+        userId = id
     }
 
     /**
@@ -175,6 +180,7 @@ class ExcludePatternsManager(
 
         val bottomSheet = ExcludePatternBottomSheet.newInstance(
             packageName = packageName,
+            userId = userId,
             itemPatternsMap = getItemPatternsMap()
         )
 
@@ -343,7 +349,7 @@ class ExcludePatternsManager(
                 val chip = Chip(
                     ContextThemeWrapper(
                         context,
-                        MaterialR.style.Widget_Material3_Chip_Filter
+                        R.style.Widget_AppSnapshot_Chip_Filter
                     )
                 ).apply {
                     text = "[$displayName] $pattern"

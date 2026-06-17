@@ -4,17 +4,18 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.app.AppInfo
+import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
 import tiiehenry.android.snapshot.app.IAppManager
 
@@ -62,9 +63,19 @@ abstract class BaseAppsFragment<VB : ViewBinding> : Fragment(), AppsListComponen
     abstract override fun getTagsFilterLayout(binding: VB): TagsFilterLayout
 
     /**
-     * 获取 SearchView 实例，由子类实现
+     * 获取搜索框 binding，由子类实现
      */
-    abstract override fun getSearchView(binding: VB): SearchView
+    abstract override fun getSearchFieldBinding(binding: VB): LayoutSearchFieldBinding
+
+    /**
+     * 获取搜索切换按钮，由子类实现
+     */
+    abstract override fun getSearchToggle(binding: VB): MaterialButton
+
+    /**
+     * 获取搜索展开/收起动画容器，由子类实现
+     */
+    abstract override fun getSearchTransitionHost(binding: VB): ViewGroup
 
     /**
      * 设置 RecyclerView 的 Adapter，由子类实现

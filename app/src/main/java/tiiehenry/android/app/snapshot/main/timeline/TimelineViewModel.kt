@@ -90,7 +90,18 @@ class TimelineViewModel : ViewModel() {
     }
 
     fun selectAll() {
-        selectedIds.value = entries.value.orEmpty().map { it.key.id }.toSet()
+        val all = entries.value.orEmpty()
+        val query = searchQuery.value.orEmpty().trim()
+        val filtered = if (query.isEmpty()) {
+            all
+        } else {
+            all.filter {
+                it.appLabel.contains(query, ignoreCase = true) ||
+                    it.groupName.contains(query, ignoreCase = true) ||
+                    it.key.packageName.contains(query, ignoreCase = true)
+            }
+        }
+        selectedIds.value = filtered.map { it.key.id }.toSet()
     }
 
     fun clearSelection() {

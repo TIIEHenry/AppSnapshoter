@@ -55,4 +55,6 @@ private val snapshotViewModel: SnapshotViewModel by activityViewModels {
 
 - 菜单：`app/src/main/res/menu/bottom_nav_menu.xml`
 - 导航图：`app/src/main/res/navigation/nav_graph.xml`
-- 宿主：`MainActivity` + `BottomNavigationView`
+- 宿主：`MainActivity` + 悬浮 `BlurView` 底栏（`FloatingBottomNav`）
+- 顶栏：固定紧凑 `MaterialToolbar`（`toolbar_height` 48dp），标题随 Tab 切换，设置入口在 `menu_main.xml`
+- 布局：`activity_main.xml`（`ConstraintLayout`，内容区在顶栏下方，不重叠）

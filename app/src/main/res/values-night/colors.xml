@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fluent Design System palette (dark) — WCAG AA tuned -->
+    <color name="fluent_canvas">#FF202020</color>
+    <color name="fluent_layer">#FF2D2D2D</color>
+    <color name="fluent_layer_alt">#FF333333</color>
+    <color name="fluent_stroke">#FF3D3D3D</color>
+    <color name="fluent_stroke_subtle">#FF484848</color>
+    <color name="fluent_text_primary">#FFFFFFFF</color>
+    <color name="fluent_text_secondary">#FFD6D6D6</color>
+    <color name="fluent_text_tertiary">#FFB3B3B3</color>
+    <color name="fluent_fill_subtle">#FF333333</color>
+    <color name="fluent_fill_control">#FF3D3D3D</color>
+
+    <color name="fluent_accent">#FF479EF5</color>
+    <color name="fluent_accent_hover">#FF60CDFF</color>
+    <color name="fluent_accent_container">#FF004578</color>
+    <color name="fluent_accent_container_subtle">#FF1A3A52</color>
+
+    <!-- Legacy aliases -->
+    <color name="ios_background">@color/fluent_canvas</color>
+    <color name="ios_surface">@color/fluent_layer</color>
+    <color name="ios_surface_elevated">@color/fluent_layer_alt</color>
+    <color name="ios_separator">@color/fluent_stroke</color>
+    <color name="ios_separator_light">@color/fluent_stroke_subtle</color>
+    <color name="ios_label_primary">@color/fluent_text_primary</color>
+    <color name="ios_label_secondary">@color/fluent_text_secondary</color>
+    <color name="ios_label_tertiary">@color/fluent_text_tertiary</color>
+    <color name="ios_fill_secondary">@color/fluent_fill_subtle</color>
+    <color name="ios_accent">@color/fluent_accent</color>
+    <color name="ios_accent_muted">@color/fluent_accent_hover</color>
+    <color name="ios_accent_container">@color/fluent_accent_container</color>
+    <color name="ios_accent_container_subtle">@color/fluent_accent_container_subtle</color>
+
+    <color name="colorPrimary">@color/fluent_accent</color>
+    <color name="toolbar_divider">@color/fluent_stroke</color>
+
+    <color name="status_success">#FF6CCB5F</color>
+    <color name="status_error">#FFFF99A4</color>
+    <color name="status_warning">#FFFCE100</color>
+
+    <color name="nav_item_active">@color/fluent_accent</color>
+    <color name="nav_item_inactive">@color/fluent_text_secondary</color>
+    <color name="nav_active_indicator">#33479EF5</color>
+    <color name="icon_primary">@color/on_surface</color>
+
+    <!-- Acrylic floating nav (dark) -->
+    <color name="floating_nav_glass_fill">#4D202020</color>
+    <color name="floating_nav_glass_fill_fallback">#E6202020</color>
+    <color name="floating_nav_glass_stroke">#12FFFFFF</color>
+    <color name="icon_secondary">@color/fluent_text_secondary</color>
+
+    <!-- Material 3 semantic colors (dark) -->
+    <color name="primary">@color/fluent_accent</color>
+    <color name="on_primary">#FF202020</color>
+    <color name="primary_container">@color/fluent_accent_container</color>
+    <color name="on_primary_container">#FFB3D7F2</color>
+
+    <color name="secondary">@color/fluent_text_secondary</color>
+    <color name="on_secondary">#FF202020</color>
+    <color name="secondary_container">@color/fluent_fill_subtle</color>
+    <color name="on_secondary_container">@color/fluent_text_primary</color>
+
+    <color name="tertiary">@color/fluent_accent_hover</color>
+    <color name="on_tertiary">#FF202020</color>
+    <color name="tertiary_container">#FF1A3A52</color>
+    <color name="on_tertiary_container">#FFB3D7F2</color>
+
+    <color name="surface">@color/fluent_layer</color>
+    <color name="on_surface">@color/fluent_text_primary</color>
+    <color name="surface_variant">@color/fluent_fill_subtle</color>
+    <color name="on_surface_variant">@color/fluent_text_secondary</color>
+    <color name="outline">@color/fluent_stroke</color>
+    <color name="outline_variant">@color/fluent_stroke_subtle</color>
+    <color name="background">@color/fluent_canvas</color>
+    <color name="on_background">@color/fluent_text_primary</color>
+
+    <!-- Tag chips (dark) -->
+    <color name="chip_builtin_background">@color/fluent_fill_subtle</color>
+    <color name="chip_builtin_text">@color/fluent_text_primary</color>
+    <color name="chip_group_background">@color/fluent_fill_subtle</color>
+    <color name="chip_group_text">@color/fluent_text_primary</color>
+    <color name="chip_selected_text">@color/fluent_accent</color>
+
+    <color name="github_link">@color/fluent_accent</color>
+
+    <!-- Timeline heatmap (dark, Fluent blue scale) -->
+    <color name="timeline_heatmap_empty">#FF333333</color>
+    <color name="timeline_heatmap_low">#FF1A3A52</color>
+    <color name="timeline_heatmap_medium">#FF005A9E</color>
+    <color name="timeline_heatmap_high">#FF479EF5</color>
+    <color name="timeline_heatmap_max">#FF9BD5FF</color>
+    <color name="timeline_heatmap_label">@color/fluent_text_secondary</color>
+
+    <color name="fluent_reveal_pressed">#14FFFFFF</color>
+</resources>

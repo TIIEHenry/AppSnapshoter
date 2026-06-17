@@ -10,7 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
-import com.google.android.material.R as MaterialR
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.databinding.BottomSheetExtraExcludePatternBinding
 
 /**
@@ -158,7 +158,7 @@ class ExtraExcludePatternBottomSheet : BottomSheetDialogFragment() {
         binding.chipGroupPatterns.removeAllViews()
 
         for (pattern in currentPatterns) {
-            val chip = Chip(ContextThemeWrapper(requireContext(), MaterialR.style.Widget_Material3_Chip_Filter)).apply {
+            val chip = Chip(ContextThemeWrapper(requireContext(), R.style.Widget_AppSnapshot_Chip_Filter)).apply {
                 text = pattern
                 isCloseIconVisible = true
                 isCheckable = false

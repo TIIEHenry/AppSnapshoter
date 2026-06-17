@@ -1,4 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="popup_btn_size">40dp</dimen>
+    <dimen name="filter_horizontal_padding">12dp</dimen>
+    <dimen name="filter_row_padding_vertical">8dp</dimen>
+    <dimen name="filter_chip_row_end_padding">8dp</dimen>
+    <dimen name="search_field_corner_radius">4dp</dimen>
+    <dimen name="filter_icon_button_size">44dp</dimen>
+    <dimen name="filter_icon_button_icon_size">24dp</dimen>
+    <dimen name="toolbar_height">48dp</dimen>
+
+    <!-- Fluent 2 corner radii -->
+    <dimen name="fluent_corner_radius_control">4dp</dimen>
+    <dimen name="fluent_corner_radius_overlay">8dp</dimen>
+
+    <!-- Floating bottom navigation — Fluent acrylic bar -->
+    <dimen name="floating_nav_corner_radius">10dp</dimen>
+    <dimen name="floating_nav_bottom_margin">36dp</dimen>
+    <dimen name="floating_nav_horizontal_padding">8dp</dimen>
+    <dimen name="floating_nav_height">52dp</dimen>
+    <dimen name="floating_nav_content_gap">12dp</dimen>
+    <dimen name="floating_nav_blur_radius">24dp</dimen>
+
+    <!-- BottomNavigationView item sizing -->
+    <dimen name="design_bottom_navigation_item_min_width">44dp</dimen>
+    <dimen name="design_bottom_navigation_item_max_width">48dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_min_width">44dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_max_width">48dp</dimen>
+    <dimen name="m3_bottom_nav_item_active_indicator_width">48dp</dimen>
+    <dimen name="m3_bottom_nav_item_active_indicator_height">32dp</dimen>
+    <dimen name="m3_bottom_nav_item_active_indicator_margin_horizontal">2dp</dimen>
+    <dimen name="m3_bottom_nav_item_padding_top">14dp</dimen>
+    <dimen name="m3_bottom_nav_item_padding_bottom">14dp</dimen>
 </resources>

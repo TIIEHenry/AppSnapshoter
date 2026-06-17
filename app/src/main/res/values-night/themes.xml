@@ -1,20 +1,54 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.AppSnapshot" parent="Theme.Material3.DayNight">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/blue_grey_500</item>
-        <item name="colorPrimaryVariant">@color/blue_grey_700</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/blue_grey_300</item>
-        <item name="colorSecondaryVariant">@color/blue_grey_800</item>
-        <item name="colorOnSecondary">@color/white</item>
-        <!-- Status bar color. -->
+    <!-- Fluent Design System theme (dark) -->
+    <style name="Theme.AppSnapshot" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.AppSnapshot.SmallComponent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.AppSnapshot.MediumComponent</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.AppSnapshot.LargeComponent</item>
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/on_primary_container</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/on_secondary</item>
+        <item name="colorSecondaryContainer">@color/secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/on_secondary_container</item>
+        <item name="colorTertiary">@color/tertiary</item>
+        <item name="colorOnTertiary">@color/on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/on_tertiary_container</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnBackground">@color/on_background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
+        <item name="colorSurfaceContainer">@color/fluent_layer_alt</item>
+        <item name="colorSurfaceContainerHigh">@color/fluent_layer_alt</item>
+        <item name="colorSurfaceContainerHighest">@color/surface_variant</item>
+        <item name="colorSurfaceContainerLow">@color/surface</item>
+        <item name="colorSurfaceContainerLowest">@color/background</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_variant</item>
+        <item name="android:textColorPrimary">@color/on_surface</item>
+        <item name="android:textColorSecondary">@color/on_surface_variant</item>
+        <item name="android:textColorTertiary">@color/fluent_text_tertiary</item>
+        <item name="colorAccent">@color/primary</item>
+        <item name="colorControlActivated">@color/primary</item>
+        <item name="colorControlNormal">@color/icon_primary</item>
+        <item name="colorControlHighlight">@color/primary_container</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <!-- Page background color. -->
-        <item name="android:colorBackground">@color/blue_grey_800</item>
-        <!-- Customize your theme here. -->
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="bottomNavigationStyle">@style/Widget.AppSnapshot.BottomNavigationView</item>
+        <item name="tabStyle">@style/Widget.AppSnapshot.TabLayout</item>
+        <item name="chipStyle">@style/Widget.AppSnapshot.Chip.Filter</item>
+        <item name="floatingActionButtonStyle">@style/Widget.AppSnapshot.FloatingActionButton</item>
+        <item name="switchStyle">@style/Widget.AppSnapshot.Switch</item>
+        <item name="checkboxStyle">@style/Widget.AppSnapshot.CheckBox</item>
+        <item name="materialButtonStyle">@style/Widget.AppSnapshot.Button</item>
+        <item name="toolbarStyle">@style/Widget.AppSnapshot.Toolbar</item>
+        <item name="actionBarTheme">@style/ThemeOverlay.AppSnapshot.ActionBar</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.AppSnapshot.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.AppSnapshot.BottomSheet</item>
     </style>
-
 
 </resources>

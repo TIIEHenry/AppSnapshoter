@@ -16,7 +16,7 @@
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:src="@drawable/ic_folder_open"
-        app:tint="@color/material_on_surface_emphasis_medium" />
+        app:tint="@color/icon_secondary" />
 
     <TextView
         android:id="@+id/tv_file_name"

@@ -4,30 +4,51 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="@dimen/filter_horizontal_padding">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="@dimen/filter_horizontal_padding"
         android:gravity="center"
         android:text="忽略应用"
         android:textSize="20sp"
         android:textStyle="bold" />
 
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group_app_filter"
+    <LinearLayout
+        android:id="@+id/filter_chip_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:singleSelection="true"
-        app:selectionRequired="true" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="@dimen/filter_row_padding_vertical">
 
-    <SearchView
-        android:id="@+id/search_view"
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_app_filter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:paddingEnd="@dimen/filter_chip_row_end_padding"
+            app:selectionRequired="true"
+            app:singleSelection="true" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_search_toggle"
+            style="@style/Widget.AppSnapshot.IconButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/timeline_search_toggle"
+            app:icon="@drawable/ic_search" />
+
+    </LinearLayout>
+
+    <include
+        android:id="@+id/search_field"
+        layout="@layout/layout_search_field"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:iconifiedByDefault="false"
-        android:queryHint="搜索应用..." />
+        android:layout_marginBottom="@dimen/filter_row_padding_vertical"
+        android:visibility="gone" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -38,7 +59,7 @@
             android:id="@+id/apps_recycler_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="8dp" />
+            android:padding="@dimen/filter_row_padding_vertical" />
 
         <TextView
             android:id="@+id/tv_empty"
@@ -50,7 +71,6 @@
             android:textSize="16sp"
             android:visibility="gone" />
 
-
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_add"
             android:layout_width="wrap_content"
@@ -61,15 +81,16 @@
             app:srcCompat="@android:drawable/ic_input_add" />
 
     </FrameLayout>
-    <!-- 提示文本 -->
+
     <TextView
         android:id="@+id/tv_hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/filter_horizontal_padding"
         android:gravity="center"
         android:text="@string/long_press_to_remove"
         android:textColor="?android:textColorSecondary"
         android:textSize="12sp" />
+
 </LinearLayout>

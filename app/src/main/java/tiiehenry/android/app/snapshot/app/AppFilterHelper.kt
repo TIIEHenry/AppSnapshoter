@@ -4,7 +4,6 @@ import android.content.Context
 import android.view.ContextThemeWrapper
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.R as MaterialR
 import tiiehenry.android.app.snapshot.R
 
 /**
@@ -34,7 +33,7 @@ object AppFilterHelper {
 
         val chips = mutableListOf<Chip>()
         filterOptions.forEach { (label, _) ->
-            val contextWithStyle = ContextThemeWrapper(context, MaterialR.style.Widget_Material3_Chip_Filter)
+            val contextWithStyle = ContextThemeWrapper(context, R.style.Widget_AppSnapshot_Chip_Filter)
             val chip = Chip(contextWithStyle).apply {
                 text = label
                 isCheckable = true

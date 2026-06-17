@@ -28,7 +28,8 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:contentDescription="关闭" />
+            android:contentDescription="关闭"
+            app:tint="@color/icon_primary" />
 
     </LinearLayout>
 
@@ -92,7 +93,7 @@
             android:layout_height="wrap_content"
             android:contentDescription="添加排除模式"
             app:icon="@drawable/plus"
-            app:iconTint="@color/material_on_surface_emphasis_medium" />
+            app:iconTint="@color/icon_secondary" />
 
     </LinearLayout>
 

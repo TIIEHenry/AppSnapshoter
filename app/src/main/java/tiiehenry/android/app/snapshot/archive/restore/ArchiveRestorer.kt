@@ -35,6 +35,16 @@ object ArchiveRestorer {
 
     private const val TAG = "ArchiveRestorer"
 
+    private fun validateRestoreUserId(archiveItem: ArchiveItem) {
+        val metaUserId = archiveItem.metaInfo.userId
+        val targetUserId = archiveItem.appInfo.userId
+        if (metaUserId != targetUserId) {
+            throw IllegalStateException(
+                "存档用户（$metaUserId）与当前分组用户（$targetUserId）不一致，已阻止恢复以防止数据写入错误目录"
+            )
+        }
+    }
+
     suspend fun restoreArchiveSuspend(
         context: Context,
         archivedApp: ArchivedApp,
@@ -192,6 +202,8 @@ object ArchiveRestorer {
         archiveItem: ArchiveItem,
         loadingDialog: IItemProgressDialog
     ) {
+        validateRestoreUserId(archiveItem)
+
         val appInfo = archiveItem.appInfo
         val packageName = appInfo.packageName
         val userId = appInfo.userId
@@ -281,6 +293,8 @@ object ArchiveRestorer {
         loadingDialog: IItemProgressDialog,
         selectedTypes: Set<String>
     ) {
+        validateRestoreUserId(archiveItem)
+
         val appInfo = archiveItem.appInfo
         val packageName = appInfo.packageName
         val userId = appInfo.userId

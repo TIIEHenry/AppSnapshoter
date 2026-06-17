@@ -5,12 +5,14 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
+import androidx.core.content.ContextCompat
 import tiiehenry.android.app.snapshot.R
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 class TimelineHeatmapView @JvmOverloads constructor(
     context: Context,
@@ -22,28 +24,33 @@ class TimelineHeatmapView @JvmOverloads constructor(
 
     private var days: List<DayData> = emptyList()
     private var maxCount = 1
+    private var onDayClickListener: ((LocalDate) -> Unit)? = null
 
-    private val cellSize = 28f
+    private val cellSize = 24f
     private val cellGap = 3f
     private val cornerRadius = 4f
-    private val labelHeight = 24f
+    private val labelHeight = 20f
     private val topPadding = 8f
 
     private val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val rect = RectF()
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = 20f
-        color = 0xFF888888.toInt()
+        textSize = 18f
         textAlign = Paint.Align.CENTER
     }
 
-    private val colorEmpty = 0xFFE8E8E8.toInt()
-    private val colorLow = 0xFFC8E6C9.toInt()
-    private val colorMedium = 0xFF66BB6A.toInt()
-    private val colorHigh = 0xFF2E7D32.toInt()
-    private val colorMax = 0xFF1B5E20.toInt()
+    private val colorEmpty = ContextCompat.getColor(context, R.color.timeline_heatmap_empty)
+    private val colorLow = ContextCompat.getColor(context, R.color.timeline_heatmap_low)
+    private val colorMedium = ContextCompat.getColor(context, R.color.timeline_heatmap_medium)
+    private val colorHigh = ContextCompat.getColor(context, R.color.timeline_heatmap_high)
+    private val colorMax = ContextCompat.getColor(context, R.color.timeline_heatmap_max)
 
-    private val dateFormatter = DateTimeFormatter.ofPattern("M/d")
+    private val dateFormatter = DateTimeFormatter.ofPattern("M/d", Locale.getDefault())
+    private val monthFormatter = DateTimeFormatter.ofPattern("M月", Locale.getDefault())
+
+    fun setOnDayClickListener(listener: ((LocalDate) -> Unit)?) {
+        onDayClickListener = listener
+    }
 
     fun setData(entries: List<TimelineEntry>, startDate: LocalDate, endDate: LocalDate) {
         val zone = ZoneId.systemDefault()
@@ -73,7 +80,10 @@ class TimelineHeatmapView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val width = resolveSize(suggestedMinimumWidth, widthMeasureSpec)
+        val dayCount = days.size.coerceAtLeast(1)
+        val totalCellWidth = cellSize + cellGap
+        val contentWidth = (dayCount * totalCellWidth - cellGap).toInt() + paddingLeft + paddingRight
+        val width = resolveSize(contentWidth, widthMeasureSpec)
         val totalHeight = (topPadding + cellSize + cellGap + labelHeight + 8f).toInt()
         setMeasuredDimension(width, resolveSize(totalHeight, heightMeasureSpec))
     }
@@ -82,15 +92,12 @@ class TimelineHeatmapView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (days.isEmpty()) return
 
+        labelPaint.color = ContextCompat.getColor(context, R.color.timeline_heatmap_label)
         val totalCellWidth = cellSize + cellGap
-        val availableWidth = width.toFloat()
-        val cols = ((availableWidth + cellGap) / totalCellWidth).toInt().coerceAtLeast(1)
-        val actualCols = cols.coerceAtMost(days.size)
+        val startX = paddingLeft.toFloat()
 
-        val startX = (width - actualCols * totalCellWidth + cellGap) / 2
-
+        var lastMonthLabel: Int? = null
         for ((i, day) in days.withIndex()) {
-            if (i >= actualCols) break
             val x = startX + i * totalCellWidth
             val y = topPadding
 
@@ -98,15 +105,38 @@ class TimelineHeatmapView @JvmOverloads constructor(
             rect.set(x, y, x + cellSize, y + cellSize)
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, cellPaint)
 
-            if (i % 7 == 0 || i == days.size - 1) {
+            val month = day.date.monthValue
+            val showLabel = i == 0 || i == days.size - 1 ||
+                day.date.dayOfMonth == 1 ||
+                lastMonthLabel != month
+            if (showLabel) {
+                lastMonthLabel = month
+                val label = if (day.date.dayOfMonth == 1 && i > 0) {
+                    day.date.format(monthFormatter)
+                } else {
+                    day.date.format(dateFormatter)
+                }
                 canvas.drawText(
-                    day.date.format(dateFormatter),
+                    label,
                     x + cellSize / 2,
-                    y + cellSize + cellGap + 16f,
+                    y + cellSize + cellGap + 14f,
                     labelPaint
                 )
             }
         }
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (onDayClickListener == null || days.isEmpty()) return super.onTouchEvent(event)
+        if (event.action == MotionEvent.ACTION_UP) {
+            val totalCellWidth = cellSize + cellGap
+            val index = ((event.x - paddingLeft) / totalCellWidth).toInt()
+            if (index in days.indices) {
+                onDayClickListener?.invoke(days[index].date)
+                return true
+            }
+        }
+        return super.onTouchEvent(event)
     }
 
     private fun getColorForCount(count: Int): Int {

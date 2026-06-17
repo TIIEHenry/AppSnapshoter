@@ -1,75 +1,132 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     android:orientation="vertical">
-
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group_time"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp"
-        app:singleSelection="true"
-        app:selectionRequired="true"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_today"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/timeline_today" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_yesterday"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/timeline_yesterday" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_7days"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/timeline_7days"
-            android:checked="true" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_30days"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/timeline_30days" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_custom"
-            style="@style/Widget.MaterialComponents.Chip.Choice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/timeline_custom" />
-
-    </com.google.android.material.chip.ChipGroup>
-
-    <SearchView
-        android:id="@+id/search_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:iconifiedByDefault="false"
-        android:queryHint="@string/timeline_search_hint"
-        android:layout_marginHorizontal="12dp" />
-
-    <tiiehenry.android.app.snapshot.main.timeline.TimelineHeatmapView
-        android:id="@+id/heatmap_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="4dp" />
 
     <include
         android:id="@+id/multi_select_toolbar"
         layout="@layout/layout_multi_select_toolbar" />
+
+    <LinearLayout
+        android:id="@+id/filter_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/filter_horizontal_padding"
+            android:paddingTop="@dimen/filter_row_padding_vertical"
+            android:paddingEnd="@dimen/filter_row_padding_vertical"
+            android:paddingBottom="@dimen/filter_row_padding_vertical">
+
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingEnd="@dimen/filter_chip_row_end_padding"
+                    app:singleLine="true"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_today"
+                        style="@style/Widget.AppSnapshot.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checkable="true"
+                        android:text="@string/timeline_today" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_yesterday"
+                        style="@style/Widget.AppSnapshot.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checkable="true"
+                        android:text="@string/timeline_yesterday" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_7days"
+                        style="@style/Widget.AppSnapshot.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checkable="true"
+                        android:checked="true"
+                        android:text="@string/timeline_7days" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_30days"
+                        style="@style/Widget.AppSnapshot.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checkable="true"
+                        android:text="@string/timeline_30days" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_custom"
+                        style="@style/Widget.AppSnapshot.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checkable="true"
+                        android:text="@string/timeline_custom" />
+
+                </com.google.android.material.chip.ChipGroup>
+
+            </HorizontalScrollView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_search_toggle"
+            style="@style/Widget.AppSnapshot.IconButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/timeline_search_toggle"
+            app:icon="@drawable/ic_search" />
+
+        </LinearLayout>
+
+        <include
+            android:id="@+id/search_field"
+            layout="@layout/layout_search_field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/filter_horizontal_padding"
+            android:layout_marginBottom="@dimen/filter_row_padding_vertical"
+            android:visibility="gone" />
+
+        <HorizontalScrollView
+            android:id="@+id/heatmap_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/filter_horizontal_padding"
+            android:layout_marginTop="@dimen/filter_row_padding_vertical"
+            android:scrollbars="none">
+
+            <tiiehenry.android.app.snapshot.main.timeline.TimelineHeatmapView
+                android:id="@+id/heatmap_view"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </HorizontalScrollView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/outline_variant" />
+
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -80,18 +137,48 @@
             android:id="@+id/timeline_recycler_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingHorizontal="8dp"
-            android:clipToPadding="false" />
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="true"
+            android:paddingHorizontal="4dp"
+            android:paddingBottom="8dp" />
 
-        <TextView
+        <LinearLayout
             android:id="@+id/empty_state"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="@string/timeline_empty"
-            android:textColor="?android:textColorSecondary"
-            android:textSize="16sp"
-            android:visibility="gone" />
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/timeline_empty"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/timeline_empty_hint"
+                android:textColor="?android:textColorSecondary"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_go_archive"
+                style="@style/Widget.AppSnapshot.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/timeline_go_archive"
+                android:textColor="@color/fluent_accent_hover" />
+
+        </LinearLayout>
 
         <ProgressBar
             android:id="@+id/progress_bar"
@@ -106,35 +193,39 @@
         android:id="@+id/action_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:background="?attr/colorSurface"
+        android:elevation="4dp"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:padding="8dp"
         android:visibility="gone">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_restore"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_marginEnd="8dp"
+            android:layout_weight="1"
             android:text="@string/timeline_restore" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_export"
+            style="@style/Widget.AppSnapshot.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="@string/timeline_export"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            android:layout_weight="1"
+            android:text="@string/timeline_export" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_delete"
+            style="@style/Widget.AppSnapshot.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/timeline_delete"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            android:textColor="?attr/colorError"
+            app:strokeColor="?attr/colorError" />
 
     </LinearLayout>
 

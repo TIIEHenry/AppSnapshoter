@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.blurview)
 
     // Jetpack Components
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

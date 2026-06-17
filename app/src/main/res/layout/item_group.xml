@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -37,7 +38,8 @@
                 android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/check"
-                android:visibility="gone" />
+                android:visibility="gone"
+                app:tint="@color/icon_primary" />
 
             <ImageButton
                 android:id="@+id/btn_refresh"
@@ -48,7 +50,8 @@
                 android:contentDescription="刷新"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/refresh" />
+                android:src="@drawable/refresh"
+                app:tint="@color/icon_primary" />
 
             <ImageButton
                 android:id="@+id/btn_add"
@@ -59,7 +62,8 @@
                 android:contentDescription="添加"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/app_add" />
+                android:src="@drawable/app_add"
+                app:tint="@color/icon_primary" />
 
             <ImageButton
                 android:id="@+id/btn_move"
@@ -70,7 +74,8 @@
                 android:contentDescription="移动"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/group_sort" />
+                android:src="@drawable/group_sort"
+                app:tint="@color/icon_primary" />
 
             <ImageButton
                 android:id="@+id/btn_tune"
@@ -81,7 +86,8 @@
                 android:contentDescription="设置"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/tune" />
+                android:src="@drawable/tune"
+                app:tint="@color/icon_primary" />
 
             <ImageButton
                 android:id="@+id/btn_archive_all"
@@ -92,7 +98,8 @@
                 android:contentDescription="全部归档"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/briefcase_download_outline" />
+                android:src="@drawable/briefcase_download_outline"
+                app:tint="@color/icon_primary" />
 
         </LinearLayout>
 
@@ -112,7 +119,8 @@
                     android:layout_height="40dp"
                     android:layout_gravity="center"
                     android:scaleType="centerInside"
-                    android:src="@drawable/chevron_down" />
+                    android:src="@drawable/chevron_down"
+                    app:tint="@color/icon_secondary" />
             </FrameLayout>
 
             <FrameLayout
@@ -127,7 +135,8 @@
                     android:layout_height="40dp"
                     android:layout_gravity="center"
                     android:scaleType="centerInside"
-                    android:src="@drawable/plus" />
+                    android:src="@drawable/plus"
+                    app:tint="@color/icon_secondary" />
             </FrameLayout>
 
             <FrameLayout

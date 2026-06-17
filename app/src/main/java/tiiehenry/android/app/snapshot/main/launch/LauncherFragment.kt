@@ -9,6 +9,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.MenuProvider
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -21,6 +22,7 @@ import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentLauncherBinding
+import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
 import tiiehenry.android.app.snapshot.main.launch.groupsort.GroupSortBottomSheet
 
@@ -51,6 +53,10 @@ class LauncherFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.groupsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.groupsRecyclerView.clipToPadding = false
+        binding.groupsRecyclerView.updatePadding(
+            bottom = (requireActivity() as MainActivity).floatingNavContentPaddingBottom()
+        )
 
         groupsAdapter = GroupsAdapter(viewModel, snapshotViewModel, childFragmentManager)
         binding.groupsRecyclerView.adapter = groupsAdapter

@@ -4,11 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SearchView
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshot.R
@@ -17,6 +17,7 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.FragmentSelectAppBinding
+import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
 import tiiehenry.android.app.snapshot.main.apps.AppsListComponent
 import tiiehenry.android.app.snapshot.main.apps.AppsViewModel
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
@@ -103,7 +104,14 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     override fun getTagsFilterLayout(binding: FragmentSelectAppBinding): TagsFilterLayout = binding.tagsFilterLayout
 
-    override fun getSearchView(binding: FragmentSelectAppBinding): SearchView = binding.searchView
+    override fun getSearchFieldBinding(binding: FragmentSelectAppBinding): LayoutSearchFieldBinding =
+        binding.searchField
+
+    override fun getSearchToggle(binding: FragmentSelectAppBinding): MaterialButton =
+        binding.btnSearchToggle
+
+    override fun getSearchTransitionHost(binding: FragmentSelectAppBinding): ViewGroup =
+        binding.root
 
     override fun setupRecyclerViewAdapter(binding: FragmentSelectAppBinding) {
         selectAppAdapter = SelectAppAdapter(

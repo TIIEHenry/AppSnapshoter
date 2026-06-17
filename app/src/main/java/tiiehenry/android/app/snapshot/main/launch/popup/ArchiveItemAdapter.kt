@@ -1,7 +1,6 @@
 package tiiehenry.android.app.snapshot.main.launch.popup
 
 import android.content.Context
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -11,11 +10,13 @@ import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -107,10 +108,11 @@ class ArchiveItemAdapter(
          * 设置删除模式的 UI
          */
         private fun setupDeleteModeUI(item: ArchiveItem) {
+            val context = binding.root.context
             binding.archiveIcon.setImageResource(R.drawable.delete_forever_outline)
-            binding.archiveIcon.setColorFilter(Color.RED)
-            binding.archiveName.setTextColor(Color.RED)
-            btnLock.setColorFilter(Color.GRAY)
+            binding.archiveIcon.setColorFilter(ContextCompat.getColor(context, R.color.status_error))
+            binding.archiveName.setTextColor(ContextCompat.getColor(context, R.color.status_error))
+            btnLock.setColorFilter(ContextCompat.getColor(context, R.color.icon_secondary))
             btnLock.isEnabled = false
 
             binding.archiveIcon.setOnClickListener { onDeleteClick.invoke(item) }
@@ -124,9 +126,15 @@ class ArchiveItemAdapter(
          * 设置正常模式的 UI
          */
         private fun setupNormalModeUI(item: ArchiveItem) {
+            val context = binding.root.context
+            val onSurface = MaterialColors.getColor(
+                context,
+                com.google.android.material.R.attr.colorOnSurface,
+                0
+            )
             binding.archiveIcon.setImageResource(R.drawable.archive_arrow_up_outline)
-            binding.archiveIcon.setColorFilter(Color.BLACK)
-            binding.archiveName.setTextColor(Color.BLACK)
+            binding.archiveIcon.setColorFilter(onSurface)
+            binding.archiveName.setTextColor(onSurface)
             btnLock.isEnabled = true
 
             binding.archiveIcon.setOnClickListener { onItemClick.invoke(item, false) }
@@ -151,12 +159,13 @@ class ArchiveItemAdapter(
          * 更新锁定按钮 UI
          */
         private fun updateLockButtonUI(item: ArchiveItem) {
+            val context = binding.root.context
             if (item.metaInfo.isLocked) {
                 btnLock.setImageResource(R.drawable.lock_outline)
-                btnLock.setColorFilter(Color.parseColor("#FF9800"))
+                btnLock.setColorFilter(ContextCompat.getColor(context, R.color.status_warning))
             } else {
                 btnLock.setImageResource(R.drawable.lock_outline)
-                btnLock.setColorFilter(Color.GRAY)
+                btnLock.setColorFilter(ContextCompat.getColor(context, R.color.icon_secondary))
             }
         }
 

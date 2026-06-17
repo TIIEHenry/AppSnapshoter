@@ -21,6 +21,7 @@ mmkv = "2.4.0"
 recyclerview = "1.4.0"
 refine = "4.4.0"
 libsu = "6.0.0"
+blurview = "version-2.0.6"
 
 
 [libraries]
@@ -50,6 +51,7 @@ refine-annotation-processor = { module = "dev.rikka.tools.refine:annotation-proc
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libsu-service = { module = "com.github.topjohnwu.libsu:service", version.ref = "libsu" }
 libsu-nio = { module = "com.github.topjohnwu.libsu:nio", version.ref = "libsu" }
+blurview = { module = "com.github.Dimezis:BlurView", version.ref = "blurview" }
 
 
 

@@ -1,24 +1,225 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.AppSnapshot" parent="Theme.Material3.DayNight">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/blue_grey_500</item>
-        <item name="colorPrimaryVariant">@color/blue_grey_700</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/blue_grey_300</item>
-        <item name="colorSecondaryVariant">@color/blue_grey_800</item>
-        <item name="colorOnSecondary">@color/white</item>
-        <!-- Status bar color. -->
+    <!-- Fluent Design System theme (light) -->
+    <style name="Theme.AppSnapshot" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Fluent shape system -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.AppSnapshot.SmallComponent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.AppSnapshot.MediumComponent</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.AppSnapshot.LargeComponent</item>
+        <!-- Primary -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/on_primary_container</item>
+        <!-- Secondary -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/on_secondary</item>
+        <item name="colorSecondaryContainer">@color/secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/on_secondary_container</item>
+        <!-- Tertiary -->
+        <item name="colorTertiary">@color/tertiary</item>
+        <item name="colorOnTertiary">@color/on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/on_tertiary_container</item>
+        <!-- Surfaces -->
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnBackground">@color/on_background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
+        <item name="colorSurfaceContainer">@color/surface</item>
+        <item name="colorSurfaceContainerHigh">@color/fluent_layer</item>
+        <item name="colorSurfaceContainerHighest">@color/surface_variant</item>
+        <item name="colorSurfaceContainerLow">@color/background</item>
+        <item name="colorSurfaceContainerLowest">@color/surface</item>
+        <!-- Outline -->
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_variant</item>
+        <!-- Text -->
+        <item name="android:textColorPrimary">@color/on_surface</item>
+        <item name="android:textColorSecondary">@color/on_surface_variant</item>
+        <item name="android:textColorTertiary">@color/fluent_text_tertiary</item>
+        <!-- Legacy control colors -->
+        <item name="colorAccent">@color/primary</item>
+        <item name="colorControlActivated">@color/primary</item>
+        <item name="colorControlNormal">@color/icon_primary</item>
+        <item name="colorControlHighlight">@color/primary_container</item>
+        <!-- System bars -->
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <!-- Page background color. -->
-        <item name="android:colorBackground">@color/light_gray_white</item>
-        <!-- Customize your theme here. -->
+        <item name="android:navigationBarColor">@color/background</item>
+        <!-- Bottom navigation -->
+        <item name="bottomNavigationStyle">@style/Widget.AppSnapshot.BottomNavigationView</item>
+        <!-- Tab layout -->
+        <item name="tabStyle">@style/Widget.AppSnapshot.TabLayout</item>
+        <!-- Chips -->
+        <item name="chipStyle">@style/Widget.AppSnapshot.Chip.Filter</item>
+        <!-- FAB -->
+        <item name="floatingActionButtonStyle">@style/Widget.AppSnapshot.FloatingActionButton</item>
+        <!-- Switch / Checkbox -->
+        <item name="switchStyle">@style/Widget.AppSnapshot.Switch</item>
+        <item name="checkboxStyle">@style/Widget.AppSnapshot.CheckBox</item>
+        <!-- Material button -->
+        <item name="materialButtonStyle">@style/Widget.AppSnapshot.Button</item>
+        <!-- Toolbar (NoActionBar + custom Toolbar) -->
+        <item name="toolbarStyle">@style/Widget.AppSnapshot.Toolbar</item>
+        <item name="actionBarSize">@dimen/toolbar_height</item>
+        <item name="actionBarTheme">@style/ThemeOverlay.AppSnapshot.ActionBar</item>
+        <!-- Dialog -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.AppSnapshot.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.AppSnapshot.BottomSheet</item>
     </style>
 
+    <style name="Widget.AppSnapshot.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/surface</item>
+        <item name="backgroundTint">@null</item>
+        <item name="titleTextAppearance">@style/TextAppearance.AppSnapshot.ToolbarTitle</item>
+        <item name="titleTextColor">@color/on_surface</item>
+        <item name="subtitleTextColor">@color/on_surface_variant</item>
+        <item name="android:elevation">0dp</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+    <style name="TextAppearance.AppSnapshot.ToolbarTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:textSize">17sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="ThemeOverlay.AppSnapshot.ActionBar" parent="ThemeOverlay.Material3.ActionBar">
+        <item name="colorControlNormal">@color/on_surface</item>
+    </style>
+
+    <style name="ThemeOverlay.AppSnapshot.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorTertiary">@color/tertiary</item>
+        <item name="android:colorBackground">@color/surface</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Overlay</item>
+    </style>
+
+    <style name="ThemeOverlay.AppSnapshot.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="android:colorBackground">@color/surface</item>
+        <item name="materialButtonStyle">@style/Widget.AppSnapshot.Button</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Overlay</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:background">@color/surface</item>
+        <item name="itemIconTint">@color/bottom_nav_item_color</item>
+        <item name="itemTextColor">@color/bottom_nav_item_color</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.AppSnapshot.BottomNavigationView.ActiveIndicator</item>
+        <item name="itemRippleColor">@color/primary_container</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.BottomNavigationView.Floating" parent="Widget.AppSnapshot.BottomNavigationView">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:minHeight">@dimen/floating_nav_height</item>
+        <item name="itemIconSize">24dp</item>
+        <item name="itemPaddingTop">@dimen/m3_bottom_nav_item_padding_top</item>
+        <item name="itemPaddingBottom">@dimen/m3_bottom_nav_item_padding_bottom</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.AppSnapshot.BottomNavigationView.ActiveIndicator.None</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.BottomNavigationView.ActiveIndicator.None" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
+        <item name="android:width">0dp</item>
+        <item name="android:height">0dp</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.BottomNavigationView.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/nav_active_indicator</item>
+        <item name="android:width">@dimen/m3_bottom_nav_item_active_indicator_width</item>
+        <item name="android:height">@dimen/m3_bottom_nav_item_active_indicator_height</item>
+        <item name="marginHorizontal">@dimen/m3_bottom_nav_item_active_indicator_margin_horizontal</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.TabLayout" parent="Widget.Material3.TabLayout">
+        <item name="tabIndicatorColor">@color/primary</item>
+        <item name="tabSelectedTextColor">@color/primary</item>
+        <item name="tabTextColor">@color/nav_item_inactive</item>
+        <item name="tabRippleColor">@color/primary_container</item>
+        <item name="tabIndicatorHeight">3dp</item>
+        <item name="tabIndicatorFullWidth">false</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.SearchField" parent="Widget.Material3.TextInputLayout.OutlinedBox.Dense">
+        <item name="boxStrokeColor">@color/outline</item>
+        <item name="hintTextColor">@color/on_surface_variant</item>
+        <item name="android:textColorHint">@color/on_surface_variant</item>
+        <item name="boxCornerRadiusTopStart">@dimen/fluent_corner_radius_control</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/fluent_corner_radius_control</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/fluent_corner_radius_control</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/fluent_corner_radius_control</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.SearchField.EditText" parent="Widget.Material3.TextInputEditText.OutlinedBox">
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.IconButton" parent="Widget.Material3.Button.IconButton">
+        <item name="iconTint">@color/icon_primary</item>
+        <item name="iconSize">@dimen/filter_icon_button_icon_size</item>
+        <item name="android:minWidth">@dimen/filter_icon_button_size</item>
+        <item name="android:minHeight">@dimen/filter_icon_button_size</item>
+        <item name="rippleColor">@color/primary_container</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.Chip.Filter" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/chip_background_color</item>
+        <item name="chipSurfaceColor">@color/chip_background_color</item>
+        <item name="chipStrokeColor">@color/chip_stroke_color</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="android:textColor">@color/chip_text_color</item>
+        <item name="android:textSize">13sp</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.Chip.Choice" parent="Widget.AppSnapshot.Chip.Filter" />
+
+    <style name="Widget.AppSnapshot.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="backgroundTint">@color/primary</item>
+        <item name="tint">@color/on_primary</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.Switch" parent="Widget.Material3.CompoundButton.Switch">
+        <item name="thumbTint">@color/switch_thumb_color</item>
+        <item name="trackTint">@color/switch_track_color</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.CheckBox" parent="Widget.Material3.CompoundButton.CheckBox">
+        <item name="buttonTint">@color/primary</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/primary</item>
+        <item name="android:textColor">@color/on_primary</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/outline</item>
+        <item name="android:textColor">@color/primary</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/fluent_accent_hover</item>
+        <item name="rippleColor">@color/primary_container</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+    </style>
 
     <!-- Loading Dialog Style -->
-    <style name="LoadingDialogStyle" parent="Theme.AppCompat.Dialog">
+    <style name="LoadingDialogStyle" parent="ThemeOverlay.Material3.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsFloating">true</item>

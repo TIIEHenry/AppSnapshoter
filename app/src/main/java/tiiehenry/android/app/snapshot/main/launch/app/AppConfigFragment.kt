@@ -27,6 +27,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     private var _binding: FragmentAppConfigBinding? = null
     private val binding get() = _binding!!
     private lateinit var packageName: String
+    private var userId: Int = 0
     private lateinit var appConfig: AppConfig
     private val fileSystem: IFileSystem get() = SnapshotApp.getInstance().fileSystem
     
@@ -40,11 +41,13 @@ class AppConfigFragment : BottomSheetDialogFragment() {
 
     companion object {
         private const val ARG_PACKAGE_NAME = "package_name"
+        private const val ARG_USER_ID = "user_id"
 
-        fun newInstance(packageName: String): AppConfigFragment {
+        fun newInstance(packageName: String, userId: Int = 0): AppConfigFragment {
             val fragment = AppConfigFragment()
             val args = Bundle()
             args.putString(ARG_PACKAGE_NAME, packageName)
+            args.putInt(ARG_USER_ID, userId)
             fragment.arguments = args
             return fragment
         }
@@ -55,9 +58,9 @@ class AppConfigFragment : BottomSheetDialogFragment() {
         arguments?.let {
             packageName =
                 it.getString(ARG_PACKAGE_NAME) ?: throw IllegalArgumentException("packageName is required")
+            userId = it.getInt(ARG_USER_ID, 0)
         }
-        // 使用 AppConfigManager 获取配置实例，复用避免重复创建
-        appConfig = AppConfigManager.getInstance().getConfig(packageName)
+        appConfig = AppConfigManager.getInstance().getConfig(packageName, userId)
     }
 
     override fun onCreateView(
@@ -113,6 +116,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             binding.includeExcludePatterns,
             requireContext(),
             packageName,
+            userId,
             appConfig.excludeConfig,
             childFragmentManager
         )
