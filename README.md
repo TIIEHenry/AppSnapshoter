@@ -92,6 +92,12 @@
 |:---:|:---:|
 | ![微信支付](docs/screenshots/weixin.png) | ![支付宝](docs/screenshots/alipay.jpg) |
 
+## QQ 频道
+
+欢迎加入 QQ 频道交流讨论：
+
+![QQ频道](docs/pics/qq.jpg)
+
 ## 许可证
 
 本项目采用 [GNU General Public License v3.0](LICENSE) 许可证。
