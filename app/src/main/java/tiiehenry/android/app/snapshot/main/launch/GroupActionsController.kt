@@ -34,6 +34,9 @@ class GroupActionsController(
     private var archiver: GroupBatchArchiver? = null
     private var restorer: GroupBatchRestorer? = null
 
+    private fun resolveGroup(fallback: SnapGroup): SnapGroup =
+        snapshotViewModel.resolveGroup(fallback.id, fallback) ?: fallback
+
     fun setupActions(group: SnapGroup, groupsAdapter: GroupsAdapter, groupViewHolder: GroupsAdapter.GroupViewHolder) {
         archiver = GroupBatchArchiver(binding.root.context, viewModel.viewModelScope, snapshotViewModel) { g ->
             onRefresh(g)
@@ -53,7 +56,7 @@ class GroupActionsController(
         binding.groupTitle.setOnLongClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
             GroupSettingFragment.newInstance(group) {
-                onRefresh(group)
+                onRefresh(resolveGroup(group))
             }.show(fragmentManager, "GroupConfigFragment")
             true
         }
@@ -70,18 +73,19 @@ class GroupActionsController(
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
             viewModel.viewModelScope.launch {
                 val app = SnapshotApp.getInstance()
-                group.loadApps(
+                val current = resolveGroup(group)
+                current.loadApps(
                     SnapshotApp.getContext(),
                     app.fileSystem,
                     app.appManager,
                     reload = true
                 )
-                withContext(Dispatchers.Main) { onRefresh(group) }
+                withContext(Dispatchers.Main) { onRefresh(resolveGroup(current)) }
             }
         }
         binding.btnRefresh.setOnLongClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
-            archiver?.showGroupStatistics(group)
+            archiver?.showGroupStatistics(resolveGroup(group))
             true
         }
 
@@ -90,8 +94,7 @@ class GroupActionsController(
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
             SelectAppFragment.newInstance(group.id) { appInfos ->
                 snapshotViewModel.addAppsToGroup(group.id, appInfos) {
-                    val updatedGroup = snapshotViewModel.groupList.value?.find { it.id == group.id }
-                    onRefresh(updatedGroup ?: group)
+                    onRefresh(resolveGroup(group))
                 }
             }.show(fragmentManager, "SelectAppFragment")
         }
@@ -113,7 +116,7 @@ class GroupActionsController(
         binding.btnTune.setOnClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
             GroupConfigFragment.newInstance(group) {
-                onRefresh(group)
+                onRefresh(resolveGroup(group))
             }.show(fragmentManager, "GroupShotConfigFragment")
         }
 
@@ -128,9 +131,12 @@ class GroupActionsController(
                 menu.add(0, R.id.menu_batch_restore, 1, R.string.group_batch_menu_restore)
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
-                        R.id.menu_batch_archive -> archiver?.archiveAllApps(group)
-                        R.id.menu_batch_restore -> GroupBatchRestoreDialog.show(anchor.context, group) { tasks ->
-                            restorer?.execute(group, tasks)
+                        R.id.menu_batch_archive -> archiver?.archiveAllApps(resolveGroup(group))
+                        R.id.menu_batch_restore -> {
+                            val current = resolveGroup(group)
+                            GroupBatchRestoreDialog.show(anchor.context, current) { tasks ->
+                                restorer?.execute(current, tasks)
+                            }
                         }
                     }
                     true
@@ -178,7 +184,7 @@ class GroupActionsController(
                     groupViewHolder.toggleSortMode(group, adapter)
                 }
             }
-            onRefresh(group)
+            onRefresh(resolveGroup(group))
             true
         }
         popup.show()

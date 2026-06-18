@@ -63,16 +63,25 @@ class AppDataRepository private constructor() {
 
     suspend fun loadGroups(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
         loadGroupsMutex.withLock {
-            Log.i(TAG, "loadGroups")
-            val groupIds = GlobalConfig.groups
-            val groups = groupIds.map { groupId ->
-                Log.i(TAG, "loadGroup: $groupId")
-                SnapGroup(groupId).apply {
-                    loadApps(context, fileSystem, appManager, true)
-                }
-            }
-            groupList.postValue(groups)
+            reloadGroupsLocked(context, fileSystem, appManager)
         }
+    }
+
+    private suspend fun reloadGroupsLocked(
+        context: Context,
+        fileSystem: IFileSystem,
+        appManager: IAppManager,
+    ) {
+        Log.i(TAG, "loadGroups")
+        val groupIds = GlobalConfig.groups
+        val existing = groupList.value.orEmpty().associateBy { it.id }
+        val groups = groupIds.map { groupId ->
+            Log.i(TAG, "loadGroup: $groupId")
+            (existing[groupId] ?: SnapGroup(groupId)).apply {
+                loadApps(context, fileSystem, appManager, true)
+            }
+        }
+        groupList.postValue(groups)
     }
 
     suspend fun loadApps(fileSystem: IFileSystem, appManager: IAppManager) {
@@ -162,28 +171,29 @@ class AppDataRepository private constructor() {
     ) {
         scope.launch {
             try {
-                val group = currentGroups.find { it.id == groupId } ?: return@launch
-                for (appInfo in appInfos) {
-                    val packageName = appInfo.packageName
-                    Log.d("addAppsToGroup", "Adding app: $packageName to group: ${group.id}")
-                    val packageDir = Paths.get(group.path, packageName).absolutePathString()
-                    if (!fileSystem.exists(packageDir)) {
-                        fileSystem.mkdirs(packageDir)
+                loadGroupsMutex.withLock {
+                    val group = (groupList.value ?: currentGroups)
+                        .find { it.id == groupId } ?: return@launch
+                    for (appInfo in appInfos) {
+                        val packageName = appInfo.packageName
+                        Log.d("addAppsToGroup", "Adding app: $packageName to group: ${group.id}")
+                        val packageDir = Paths.get(group.path, packageName).absolutePathString()
+                        if (!fileSystem.exists(packageDir)) {
+                            fileSystem.mkdirs(packageDir)
+                        }
+
+                        val iconFile = Paths.get(group.path, "$packageName.png").absolutePathString()
+                        AppIconUtils.loadAndSaveAppIcon(
+                            context,
+                            fileSystem,
+                            appManager,
+                            packageName,
+                            0,
+                            iconFile
+                        )
                     }
-
-                    val iconFile = Paths.get(group.path, "$packageName.png").absolutePathString()
-                    AppIconUtils.loadAndSaveAppIcon(
-                        context,
-                        fileSystem,
-                        appManager,
-                        packageName,
-                        0,
-                        iconFile
-                    )
+                    reloadGroupsLocked(context, fileSystem, appManager)
                 }
-                group.loadApps(context, fileSystem, appManager, true)
-                Log.d("addAppsToGroup", "Loaded ${group.apps.size} apps")
-
                 withContext(Dispatchers.Main) {
                     onComplete?.invoke()
                 }

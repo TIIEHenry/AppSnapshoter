@@ -41,6 +41,10 @@ class SnapshotViewModel : ViewModel() {
         isBatchRunning.value = false
     }
 
+    /** 从 groupList 解析当前 SnapGroup，避免 ViewHolder 闭包持有 stale 实例 */
+    fun resolveGroup(groupId: String, fallback: SnapGroup? = null): SnapGroup? =
+        groupList.value?.find { it.id == groupId } ?: fallback
+
     private fun appDeps() = SnapshotApp.getInstance().let {
         Triple(SnapshotApp.getContext(), it.fileSystem, it.appManager)
     }

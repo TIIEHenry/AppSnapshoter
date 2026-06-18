@@ -89,7 +89,7 @@ class GroupsAdapter(
             refresh(group, binding.groupRecyclerView)
 
             binding.emptyLayout.setOnClickListener {
-                actionsController.setupActions(group, groupsAdapter, this)
+                binding.btnAdd.performClick()
             }
 
             actionsController.updateButtonVisibility(!isSortMode)
@@ -208,6 +208,13 @@ class GroupsAdapter(
 
     private class GroupDiffCallback : DiffUtil.ItemCallback<SnapGroup>() {
         override fun areItemsTheSame(oldItem: SnapGroup, newItem: SnapGroup) = oldItem.id == newItem.id
-        override fun areContentsTheSame(oldItem: SnapGroup, newItem: SnapGroup) = oldItem == newItem
+
+        override fun areContentsTheSame(oldItem: SnapGroup, newItem: SnapGroup): Boolean {
+            if (oldItem.name != newItem.name) return false
+            if (oldItem.isCollapsed != newItem.isCollapsed) return false
+            val oldPkgs = oldItem.apps.map { it.appInfo.packageName }
+            val newPkgs = newItem.apps.map { it.appInfo.packageName }
+            return oldPkgs == newPkgs
+        }
     }
 }
