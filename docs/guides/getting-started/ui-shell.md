@@ -3,7 +3,7 @@ title: "主界面壳层"
 type: guide
 status: active
 updated: 2026-06-18
-summary: "MainActivity 顶栏、底栏、可折叠搜索与内容区布局说明"
+summary: "MainActivity / SettingsActivity 顶栏、底栏、可折叠搜索与内容区布局说明"
 ---
 
 # 主界面壳层
@@ -77,6 +77,25 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 
 实现：`CollapsibleSearchController`；应用列表通过 `AppsListComponent` 回调 `getSearchFieldBinding` / `getSearchToggle` / `getSearchTransitionHost` 接入。
 
+## 设置页壳层
+
+> 布局文件：`app/src/main/res/layout/activity_settings.xml`  
+> 逻辑入口：`SettingsActivity.kt`（由主界面 `menu_main` → 设置打开）
+
+```
+LinearLayout (@id/settings_root)
+├── LinearLayout toolbar_header
+│   ├── MaterialToolbar (48dp) — 标题「设置」
+│   └── toolbar_divider (1dp)
+└── RecyclerView — 设置项列表（忽略应用、关于等）
+```
+
+| 项 | 说明 |
+|----|------|
+| 顶栏 | 与主界面同款 `MaterialToolbar`（48dp）+ 分隔线；`setSupportActionBar` + `setDisplayHomeAsUpEnabled` 返回主界面 |
+| Insets | `toolbar_header` 处理状态栏；`settings_root` 处理导航栏 bottom padding |
+| 子页 | `IgnoreAppsFragment`、`AboutFragment` 以 BottomSheet 展示 |
+
 ## 相关文件
 
 | 文件 | 职责 |
@@ -84,6 +103,8 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 | `values/themes.xml` | Fluent 2 色板与 Material3 组件样式 |
 | `values/dimens.xml` | `toolbar_height`、`filter_*`、`floating_nav_*` 尺寸 |
 | `layout/layout_search_field.xml` | 共享搜索输入布局 |
+| `layout/activity_settings.xml` | 设置页顶栏 + 列表 |
+| `main/settings/SettingsActivity.kt` | 设置页 Activity |
 | `ui/widget/FloatingBottomNav.kt` | 底栏毛玻璃 |
 | `ui/widget/CollapsibleSearchController.kt` | 可折叠搜索 |
 | `ui/widget/SearchFieldExt.kt` | 搜索框文本监听 |

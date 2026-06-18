@@ -102,7 +102,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `main.settings` — 设置
 | 类 | 职责 |
 |---|------|
-| `SettingsActivity`, `SettingsAdapter` | 设置界面 |
+| `SettingsActivity`, `SettingsAdapter` | 设置界面（独立 Activity，顶栏 + RecyclerView） |
 | `IgnoreAppsFragment`, `IgnoreAppsConfig` | 忽略应用管理 |
 | `AboutFragment` | 关于页面 |
 
@@ -136,6 +136,16 @@ ConstraintLayout (@id/coordinator)
 ```
 
 顶栏固定不随列表滚动；列表通过 `floatingNavContentPaddingBottom()` 避让底栏。Tab 导航由 `MainActivity.setupBottomNavigation()` 绑定 `NavController`。
+
+## 设置页布局（`activity_settings.xml`）
+
+```
+LinearLayout (@id/settings_root)
+├── LinearLayout toolbar_header — MaterialToolbar (48dp) + 分隔线，标题「设置」，返回主界面
+└── RecyclerView — 设置项；子页（忽略应用、关于）以 BottomSheet 打开
+```
+
+Insets 与主界面一致：`toolbar_header` 顶栏避让状态栏，`settings_root` 避让导航栏。详见 [`ui-shell.md`](../../guides/getting-started/ui-shell.md#设置页壳层)。
 
 ### `utils` — 工具类
 | 类 | 职责 |

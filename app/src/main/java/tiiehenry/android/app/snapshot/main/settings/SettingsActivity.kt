@@ -1,10 +1,15 @@
 package tiiehenry.android.app.snapshot.main.settings
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import tiiehenry.android.app.snapshot.R
@@ -23,21 +28,54 @@ class SettingsActivity : AppCompatActivity() {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupImmersiveStatusBar()
-        // 设置 RecyclerView
+        setupSystemBars()
+        setupWindowInsets()
+        setupToolbar()
+
         binding.settingsRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.settingsRecyclerView.adapter = SettingsAdapter(getSettingsItems())
     }
 
-    private fun setupImmersiveStatusBar() {
-        // 启用内容延伸到状态栏和导航栏下方
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = getString(R.string.settings)
+        }
+        applyToolbarStyle()
+    }
+
+    private fun applyToolbarStyle() {
+        val surfaceColor = ContextCompat.getColor(this, R.color.surface)
+        binding.toolbar.setBackgroundColor(surfaceColor)
+        binding.toolbar.backgroundTintList = null
+        binding.toolbarHeader.setBackgroundColor(surfaceColor)
+    }
+
+    private fun setupSystemBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        // 获取系统窗口控制器
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        val isLightTheme = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) !=
+            Configuration.UI_MODE_NIGHT_YES
+        windowInsetsController.isAppearanceLightStatusBars = isLightTheme
+    }
 
-        // 设置状态栏图标为深色（在浅色背景下）
-        windowInsetsController.isAppearanceLightStatusBars = true
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.toolbarHeader) { view, windowInsets ->
+            val statusBarInsets = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.updatePadding(top = statusBarInsets.top)
+            windowInsets
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.settingsRoot) { view, windowInsets ->
+            val navInsets = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            view.updatePadding(bottom = navInsets.bottom)
+            windowInsets
+        }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
     }
 
 
