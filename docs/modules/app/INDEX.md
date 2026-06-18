@@ -3,7 +3,7 @@ title: "app 模块"
 type: module
 status: active
 updated: 2026-06-18
-summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragments、ViewModels、配置管理；Fluent 2 主界面壳层"
+summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragments、ViewModels、配置管理；Fluent 2 主界面壳层；中英双语 i18n"
 ---
 
 # app 模块
@@ -172,6 +172,16 @@ Insets 与主界面一致：`toolbar_header` 顶栏避让状态栏，`settings_r
 | Adapter | 11 |
 | 自定义 View | 2（TagsFilterLayout、TimelineHeatmapView） |
 | UI 控制器 | 2（CollapsibleSearchController、FloatingBottomNav） |
+
+## 国际化
+
+| 文件 | 说明 |
+|------|------|
+| `res/values/strings.xml` | 默认文案（简体中文，fallback） |
+| `res/values-zh-rCN/strings.xml` | 显式简体中文 |
+| `res/values-en/strings.xml` | 英文 |
+
+约 **320** 条字符串，覆盖全部用户界面（存档/恢复、分组批量操作、应用与分组配置、时间线、应用 Tab 筛选、设置、进度对话框、菜单与 `contentDescription`）。新增文案须同步更新三份 locale 文件。详见 [`i18n 指南`](../../guides/getting-started/i18n.md)。
 
 ## 技术栈
 

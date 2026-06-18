@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.SortConfig
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
@@ -104,7 +105,7 @@ class GroupsAdapter(
             isSortMode = !isSortMode
             if (isSortMode) {
                 startDragSortMode(adapter, group)
-                binding.groupTitle.text = "${group.name} (排序模式)"
+                binding.groupTitle.text = binding.root.context.getString(R.string.group_sort_mode_title, group.name)
                 actionsController.updateButtonVisibility(false)
             } else {
                 binding.groupTitle.text = group.name

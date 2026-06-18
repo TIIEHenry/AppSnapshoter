@@ -6,6 +6,7 @@ import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
@@ -44,9 +45,10 @@ object PermissionRestorer {
         }.toMutableList()
         Log.i(TAG, "已加载 ${fixedPermissions.size} 个不可变更的权限")
 
+        val app = SnapshotApp.getInstance()
         withContext(Dispatchers.Main) {
-            loadingDialog.setItemMessage("正在恢复权限")
-            loadingDialog.setItemStatus("...")
+            loadingDialog.setItemMessage(app.getString(R.string.archive_restoring_permissions))
+            loadingDialog.setItemStatus(app.getString(R.string.ellipsis))
         }
         val permissionsFile = "${archiveItem.path}/${MetaInfoHelper.PERMISSIONS_FILE_NAME}"
         val metaPermissions = MetaInfoHelper.readPermissions(fs, permissionsFile)

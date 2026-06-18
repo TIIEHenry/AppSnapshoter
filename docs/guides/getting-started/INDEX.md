@@ -14,5 +14,6 @@ summary: "用户指南文档导航"
 | [构建指南](build.md) | 编译、调试、安装开发版本 |
 | [发布指南](release.md) | GitHub Release、CHANGELOG 与 AI 辅助发布 |
 | [主界面壳层](ui-shell.md) | 顶栏、悬浮底栏、内容区布局 |
+| [国际化 (i18n)](i18n.md) | 中英双语字符串资源与贡献约定 |
 | [Syncthing 同步](syncthing.md) | 跨设备同步配置 |
 | [故障排除](troubleshooting.md) | 常见问题与解决 |

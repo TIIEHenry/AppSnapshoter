@@ -18,7 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="添加排除项目"
+            android:text="@string/exclude_pattern_add_title"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="选择存档项目">
+            android:hint="@string/exclude_pattern_select_archive_item">
 
             <AutoCompleteTextView
                 android:id="@+id/spinner_compress_item"
@@ -59,7 +59,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="输入排除模式"
+            android:hint="@string/exclude_pattern_input_hint"
             app:endIconContentDescription="帮助"
             app:endIconDrawable="@drawable/ic_help_outline"
             app:endIconMode="custom">
@@ -78,7 +78,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="已添加的排除项目"
+            android:text="@string/exclude_patterns_added"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -104,7 +104,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="浏览文件"
+                android:text="@string/exclude_pattern_browse_files"
                 app:icon="@drawable/ic_folder_open" />
 
             <com.google.android.material.button.MaterialButton
@@ -114,7 +114,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="添加" />
+                android:text="@string/exclude_pattern_add_button" />
 
         </LinearLayout>
 
@@ -124,6 +124,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="完成" />
+            android:text="@string/exclude_pattern_done" />
     </LinearLayout>
 </LinearLayout>

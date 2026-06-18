@@ -133,4 +133,240 @@
     <string name="provider_check_error_no_root">Root access is required. Grant root and tap to retry.</string>
     <string name="provider_check_error_no_files_access">All files access is required. Grant permission and tap to retry.</string>
     <string name="provider_check_status_desc">Status</string>
+
+    <!-- Common actions -->
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="more">More</string>
+    <string name="action_import">Import</string>
+    <string name="user_label">User</string>
+    <string name="ellipsis">…</string>
+
+    <!-- Archive restore -->
+    <string name="archive_user_mismatch">Archive user (%1$d) does not match the group user (%2$d). Restore blocked to prevent writing to the wrong directory.</string>
+    <string name="archive_preparing_restore">Preparing to restore archive</string>
+    <string name="archive_preparing_advanced_restore">Preparing advanced restore</string>
+    <string name="archive_restore_failed">Restore failed: %s</string>
+    <string name="archive_no_available">No archives available</string>
+    <string name="archive_clearing_app_data">Clearing app data</string>
+    <string name="archive_restore_success">Archive restored successfully</string>
+    <string name="archive_no_selected_data">No data items selected</string>
+    <string name="archive_app_not_installed_restore_apk">App not installed. Restore the APK or install the app first.</string>
+    <string name="archive_advanced_restore_success">Advanced restore successful</string>
+    <string name="archive_read_progress">Read: %s</string>
+    <string name="archive_restoring_permissions">Restoring permissions</string>
+
+    <!-- Archive UI -->
+    <string name="archive_delete_confirm_title">Confirm delete</string>
+    <string name="archive_delete_confirm_message">Delete \'%s\'?</string>
+    <string name="archive_info_title">Archive info - %s</string>
+    <string name="archive_info_app_name">App name: %s</string>
+    <string name="archive_info_package">Package: %s</string>
+    <string name="archive_info_version">Version: %1$s (%2$d)</string>
+    <string name="archive_info_user_id">User ID: %d</string>
+    <string name="archive_info_backup_time">Backup time: %s</string>
+    <string name="archive_info_data_count">Data items: %d</string>
+    <string name="archive_info_compressed_size">Compressed size: %s</string>
+    <string name="archive_info_original_size">Original size: %s</string>
+    <string name="archive_info_compression_ratio">Compression ratio: %s</string>
+    <string name="archive_info_data_items_detail">Data item details:</string>
+    <string name="archive_info_extra_items_detail">Extra data items:</string>
+    <string name="archive_info_data_item_line">%1$d. %2$s: %3$s</string>
+    <string name="archive_info_data_item_with_algo">%1$d. %2$s: %3$s [%4$s]</string>
+    <string name="archive_rename">Rename</string>
+    <string name="archive_advanced_restore">Advanced restore</string>
+    <string name="archive_rename_title">Rename archive</string>
+    <string name="archive_rename_same_name">New name is the same as the current name</string>
+    <string name="archive_renamed">Archive \'%1$s\' renamed to \'%2$s\'</string>
+    <string name="archive_rename_failed">Rename failed</string>
+    <string name="archive_locked_no_auto_cleanup">Archive locked; it will not be auto-cleaned</string>
+    <string name="archive_unlocked">Archive unlocked</string>
+    <string name="archive_lock_save_failed">Failed to save lock state</string>
+    <string name="archive_advanced_restore_not_configured">Advanced restore is not configured</string>
+    <string name="archive_no_restorable_data">No restorable data items</string>
+    <string name="archive_select_data_to_restore">Select data to restore</string>
+    <string name="archive_select_at_least_one">Select at least one data item</string>
+    <string name="archive_data_type_apk">APK package</string>
+    <string name="archive_data_type_data">App data (data)</string>
+    <string name="archive_data_type_user">User data (user)</string>
+    <string name="archive_data_type_user_de">User DE data (user_de)</string>
+    <string name="archive_data_type_obb">OBB data (obb)</string>
+    <string name="archive_data_type_media">External media data (media)</string>
+    <string name="archive_delete_all_title">Delete all archives?</string>
+    <string name="archive_delete_all_message">Delete all archives for this app? This cannot be undone.</string>
+    <string name="archive_clear_archives">Clear archives</string>
+    <string name="archive_delete_all">Delete all</string>
+    <string name="app_unlocked_auto_uninstall">App unlocked; auto-uninstall follows app or group policy</string>
+    <string name="app_locked_no_auto_uninstall">App locked; it will not be auto-uninstalled</string>
+    <string name="archive_rename_hint">Long-press an archive below, then tap Rename in the info dialog</string>
+    <string name="archive_cannot_open_app_details">Cannot open app details</string>
+
+    <!-- Group operations -->
+    <string name="group_confirm_action">Confirm action</string>
+    <string name="group_restore_confirm">Restore archive \'%s\'?</string>
+    <string name="group_archive_deleted_success">Archive deleted</string>
+    <string name="group_delete_failed">Delete failed</string>
+    <string name="group_app_not_installed_no_snapshot">App not installed; cannot create snapshot</string>
+    <string name="group_delete_archive_success">Archive deleted</string>
+    <string name="group_delete_app_success">App deleted</string>
+    <string name="group_cannot_launch_app">Cannot launch app</string>
+    <string name="group_add_title">Add group</string>
+    <string name="group_sort_title">Group order</string>
+    <string name="group_sort_hint">Long press and drag to reorder groups</string>
+    <string name="group_sort_mode_title">%s (sort mode)</string>
+    <string name="group_delete_title">Delete group</string>
+    <string name="group_delete_message">Delete group %1$s[%2$s]?\nThis cannot be undone.</string>
+    <string name="group_delete_config_only">Delete group only</string>
+    <string name="group_delete_with_files">Include files</string>
+    <string name="group_settings_title">Group settings</string>
+    <string name="group_config_title">Group configuration</string>
+    <string name="group_name_hint">Group name</string>
+    <string name="group_path_hint">Group path</string>
+    <string name="group_root_path_hint">Root path</string>
+    <string name="group_delete_button">Delete group</string>
+    <string name="error_enter_group_name">Enter a group name</string>
+    <string name="error_select_group_path">Select a group path</string>
+    <string name="group_batch_archive_confirm">Create snapshots for %2$d/%3$d apps in %1$s?</string>
+    <string name="group_batch_archive_stopping">Stopping</string>
+    <string name="group_batch_archive_complete">Archive all complete</string>
+    <string name="group_batch_archive_cancelled">Archiving cancelled</string>
+    <string name="group_batch_no_installed_apps">No installed apps to archive</string>
+    <string name="snapshot_create_failed_title">Snapshot failed (%d)</string>
+    <string name="snapshot_create_success_title">Snapshot succeeded (%d)</string>
+    <string name="snapshot_error_detail_title">Error: %s</string>
+    <string name="snapshot_success_item_info">Time: %1$s, data: %2$s</string>
+    <string name="snapshot_success_stats_title">Success statistics</string>
+    <string name="snapshot_success_stats_count">Succeeded: %d</string>
+    <string name="snapshot_success_stats_total_time">Total time: %s</string>
+    <string name="snapshot_success_stats_avg_time">Average time: %s</string>
+    <string name="snapshot_success_stats_total_size">Total data size: %s</string>
+    <string name="snapshot_success_stats_avg_size">Average data size: %s</string>
+    <string name="group_stats_title">%s - statistics</string>
+    <string name="group_stats_total_apps">Total apps: %d</string>
+    <string name="group_stats_installed_apps">Installed apps: %d</string>
+    <string name="group_stats_archived_apps">Archived apps: %d</string>
+    <string name="group_stats_total_archives">Total archives: %d</string>
+    <string name="group_stats_avg_archives">Average archives: %s</string>
+    <string name="group_stats_total_size">Total archive size: %s</string>
+    <string name="time_format_millis">%dms</string>
+
+    <!-- Config -->
+    <string name="config_tab_items">Items</string>
+    <string name="config_tab_actions">Actions</string>
+    <string name="config_tab_retention">Retention</string>
+    <string name="config_reset_done">Configuration reset</string>
+    <string name="app_config_title">App configuration</string>
+
+    <!-- Exclude patterns -->
+    <string name="exclude_patterns_title">Exclude patterns</string>
+    <string name="exclude_pattern_add_title">Add exclude pattern</string>
+    <string name="exclude_patterns_added">Added exclude patterns</string>
+    <string name="exclude_pattern_browse_files">Browse files</string>
+    <string name="exclude_pattern_add_button">Add</string>
+    <string name="exclude_pattern_done">Done</string>
+    <string name="exclude_pattern_select_archive_item">Select archive item</string>
+    <string name="exclude_pattern_input_hint">Enter exclude pattern</string>
+    <string name="exclude_pattern_help_title">Exclude pattern guide</string>
+    <string name="exclude_pattern_help_message">Exclude patterns are passed to tar as --exclude arguments. Supported modes:\n\n1. Exact match: enter a file or directory name\n   e.g. cache, temp.txt\n\n2. Wildcards:\n   • * matches any characters except /\n     e.g. *.log, cache/*\n   • ? matches a single character\n     e.g. file?.txt\n   • ** matches any characters including /\n     e.g. **/cache/**\n\n3. Path matching:\n   • Relative path from the backup root\n     e.g. files/cache, shared_prefs/*.xml\n   • Absolute path (not recommended)\n\nExamples:\n• cache - exclude directories named cache\n• *.tmp - exclude temporary files\n• files/logs/* - exclude all files under logs\n• **/thumbnail* - exclude thumbnail-related files\n\nNote: patterns apply during packaging; excluded files are not backed up.</string>
+    <string name="exclude_list_empty_no_copy">Exclude list is empty; nothing to copy</string>
+    <string name="exclude_list_copied">Exclude list copied to clipboard</string>
+    <string name="clipboard_empty">Clipboard is empty</string>
+    <string name="clipboard_content_empty">Clipboard content is empty</string>
+    <string name="clipboard_no_valid_exclude">No valid exclude patterns on clipboard</string>
+    <string name="clipboard_invalid_format">Invalid clipboard format</string>
+    <string name="exclude_import_detected_prefix">Found %d exclude patterns:\n\n</string>
+    <string name="exclude_import_confirm_question">\nImport these?</string>
+    <string name="exclude_import_title">Import exclude patterns</string>
+    <string name="exclude_imported">Exclude patterns imported</string>
+    <string name="exclude_clipboard_label">Exclude pattern list</string>
+    <string name="extra_item_edit_title">Edit extra item</string>
+    <string name="extra_item_add_title">Add extra item</string>
+    <string name="extra_item_name_hint">Name</string>
+    <string name="extra_item_path_hint">Path</string>
+    <string name="error_enter_name">Enter a name</string>
+    <string name="error_enter_path">Enter a path</string>
+    <string name="extra_items_title">Extra items</string>
+    <string name="extra_items_description">Add extra directories to compress; each item can have its own exclude patterns</string>
+    <string name="exclude_mode_label">Exclude patterns</string>
+
+    <!-- Shot / action / retention options -->
+    <string name="shot_options_title">Archive options</string>
+    <string name="shot_enable_individual">Enable per-app control</string>
+    <string name="shot_items_label">Archive items</string>
+    <string name="shot_item_apk">APK</string>
+    <string name="shot_item_data">DATA</string>
+    <string name="shot_item_user">USER</string>
+    <string name="shot_item_user_de">USER_DE</string>
+    <string name="shot_item_obb">OBB</string>
+    <string name="shot_item_media">MEDIA</string>
+    <string name="action_options_title">Action options</string>
+    <string name="action_enable_individual">Enable per-app control</string>
+    <string name="action_follow_quick_archive">Follow quick archive</string>
+    <string name="action_uninstall_archived">Uninstall archived version</string>
+    <string name="pack_algorithm">Packaging algorithm</string>
+    <string name="compress_level_label">Compression level: %1$d (%2$s)</string>
+    <string name="compress_level_1">Fastest - largest size</string>
+    <string name="compress_level_3">Fast - slightly larger</string>
+    <string name="compress_level_5">Medium - balanced</string>
+    <string name="compress_level_7">Slow - smaller</string>
+    <string name="compress_level_9">Slowest - smallest</string>
+    <string name="compress_level_unknown">Unknown</string>
+    <string name="retention_policy_title">Retention policy</string>
+    <string name="retention_max_versions">Max versions to keep</string>
+    <string name="retention_min_same_version">Min per version</string>
+    <string name="retention_extra_same_version">Extra per version</string>
+    <string name="retention_expiry_time">Expiry time</string>
+
+    <!-- Progress -->
+    <string name="progress_creating_archive">Creating archive</string>
+    <string name="progress_processing">Processing</string>
+    <string name="progress_written">Written: %s</string>
+    <string name="progress_error_occurred">An error occurred</string>
+    <string name="progress_error_title">Error details</string>
+    <string name="progress_success_items">Succeeded</string>
+    <string name="progress_fail_items">Failed</string>
+
+    <!-- Sort -->
+    <string name="sort_default">Default order</string>
+    <string name="sort_name_asc">Name (A-Z)</string>
+    <string name="sort_name_desc">Name (Z-A)</string>
+    <string name="sort_install_time_asc">Install time (oldest)</string>
+    <string name="sort_install_time_desc">Install time (newest)</string>
+    <string name="sort_custom">Custom order</string>
+
+    <!-- File picker -->
+    <string name="file_picker_selected_count">Selected: %d</string>
+    <string name="file_picker_selected_count_zero">Selected: 0</string>
+    <string name="file_picker_empty_dir">Directory is empty</string>
+
+    <!-- Content descriptions -->
+    <string name="desc_snapshot">Snapshot</string>
+    <string name="desc_lock">Lock</string>
+    <string name="desc_info">Info</string>
+    <string name="desc_delete">Delete</string>
+    <string name="desc_app_icon">App icon</string>
+    <string name="desc_app_running">App running status</string>
+    <string name="desc_app_lock">App lock status</string>
+    <string name="desc_app_status">App status</string>
+    <string name="desc_archive_lock">Lock/unlock</string>
+    <string name="desc_archive_icon">Archive icon</string>
+    <string name="desc_drag_sort">Drag to sort</string>
+    <string name="desc_copy">Copy</string>
+    <string name="desc_add">Add</string>
+    <string name="desc_confirm_sort">Confirm order</string>
+    <string name="desc_refresh">Refresh</string>
+    <string name="desc_move">Move</string>
+    <string name="desc_error">Error</string>
+    <string name="desc_exclude_add">Add exclude pattern</string>
+    <string name="desc_close">Close</string>
+    <string name="desc_go_up">Go up</string>
+
+    <!-- Menu -->
+    <string name="menu_add_group">Add group</string>
+    <string name="menu_group_sort">Group order</string>
+
+    <!-- Misc -->
+    <string name="file_name_placeholder">File name</string>
+    <string name="archive_name_placeholder">Archive name</string>
+    <string name="error_unknown">Unknown error</string>
 </resources>

@@ -17,7 +17,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="额外项目"
+            android:text="@string/extra_items_title"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:contentDescription="添加"
+            android:contentDescription="@string/desc_add"
             app:icon="@drawable/plus"
             app:iconTint="@color/icon_secondary" />
 
@@ -38,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="添加需要额外压缩的目录，每个项目可设置专属排除模式"
+        android:text="@string/extra_items_description"
         android:textSize="12sp"
         android:textColor="?attr/colorOnSurfaceVariant" />
 

@@ -100,7 +100,7 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 - [x] `item_group.xml` 单行布局 + `btn_batch`
 - [ ] `GroupActionsController` 批量菜单
 - [ ] `dialog_group_batch_restore.xml` + `GroupBatchRestoreDialog`
-- [ ] `strings.xml` 文案
+- [x] `strings.xml` 文案
 
 ### Phase 3：执行与集成（约 1 天）
 
@@ -113,7 +113,7 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 - [ ] 记住上次对话框选项（group MMKV）
 - [ ] 提取 `BatchProgressDialogs` 共用组件
 - [ ] 溢出菜单 `btn_more`（若真机验证仍拥挤）
-- [ ] `GroupBatchArchiver` 硬编码文案迁移
+- [x] `GroupBatchArchiver` 硬编码文案迁移
 
 ---
 

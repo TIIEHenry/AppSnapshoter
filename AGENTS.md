@@ -59,6 +59,8 @@ provider → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 
 **Tag filter chips**: `TagsFilterLayout` renders scrollable tag chips and expand/collapse on the **same row** (`layout_tags_filter.xml`). Use `Widget.AppSnapshot.Chip.Tag` (22dp min height, 11sp). Each dynamic Chip must have a unique `View.id` for `ChipGroup` selection.
 
+**Internationalization**: All user-facing copy in `:app` lives in `res/values/strings.xml` (default zh) with matching `values-zh-rCN/strings.xml` and `values-en/strings.xml`. Use `@string/` in XML and `getString()` in Kotlin — no hardcoded UI strings. Key names are snake_case with feature prefixes (`group_batch_*`, `provider_check_*`, etc.). `Log.*`, `tools:text` previews, and `provider` technical exceptions are not localized. See `docs/guides/getting-started/i18n.md`.
+
 ## Documentation System
 
 The project has a two-layer documentation system:

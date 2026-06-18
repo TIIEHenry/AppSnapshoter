@@ -16,7 +16,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="保留策略"
+            android:text="@string/retention_policy_title"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -24,7 +24,7 @@
             android:id="@+id/switch_version_retention_enabled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="启用单独控制" />
+            android:text="@string/shot_enable_individual" />
 
     </LinearLayout>
 
@@ -47,7 +47,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="最大保留版本数" />
+                android:text="@string/retention_max_versions" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_max_version_count"
@@ -80,7 +80,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="同版本最低保留" />
+                android:text="@string/retention_min_same_version" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_min_same_version_count"
@@ -119,7 +119,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="同版本额外保留" />
+                    android:text="@string/retention_extra_same_version" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_extra_retention_count"
@@ -152,7 +152,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="过期时间"
+                    android:text="@string/retention_expiry_time"
                     android:textAppearance="?attr/textAppearanceBodyMedium" />
 
                 <com.google.android.material.textfield.TextInputLayout

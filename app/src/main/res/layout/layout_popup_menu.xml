@@ -22,7 +22,7 @@
             android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="快照"
+            android:contentDescription="@string/desc_snapshot"
             android:src="@drawable/archive_arrow_down_outline"
             app:tint="@color/icon_primary" />
 
@@ -32,7 +32,7 @@
             android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="锁定"
+            android:contentDescription="@string/desc_lock"
             android:src="@drawable/lock_plus_outline"
             app:tint="@color/icon_primary" />
 
@@ -42,7 +42,7 @@
             android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="信息"
+            android:contentDescription="@string/desc_info"
             android:src="@drawable/information_slab_circle_outline"
             app:tint="@color/icon_primary" />
 
@@ -52,7 +52,7 @@
             android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="设置"
+            android:contentDescription="@string/settings"
             android:src="@drawable/cog_transfer"
             app:tint="@color/icon_primary" />
 
@@ -62,7 +62,7 @@
             android:layout_height="@dimen/popup_btn_size"
             android:layout_margin="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="删除"
+            android:contentDescription="@string/desc_delete"
             android:src="@drawable/delete_forever_outline"
             app:tint="@color/icon_primary" />
 

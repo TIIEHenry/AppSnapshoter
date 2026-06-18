@@ -171,10 +171,10 @@ class ArchiveItemAdapter(
 
         private fun showDeleteConfirmDialog(item: ArchiveItem, context: Context, itemName: String) {
             AlertDialog.Builder(context)
-                .setTitle("确认删除")
-                .setMessage("确定要删除 '$itemName' 吗？")
-                .setPositiveButton("删除") { _, _ -> onDeleteClick.invoke(item) }
-                .setNegativeButton("取消", null)
+                .setTitle(R.string.archive_delete_confirm_title)
+                .setMessage(context.getString(R.string.archive_delete_confirm_message, itemName))
+                .setPositiveButton(R.string.delete) { _, _ -> onDeleteClick.invoke(item) }
+                .setNegativeButton(R.string.cancel, null)
                 .show()
         }
 
@@ -187,47 +187,92 @@ class ArchiveItemAdapter(
             val uncompressedSize = item.dataItems.sumOf { it.originSize }
 
             val message = buildString {
-                append("应用名称: ${item.appInfo.label}\n")
-                append("包名: ${item.metaInfo.packageInfo.packageName}\n")
-                append("版本: ${item.metaInfo.packageInfo.versionName} (${item.metaInfo.packageInfo.versionCode})\n")
-                append("用户ID: ${item.metaInfo.userId}\n")
-                append("备份时间: $makeTimeStr\n")
-                append("数据项数量: $dataSize\n")
-                append("压缩后大小: ${formatFileSize(totalSize)}\n")
-                append("原始大小: ${formatFileSize(uncompressedSize)}\n")
-                append("压缩率: ${calculateCompressionRatio(totalSize, uncompressedSize)}\n\n")
+                appendLine(context.getString(R.string.archive_info_app_name, item.appInfo.label))
+                appendLine(context.getString(R.string.archive_info_package, item.metaInfo.packageInfo.packageName))
+                appendLine(
+                    context.getString(
+                        R.string.archive_info_version,
+                        item.metaInfo.packageInfo.versionName,
+                        item.metaInfo.packageInfo.versionCode
+                    )
+                )
+                appendLine(context.getString(R.string.archive_info_user_id, item.metaInfo.userId))
+                appendLine(context.getString(R.string.archive_info_backup_time, makeTimeStr))
+                appendLine(context.getString(R.string.archive_info_data_count, dataSize))
+                appendLine(context.getString(R.string.archive_info_compressed_size, formatFileSize(totalSize)))
+                appendLine(context.getString(R.string.archive_info_original_size, formatFileSize(uncompressedSize)))
+                appendLine(
+                    context.getString(
+                        R.string.archive_info_compression_ratio,
+                        calculateCompressionRatio(totalSize, uncompressedSize)
+                    )
+                )
+                appendLine()
 
                 if (item.dataItems.isNotEmpty()) {
-                    append("数据项详情:\n")
+                    appendLine(context.getString(R.string.archive_info_data_items_detail))
                     item.dataItems.forEachIndexed { index, dataItem ->
-                        append("${index + 1}. ${dataItem.name}: ${formatFileSize(dataItem.targetSize)}")
+                        val sizeStr = formatFileSize(dataItem.targetSize)
                         if (dataItem.algorithm.isNotBlank()) {
-                            append(" [${dataItem.algorithm}]\n")
+                            append(
+                                context.getString(
+                                    R.string.archive_info_data_item_with_algo,
+                                    index + 1,
+                                    dataItem.name,
+                                    sizeStr,
+                                    dataItem.algorithm
+                                )
+                            )
+                            append('\n')
                         } else {
-                            append("\n")
+                            appendLine(
+                                context.getString(
+                                    R.string.archive_info_data_item_line,
+                                    index + 1,
+                                    dataItem.name,
+                                    sizeStr
+                                )
+                            )
                         }
                     }
                 }
 
                 if (item.extraItems.isNotEmpty()) {
-                    append("\n额外数据项:\n")
+                    appendLine()
+                    appendLine(context.getString(R.string.archive_info_extra_items_detail))
                     item.extraItems.toList().forEachIndexed { index, (key, value) ->
-                        append("${index + 1}. ${key.name}: ${formatFileSize(key.targetSize)}")
+                        val sizeStr = formatFileSize(key.targetSize)
                         if (key.algorithm.isNotBlank()) {
-                            append(" [${key.algorithm}]\n")
+                            append(
+                                context.getString(
+                                    R.string.archive_info_data_item_with_algo,
+                                    index + 1,
+                                    key.name,
+                                    sizeStr,
+                                    key.algorithm
+                                )
+                            )
+                            append('\n')
                         } else {
-                            append("\n")
+                            appendLine(
+                                context.getString(
+                                    R.string.archive_info_data_item_line,
+                                    index + 1,
+                                    key.name,
+                                    sizeStr
+                                )
+                            )
                         }
-                        append("$value\n")
+                        appendLine(value)
                     }
                 }
             }
 
             MaterialAlertDialogBuilder(context)
-                .setTitle("存档信息 - ${item.name}")
+                .setTitle(context.getString(R.string.archive_info_title, item.name))
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, null)
-                .setNeutralButton("更多") { _, _ ->
+                .setNeutralButton(R.string.more) { _, _ ->
                     showMorePopupMenu(binding.root, item)
                 }
                 .show()
@@ -238,8 +283,8 @@ class ArchiveItemAdapter(
          */
         private fun showMorePopupMenu(anchor: View, item: ArchiveItem) {
             val popupMenu = PopupMenu(anchor.context, anchor).apply {
-                menu.add(0, 1, 0, "重命名")
-                menu.add(0, 2, 1, "高级恢复")
+                menu.add(0, 1, 0, anchor.context.getString(R.string.archive_rename))
+                menu.add(0, 2, 1, anchor.context.getString(R.string.archive_advanced_restore))
                 setOnMenuItemClickListener { menuItem: MenuItem ->
                     when (menuItem.itemId) {
                         1 -> {
@@ -289,20 +334,20 @@ class ArchiveItemAdapter(
             }
 
             AlertDialog.Builder(context)
-                .setTitle("重命名存档")
+                .setTitle(R.string.archive_rename_title)
                 .setView(input)
-                .setPositiveButton("确定") { _, _ ->
+                .setPositiveButton(R.string.confirm) { _, _ ->
                     val newName = input.text.toString().trim()
                     when {
                         newName.isNotEmpty() && newName != item.name -> {
                             executeRename(item, context, newName)
                         }
                         newName == item.name -> {
-                            Toast.makeText(context, "新名称与原名称相同", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, R.string.archive_rename_same_name, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.cancel, null)
                 .show()
         }
 
@@ -323,12 +368,12 @@ class ArchiveItemAdapter(
                     if (success) {
                         Toast.makeText(
                             context,
-                            "存档 '${item.name}' 已重命名为 '$newName'",
+                            context.getString(R.string.archive_renamed, item.name, newName),
                             Toast.LENGTH_SHORT
                         ).show()
                         onRenameSuccess?.invoke(item.name, newName)
                     } else {
-                        Toast.makeText(context, "重命名失败", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.archive_rename_failed, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -356,12 +401,15 @@ class ArchiveItemAdapter(
                 withContext(Dispatchers.Main) {
                     if (success) {
                         updateLockButtonUI(item)
-                        val message =
-                            if (newLockState) "存档已锁定，不会被自动清理" else "存档已解锁"
+                        val message = if (newLockState) {
+                            context.getString(R.string.archive_locked_no_auto_cleanup)
+                        } else {
+                            context.getString(R.string.archive_unlocked)
+                        }
                         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                     } else {
                         item.metaInfo.setLocked(!newLockState)
-                        Toast.makeText(context, "锁定状态保存失败", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.archive_lock_save_failed, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -372,34 +420,34 @@ class ArchiveItemAdapter(
          */
         private fun showAdvancedRestoreDialog(item: ArchiveItem, context: Context) {
             if (onAdvancedRestoreClick == null) {
-                Toast.makeText(context, "高级恢复功能未配置", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.archive_advanced_restore_not_configured, Toast.LENGTH_SHORT).show()
                 return
             }
 
             val allRestoreOptions = buildRestoreOptions(item)
 
             if (allRestoreOptions.isEmpty()) {
-                Toast.makeText(context, "没有可恢复的数据项", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.archive_no_restorable_data, Toast.LENGTH_SHORT).show()
                 return
             }
 
-            val options = buildRestoreOptionNames(allRestoreOptions)
+            val options = buildRestoreOptionNames(context, allRestoreOptions)
             val checkedItems = BooleanArray(options.size) { true }
 
             AlertDialog.Builder(context)
-                .setTitle("选择要恢复的数据")
+                .setTitle(R.string.archive_select_data_to_restore)
                 .setMultiChoiceItems(options, checkedItems) { _, which, isChecked ->
                     checkedItems[which] = isChecked
                 }
-                .setPositiveButton("开始恢复") { _, _ ->
+                .setPositiveButton(R.string.timeline_restore_strategy_confirm) { _, _ ->
                     val selectedTypes = collectSelectedTypes(allRestoreOptions, checkedItems)
                     if (selectedTypes.isEmpty()) {
-                        Toast.makeText(context, "请至少选择一项数据", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.archive_select_at_least_one, Toast.LENGTH_SHORT).show()
                     } else {
                         onAdvancedRestoreClick.invoke(item, selectedTypes)
                     }
                 }
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.cancel, null)
                 .show()
         }
 
@@ -424,15 +472,16 @@ class ArchiveItemAdapter(
          * 构建恢复选项名称数组
          */
         private fun buildRestoreOptionNames(
+            context: Context,
             allRestoreOptions: List<Pair<MetaDataItem, String?>>
         ): Array<String> {
             val dataTypeNames = mapOf(
-                "apk" to "APK 安装包",
-                "data" to "应用数据 (data)",
-                "user" to "用户数据 (user)",
-                "user_de" to "用户 DE 数据 (user_de)",
-                "obb" to "OBB 数据",
-                "media" to "外部媒体数据 (media)"
+                "apk" to context.getString(R.string.archive_data_type_apk),
+                "data" to context.getString(R.string.archive_data_type_data),
+                "user" to context.getString(R.string.archive_data_type_user),
+                "user_de" to context.getString(R.string.archive_data_type_user_de),
+                "obb" to context.getString(R.string.archive_data_type_obb),
+                "media" to context.getString(R.string.archive_data_type_media)
             )
 
             return allRestoreOptions.map { (dataItem, extraPath) ->

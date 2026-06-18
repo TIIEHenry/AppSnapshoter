@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
@@ -14,7 +15,7 @@
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:src="@drawable/drag_handle"
-        android:contentDescription="拖拽排序"
+        android:contentDescription="@string/desc_drag_sort"
         android:layout_marginEnd="16dp"
         app:tint="@color/icon_secondary" />
 
@@ -23,7 +24,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="分组名称"
+        tools:text="@string/group_name_hint" android:text=""
         android:textSize="16sp"
         android:textColor="?android:textColorPrimary" />
 

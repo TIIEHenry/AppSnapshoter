@@ -5,10 +5,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.google.android.material.R
+import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.tabs.TabLayout
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.app.snapshot.config.GroupConfig
@@ -83,7 +84,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
         return BottomSheetDialog(requireContext(), theme).apply {
             setOnShowListener {
                 val bottomSheet =
-                    findViewById<View>(R.id.design_bottom_sheet)
+                    findViewById<View>(MaterialR.id.design_bottom_sheet)
                 bottomSheet?.let {
                     val layoutParams = it.layoutParams
                     layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
@@ -102,7 +103,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             onConfigSavedListener?.invoke()
             dismiss()
         }
-        binding.btnSave.contentDescription = "保存"
+        binding.btnSave.contentDescription = getString(R.string.save)
 
         // 初始化截图选项管理器（分组配置不需要"启用单独控制"开关，始终启用）
         shotOptionsManager = ShotOptionsManager(
@@ -145,9 +146,9 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
 
     private fun setupTabLayout() {
         binding.tabLayout.apply {
-            addTab(newTab().setText("项目"))
-            addTab(newTab().setText("行为"))
-            addTab(newTab().setText("保留"))
+            addTab(newTab().setText(R.string.config_tab_items))
+            addTab(newTab().setText(R.string.config_tab_actions))
+            addTab(newTab().setText(R.string.config_tab_retention))
 
             addOnTabSelectedListener(object :
                 TabLayout.OnTabSelectedListener {

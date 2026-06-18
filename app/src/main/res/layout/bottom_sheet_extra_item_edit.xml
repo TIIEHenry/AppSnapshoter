@@ -18,7 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="编辑额外项目"
+            android:text="@string/extra_item_edit_title"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -28,7 +28,7 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:contentDescription="关闭"
+            android:contentDescription="@string/desc_close"
             app:tint="@color/icon_primary" />
 
     </LinearLayout>
@@ -39,7 +39,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:hint="名称"
+        android:hint="@string/extra_item_name_hint"
         app:endIconMode="clear_text">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -57,7 +57,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="路径"
+        android:hint="@string/extra_item_path_hint"
         app:endIconDrawable="@drawable/folder_add"
         app:endIconMode="custom">
 
@@ -82,7 +82,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="排除模式"
+            android:text="@string/exclude_mode_label"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -91,7 +91,7 @@
             style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:contentDescription="添加排除模式"
+            android:contentDescription="@string/desc_exclude_add"
             app:icon="@drawable/plus"
             app:iconTint="@color/icon_secondary" />
 
@@ -112,6 +112,6 @@
         android:layout_height="wrap_content"
         style="@style/Widget.Material3.Button"
         android:layout_marginTop="24dp"
-        android:text="确认" />
+        android:text="@string/confirm" />
 
 </LinearLayout>

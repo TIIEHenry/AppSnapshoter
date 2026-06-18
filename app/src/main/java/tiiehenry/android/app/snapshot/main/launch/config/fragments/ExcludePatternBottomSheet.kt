@@ -284,38 +284,10 @@ class ExcludePatternBottomSheet : BottomSheetDialogFragment() {
      * 显示帮助对话框
      */
     private fun showHelpDialog() {
-        val message = """
-            排除项目用于 tar 命令的 --exclude 参数，支持以下模式：
-            
-            1. 精确匹配：直接输入文件名或目录名
-               例如：cache、temp.txt
-            
-            2. 通配符匹配：
-               • * 匹配任意字符（不包括/）
-                 例如：*.log、cache/*
-               • ? 匹配单个字符
-                 例如：file?.txt
-               • ** 匹配任意字符（包括/）
-                 例如：**/cache/**
-            
-            3. 路径匹配：
-               • 相对路径：从备份目录开始的相对路径
-                 例如：files/cache、shared_prefs/*.xml
-               • 绝对路径：完整路径（不推荐）
-            
-            常用示例：
-            • cache - 排除所有名为 cache 的目录
-            • *.tmp - 排除所有临时文件
-            • files/logs/* - 排除 logs 目录下的所有文件
-            • **/thumbnail* - 排除所有缩略图相关文件
-            
-            注意：排除模式在打包时生效，已排除的文件不会包含在备份中。
-        """.trimIndent()
-
         AlertDialog.Builder(requireContext())
-            .setTitle("排除项目使用说明")
-            .setMessage(message)
-            .setPositiveButton("确定", null)
+            .setTitle(R.string.exclude_pattern_help_title)
+            .setMessage(R.string.exclude_pattern_help_message)
+            .setPositiveButton(R.string.confirm, null)
             .show()
     }
 }

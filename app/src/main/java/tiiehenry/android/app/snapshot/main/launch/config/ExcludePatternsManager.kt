@@ -80,16 +80,16 @@ class ExcludePatternsManager(
      */
     private fun copyPatternsToClipboard() {
         if (itemPatterns.isEmpty()) {
-            Toast.makeText(context, "排除列表为空，无需复制", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.exclude_list_empty_no_copy, Toast.LENGTH_SHORT).show()
             return
         }
 
         val clipboardManager =
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val patternsJson = JSON.toJSONString(itemPatterns)
-        val clipData = ClipData.newPlainText("排除项目列表", patternsJson)
+        val clipData = ClipData.newPlainText(context.getString(R.string.exclude_clipboard_label), patternsJson)
         clipboardManager.setPrimaryClip(clipData)
-        Toast.makeText(context, "已复制排除列表到剪切板", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, R.string.exclude_list_copied, Toast.LENGTH_SHORT).show()
     }
 
     /**
@@ -99,19 +99,19 @@ class ExcludePatternsManager(
         val clipboardManager =
             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         if (!clipboardManager.hasPrimaryClip()) {
-            Toast.makeText(context, "剪切板为空", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.clipboard_empty, Toast.LENGTH_SHORT).show()
             return
         }
 
         val clipData = clipboardManager.primaryClip
         if (clipData == null || clipData.itemCount == 0) {
-            Toast.makeText(context, "剪切板为空", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.clipboard_empty, Toast.LENGTH_SHORT).show()
             return
         }
 
         val clipText = clipData.getItemAt(0).text?.toString()
         if (clipText.isNullOrEmpty()) {
-            Toast.makeText(context, "剪切板内容为空", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.clipboard_content_empty, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -128,7 +128,7 @@ class ExcludePatternsManager(
             }
 
             if (parsedPatterns.isEmpty()) {
-                Toast.makeText(context, "剪切板中没有有效的排除项目", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.clipboard_no_valid_exclude, Toast.LENGTH_SHORT).show()
                 return
             }
 
@@ -136,7 +136,7 @@ class ExcludePatternsManager(
             showImportConfirmDialog(parsedPatterns)
 
         } catch (e: Exception) {
-            Toast.makeText(context, "剪切板内容格式无效", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.clipboard_invalid_format, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -145,17 +145,17 @@ class ExcludePatternsManager(
      */
     private fun showImportConfirmDialog(parsedPatterns: Map<String, List<String>>) {
         val patternCount = parsedPatterns.values.sumOf { it.size }
-        val message = StringBuilder("检测到 $patternCount 个排除项目：\n\n")
+        val message = StringBuilder(context.getString(R.string.exclude_import_detected_prefix, patternCount))
         parsedPatterns.forEach { (item, patterns) ->
             val displayName = ExcludePatternBottomSheet.getCompressItemDisplayName(item)
             message.append("[$displayName]: ${patterns.joinToString(", ")}\n")
         }
-        message.append("\n是否导入？")
+        message.append(context.getString(R.string.exclude_import_confirm_question))
 
         AlertDialog.Builder(context)
-            .setTitle("导入排除项目")
+            .setTitle(R.string.exclude_import_title)
             .setMessage(message.toString())
-            .setPositiveButton("导入") { _, _ ->
+            .setPositiveButton(R.string.action_import) { _, _ ->
                 parsedPatterns.forEach { (item, patterns) ->
                     val existing = itemPatterns.getOrPut(item) { mutableListOf() }
                     for (pattern in patterns) {
@@ -166,9 +166,9 @@ class ExcludePatternsManager(
                 }
                 refreshPatternsDisplay()
                 onPatternsChangedListener?.invoke(getItemPatternsMap())
-                Toast.makeText(context, "已导入排除项目", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.exclude_imported, Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 

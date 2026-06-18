@@ -20,7 +20,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="应用配置"
+            android:text="@string/app_config_title"
             android:textColor="?attr/colorOnSurface"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -30,7 +30,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="保存"
+            android:contentDescription="@string/save"
             android:src="@drawable/check"
             app:tint="?attr/colorPrimary" />
 

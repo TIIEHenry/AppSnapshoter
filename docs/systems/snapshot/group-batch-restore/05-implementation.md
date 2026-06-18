@@ -154,6 +154,6 @@ fun endBatchOperation() {
 |--------|------|
 | `BatchProgressDialogs` | 提取 `GroupBatchArchiver`、`GroupBatchRestorer`、`TimelineBatchOperator` 共用的 error/success/finish |
 | `ArchiveResolver` | **Phase 1 纳入**；合并 Timeline / Group 快照选取 |
-| `GroupBatchArchiver` 文案 | 硬编码中文迁移至 `strings.xml`（非阻塞） |
+| ~~`GroupBatchArchiver` 文案~~ | ~~硬编码中文迁移至 `strings.xml`~~ **已完成**（`group_batch_*`） |
 
 首版允许 Restorer 与 Timeline 在 progress 汇总上适度重复；**互斥锁与 ArchiveResolver 不建议推迟**。

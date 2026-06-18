@@ -1,6 +1,8 @@
 package tiiehenry.android.app.snapshot.archive.manage
 
 import android.util.Log
+import tiiehenry.android.app.snapshot.R
+import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.config.AppConfig
 import tiiehenry.android.app.snapshot.config.GroupConfig
@@ -88,7 +90,7 @@ object RetentionPolicyExecutor {
 
         } catch (e: Exception) {
             Log.e(TAG, "执行保留策略失败: ${item.appInfo.packageName}", e)
-            RetentionResult.error(e.message ?: "未知错误")
+            RetentionResult.error(e.message ?: SnapshotApp.getInstance().getString(R.string.error_unknown))
         }
     }
 

@@ -154,12 +154,12 @@ class GroupActionsController(
         val popup = PopupMenu(anchor.context, anchor)
         val menu = popup.menu
         val sortTypes = listOf(
-            SortConfig.SORT_TYPE_DEFAULT to "默认排序",
-            SortConfig.SORT_TYPE_NAME_ASC to "按名称升序",
-            SortConfig.SORT_TYPE_NAME_DESC to "按名称降序",
-            SortConfig.SORT_TYPE_INSTALL_TIME_ASC to "按安装时间升序",
-            SortConfig.SORT_TYPE_INSTALL_TIME_DESC to "按安装时间降序",
-            SortConfig.SORT_TYPE_CUSTOM to "自定义排序"
+            SortConfig.SORT_TYPE_DEFAULT to anchor.context.getString(R.string.sort_default),
+            SortConfig.SORT_TYPE_NAME_ASC to anchor.context.getString(R.string.sort_name_asc),
+            SortConfig.SORT_TYPE_NAME_DESC to anchor.context.getString(R.string.sort_name_desc),
+            SortConfig.SORT_TYPE_INSTALL_TIME_ASC to anchor.context.getString(R.string.sort_install_time_asc),
+            SortConfig.SORT_TYPE_INSTALL_TIME_DESC to anchor.context.getString(R.string.sort_install_time_desc),
+            SortConfig.SORT_TYPE_CUSTOM to anchor.context.getString(R.string.sort_custom)
         )
         val currentSortType = group.config.sortConfig.sortType
         sortTypes.forEachIndexed { index, (type, label) ->

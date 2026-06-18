@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/filter_horizontal_padding"
         android:gravity="center"
-        android:text="忽略应用"
+        android:text="@string/ignore_apps"
         android:textSize="20sp"
         android:textStyle="bold" />
 

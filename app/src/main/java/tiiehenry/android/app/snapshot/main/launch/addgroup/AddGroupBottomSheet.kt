@@ -117,10 +117,10 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
                 dismiss()
             } else {
                 if (groupName.isEmpty()) {
-                    binding.etGroupName.error = "请输入分组名称"
+                    binding.etGroupName.error = getString(R.string.error_enter_group_name)
                 }
                 if (groupPath.isEmpty()) {
-                    binding.etGroupPath.error = "请选择分组路径"
+                    binding.etGroupPath.error = getString(R.string.error_select_group_path)
                 }
             }
         }

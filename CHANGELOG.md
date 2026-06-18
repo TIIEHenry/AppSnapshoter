@@ -9,7 +9,7 @@
 - 应用 Tab 筛选行改为用户 Tab + 系统/用户图标切换 + 搜索图标（`layout_apps_filter_row`），与选应用/忽略应用页共用；`apps_filter_header` 统一水平边距（左 12dp / 右 8dp）
 - 筛选图标改用 `FilterRowIcon`（`AppCompatImageButton` + `fitCenter`），修复系统/用户/搜索/展开按钮未居中
 - 标签筛选支持单行横向滚动与展开/收起（`TagsFilterLayout`）；Tag Chip 缩小为 22dp / 11sp
-- 权限检查对话框与部分 UI 文案抽取为字符串资源（含 `values-zh-rCN`、`values-en`）
+- `app` 模块全面国际化：用户可见文案统一抽取至字符串资源（约 320 条），支持简体中文（`values/`、`values-zh-rCN`）与英文（`values-en`）；覆盖存档/恢复、分组、配置、时间线、应用筛选、设置及布局无障碍文案
 
 ### Fixed
 

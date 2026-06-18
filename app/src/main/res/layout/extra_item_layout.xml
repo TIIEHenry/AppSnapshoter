@@ -72,7 +72,7 @@
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/delete_outline"
-            android:contentDescription="删除"
+            android:contentDescription="@string/desc_delete"
             app:tint="?attr/colorError" />
 
     </LinearLayout>

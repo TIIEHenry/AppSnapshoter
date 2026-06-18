@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:gravity="center"
-        android:text="分组配置"
+        android:text="@string/group_config_title"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:hint="分组名称">
+        android:hint="@string/group_name_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_group_name"
@@ -33,7 +33,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:hint="根路径"
+        android:hint="@string/group_root_path_hint"
         app:endIconContentDescription="选择路径"
         app:endIconDrawable="@drawable/ic_folder_open"
         app:endIconMode="custom">
@@ -54,7 +54,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="4dp"
-        android:text="用户"
+        android:text="@string/user_label"
         android:textSize="16sp"
         android:textStyle="bold" />
 
@@ -78,7 +78,7 @@
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:backgroundTint="@color/design_default_color_error"
-            android:text="删除分组" />
+            android:text="@string/group_delete_button" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save"
@@ -87,7 +87,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="保存"
+            android:text="@string/save"
             android:textColor="@android:color/white" />
 
     </LinearLayout>

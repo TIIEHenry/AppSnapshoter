@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -15,7 +16,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="动作选项"
+            android:text="@string/action_options_title"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -23,7 +24,7 @@
             android:id="@+id/switch_enabled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="启用单独控制" />
+            android:text="@string/shot_enable_individual" />
 
     </LinearLayout>
 
@@ -36,14 +37,14 @@
             android:id="@+id/cb_auto_snapshot"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="跟随一键存档" />
+            android:text="@string/action_follow_quick_archive" />
 
         <com.google.android.material.checkbox.MaterialCheckBox
             android:id="@+id/cb_uninstall_archived"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="卸载已归档版本" />
+            android:text="@string/action_uninstall_archived" />
 
     </LinearLayout>
 
@@ -51,7 +52,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="打包算法"
+        android:text="@string/pack_algorithm"
         android:textSize="16sp" />
 
     <com.google.android.material.chip.ChipGroup
@@ -67,7 +68,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="压缩级别：5 (平衡)"
+        tools:text="@string/compress_level_label" android:text=""
         android:textSize="16sp" />
 
     <com.google.android.material.slider.Slider

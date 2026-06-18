@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:gravity="center"
-        android:text="添加分组"
+        android:text="@string/group_add_title"
         android:textSize="18sp"
         android:textStyle="bold" />
 
@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:hint="分组名称">
+        android:hint="@string/group_name_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_group_name"
@@ -34,7 +34,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:hint="分组路径"
+        android:hint="@string/group_path_hint"
         app:endIconContentDescription="选择路径"
         app:endIconDrawable="@drawable/ic_folder_open"
         app:endIconMode="custom">
@@ -53,7 +53,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:text="用户"
+        android:text="@string/user_label"
         android:textSize="14sp" />
 
     <Spinner
@@ -74,7 +74,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="取消" />
+            android:text="@string/cancel" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_confirm"
@@ -83,7 +83,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="确定" />
+            android:text="@string/confirm" />
 
     </LinearLayout>
 

@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicReference
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
@@ -41,7 +42,11 @@ object ArchiveRestorer {
         val targetUserId = archiveItem.appInfo.userId
         if (metaUserId != targetUserId) {
             throw IllegalStateException(
-                "存档用户（$metaUserId）与当前分组用户（$targetUserId）不一致，已阻止恢复以防止数据写入错误目录"
+                SnapshotApp.getInstance().getString(
+                    R.string.archive_user_mismatch,
+                    metaUserId,
+                    targetUserId
+                )
             )
         }
     }
@@ -87,8 +92,8 @@ object ArchiveRestorer {
         val appManager = snapShotApp.appManager
 
         val loadingDialog = ItemProgressDialog(context)
-        loadingDialog.setItemMessage("正在准备恢复存档")
-        loadingDialog.setItemStatus("...")
+        loadingDialog.setItemMessage(context.getString(R.string.archive_preparing_restore))
+        loadingDialog.setItemStatus(context.getString(R.string.ellipsis))
         loadingDialog.showItem()
 
         scope.launch(Dispatchers.IO) {
@@ -101,7 +106,11 @@ object ArchiveRestorer {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     loadingDialog.dismissItem()
-                    Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.archive_restore_failed, e.message ?: ""),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             } finally {
                 withContext(Dispatchers.Main) {
@@ -124,8 +133,8 @@ object ArchiveRestorer {
         val appManager = snapShotApp.appManager
 
         val loadingDialog = ItemProgressDialog(context)
-        loadingDialog.setItemMessage("正在准备高级恢复")
-        loadingDialog.setItemStatus("...")
+        loadingDialog.setItemMessage(context.getString(R.string.archive_preparing_advanced_restore))
+        loadingDialog.setItemStatus(context.getString(R.string.ellipsis))
         loadingDialog.showItem()
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -146,7 +155,11 @@ object ArchiveRestorer {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     loadingDialog.dismissItem()
-                    Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.archive_restore_failed, e.message ?: ""),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             } finally {
                 updateCurrent()
@@ -166,13 +179,13 @@ object ArchiveRestorer {
 
         val archiveItem = archivedApp.latestArchive
         if (archiveItem == null) {
-            Toast.makeText(context, "没有可用的存档", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.archive_no_available, Toast.LENGTH_SHORT).show()
             return
         }
 
         val loadingDialog = ItemProgressDialog(context)
-        loadingDialog.setItemMessage("正在准备恢复存档")
-        loadingDialog.setItemStatus("...")
+        loadingDialog.setItemMessage(context.getString(R.string.archive_preparing_restore))
+        loadingDialog.setItemStatus(context.getString(R.string.ellipsis))
         loadingDialog.showItem()
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -185,7 +198,11 @@ object ArchiveRestorer {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     loadingDialog.dismissItem()
-                    Toast.makeText(context, "恢复失败: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.archive_restore_failed, e.message ?: ""),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             } finally {
                 withContext(Dispatchers.Main) {
@@ -213,7 +230,7 @@ object ArchiveRestorer {
         val dataItems = archiveItem.dataItems
 
         withContext(Dispatchers.Main) {
-            loadingDialog.setItemMessage("清除应用数据")
+            loadingDialog.setItemMessage(context.getString(R.string.archive_clearing_app_data))
             loadingDialog.setItemStatus("...")
         }
         val installed = appManager.isInstalled(packageName, userId)
@@ -282,7 +299,7 @@ object ArchiveRestorer {
         RestoreRecordWriter.onRestoreSuccess(archivedApp, archiveItem)
         withContext(Dispatchers.Main) {
             loadingDialog.dismissItem()
-            Toast.makeText(context, "存档恢复成功", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.archive_restore_success, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -313,7 +330,7 @@ object ArchiveRestorer {
         if (dataItems.isEmpty() && selectedExtraItems.isEmpty()) {
             withContext(Dispatchers.Main) {
                 loadingDialog.dismissItem()
-                Toast.makeText(context, "没有选中的数据项", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.archive_no_selected_data, Toast.LENGTH_SHORT).show()
             }
             return
         }
@@ -348,7 +365,7 @@ object ArchiveRestorer {
         if (hasDataTypes && !installed && !needInstallApk) {
             withContext(Dispatchers.Main) {
                 loadingDialog.dismissItem()
-                Toast.makeText(context, "应用未安装，请先恢复APK或安装应用", Toast.LENGTH_LONG)
+                Toast.makeText(context, R.string.archive_app_not_installed_restore_apk, Toast.LENGTH_LONG)
                     .show()
             }
             return
@@ -356,7 +373,7 @@ object ArchiveRestorer {
 
         if (hasDataTypes && installed) {
             withContext(Dispatchers.Main) {
-                loadingDialog.setItemMessage("清除应用数据")
+                loadingDialog.setItemMessage(context.getString(R.string.archive_clearing_app_data))
                 loadingDialog.setItemStatus("...")
             }
             appManager.clearAppData(packageName, userId)
@@ -405,7 +422,7 @@ object ArchiveRestorer {
         RestoreRecordWriter.onRestoreSuccess(archivedApp, archiveItem)
         withContext(Dispatchers.Main) {
             loadingDialog.dismissItem()
-            Toast.makeText(context, "高级恢复成功", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.archive_advanced_restore_success, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -557,16 +574,16 @@ object ArchiveRestorer {
         return object : DataItemCallback {
             override fun onStart(dataItem: MetaDataItem) {
                 loadingDialog.post {
-                    loadingDialog.setItemStatus("...")
+                    loadingDialog.setItemStatus(context.getString(R.string.ellipsis))
                 }
             }
 
             override fun onProgress(dataItem: MetaDataItem, bytesWritten: Long, bytesPerS: Long) {
                 loadingDialog.post {
                     val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                    loadingDialog.setItemMessage("已读取: $fileSize")
+                    loadingDialog.setItemMessage(context.getString(R.string.archive_read_progress, fileSize))
                     if (bytesPerS == 0L) {
-                        loadingDialog.setItemStatus("...")
+                        loadingDialog.setItemStatus(context.getString(R.string.ellipsis))
                     } else {
                         val speed = Formatter.formatFileSize(context, bytesPerS)
                         loadingDialog.setItemStatus("$speed/s")

@@ -42,14 +42,21 @@ class GroupBatchArchiver(
             actionConfig.isAutoSnapshot
         }
         if (installedApps.isEmpty()) {
-            Toast.makeText(context, "没有已安装的应用可归档", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.group_batch_no_installed_apps, Toast.LENGTH_SHORT).show()
             return
         }
 
         MaterialAlertDialogBuilder(context)
-            .setTitle("全部归档")
-            .setMessage("确定为 ${group.name} 中的 ${installedApps.size}/${group.apps.size} 个应用创建快照？")
-            .setPositiveButton("确认") { _, _ ->
+            .setTitle(R.string.group_batch_menu_archive)
+            .setMessage(
+                context.getString(
+                    R.string.group_batch_archive_confirm,
+                    group.name,
+                    installedApps.size,
+                    group.apps.size
+                )
+            )
+            .setPositiveButton(R.string.confirm) { _, _ ->
                 if (!snapshotViewModel.tryBeginBatchOperation()) {
                     Toast.makeText(context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
@@ -64,19 +71,19 @@ class GroupBatchArchiver(
                 loadingDialog.setOnCancelListener {
                     isCancelled.set(true)
                     loadingDialog.setFinishButtonAsForceCancel { isForceCancelled.set(true) }
-                    loadingDialog.setLabel("正在停止")
+                    loadingDialog.setLabel(context.getString(R.string.group_batch_archive_stopping))
                 }
                 loadingDialog.setOnFailListener {
                     if (erroredList.isNotEmpty()) showErroredAppsDialog(erroredList)
-                    else Toast.makeText(context, "暂无错误", Toast.LENGTH_SHORT).show()
+                    else Toast.makeText(context, R.string.timeline_batch_no_errors, Toast.LENGTH_SHORT).show()
                 }
                 loadingDialog.setOnSuccessListener {
                     if (succeedList.isNotEmpty()) showSuccessAppsDialog(succeedList)
-                    else Toast.makeText(context, "暂无成功", Toast.LENGTH_SHORT).show()
+                    else Toast.makeText(context, R.string.timeline_batch_no_success, Toast.LENGTH_SHORT).show()
                 }
                 loadingDialog.setOnSuccessLongClickListener {
                     if (succeedList.isNotEmpty()) showSuccessStatistics(succeedList)
-                    else Toast.makeText(context, "暂无成功", Toast.LENGTH_SHORT).show()
+                    else Toast.makeText(context, R.string.timeline_batch_no_success, Toast.LENGTH_SHORT).show()
                 }
                 createSnapshotsSequentially(
                     loadingDialog, installedApps, group, erroredList, succeedList,
@@ -84,7 +91,7 @@ class GroupBatchArchiver(
                 )
                 loadingDialog.show()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -104,7 +111,7 @@ class GroupBatchArchiver(
             onRefresh(group)
             snapshotViewModel.loadGroups()
             snapshotViewModel.endBatchOperation()
-            Toast.makeText(context, "全部归档完成", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.group_batch_archive_complete, Toast.LENGTH_SHORT).show()
             updateDialogFinishState(
                 loadingDialog, System.currentTimeMillis() - totalStartTime,
                 succeedList.size, erroredList.size, false
@@ -139,7 +146,7 @@ class GroupBatchArchiver(
                             loadingDialog, System.currentTimeMillis() - startTime,
                             succeedList.size, erroredList.size, true
                         )
-                        Toast.makeText(context, "已中止归档", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.group_batch_archive_cancelled, Toast.LENGTH_SHORT).show()
                     } else {
                         createSnapshotsSequentially(
                             loadingDialog, apps, group, erroredList, succeedList,
@@ -176,29 +183,30 @@ class GroupBatchArchiver(
                 itemBinding.packageName.text = snapedApp.appInfo.packageName
                 itemBinding.errorIcon.setOnClickListener {
                     MaterialAlertDialogBuilder(context)
-                        .setTitle("Error: ${snapedApp.appInfo.label}")
+                        .setTitle(context.getString(R.string.snapshot_error_detail_title, snapedApp.appInfo.label))
                         .setMessage(exception.toString())
-                        .setPositiveButton("OK", null).show()
+                        .setPositiveButton(R.string.confirm, null).show()
                 }
                 return itemBinding.root
             }
         }
         MaterialAlertDialogBuilder(context)
-            .setTitle("创建快照失败 (${items.size}个)")
+            .setTitle(context.getString(R.string.snapshot_create_failed_title, items.size))
             .setAdapter(adapter) { _, _ -> }
-            .setPositiveButton("OK", null).show()
+            .setPositiveButton(R.string.confirm, null).show()
     }
 
     private fun updateDialogFinishState(
         loadingDialog: GroupItemsProgressDialog, totalTime: Long,
         succeedCount: Int, errorCount: Int, isCancelled: Boolean
     ) {
-        val timeSeconds = totalTime / 1000
-        val timeStr = if (timeSeconds < 60) "${timeSeconds}秒" else "${timeSeconds / 60}分${timeSeconds % 60}秒"
-        loadingDialog.setLabel(if (isCancelled) "已中止" else "已完成")
-        loadingDialog.setCurrentItem("总耗时: $timeStr")
-        loadingDialog.setItemMessage("成功: $succeedCount")
-        loadingDialog.setItemStatus("失败: $errorCount")
+        val timeStr = formatDuration(totalTime)
+        loadingDialog.setLabel(
+            context.getString(if (isCancelled) R.string.timeline_batch_cancelled else R.string.timeline_batch_finished)
+        )
+        loadingDialog.setCurrentItem(context.getString(R.string.timeline_batch_total_time, timeStr))
+        loadingDialog.setItemMessage(context.getString(R.string.timeline_batch_success_count, succeedCount))
+        loadingDialog.setItemStatus(context.getString(R.string.timeline_batch_fail_count, errorCount))
         loadingDialog.setPackageName("")
         loadingDialog.setFinishButtonAsClose { loadingDialog.dismiss() }
     }
@@ -215,18 +223,19 @@ class GroupBatchArchiver(
                 itemBinding.appIcon.setImageBitmap(info.archivedApp.appInfo.icon)
                 itemBinding.appLabel.text = info.archivedApp.appInfo.label
                 itemBinding.packageName.text = info.archivedApp.appInfo.packageName
-                val timeSeconds = info.timeMillis / 1000
-                val timeStr = if (timeSeconds < 1) "${info.timeMillis}ms"
-                    else if (timeSeconds < 60) "${timeSeconds}s"
-                    else "${timeSeconds / 60}min${timeSeconds % 60}s"
-                itemBinding.successInfo.text = "耗时: $timeStr, 数据: ${Formatter.formatFileSize(context, info.archiveSize)}"
+                val timeStr = formatDuration(info.timeMillis)
+                itemBinding.successInfo.text = context.getString(
+                    R.string.snapshot_success_item_info,
+                    timeStr,
+                    Formatter.formatFileSize(context, info.archiveSize)
+                )
                 return itemBinding.root
             }
         }
         MaterialAlertDialogBuilder(context)
-            .setTitle("创建快照成功 (${items.size}个)")
+            .setTitle(context.getString(R.string.snapshot_create_success_title, items.size))
             .setAdapter(adapter) { _, _ -> }
-            .setPositiveButton("OK", null).show()
+            .setPositiveButton(R.string.confirm, null).show()
     }
 
     private fun showSuccessStatistics(successedList: List<SuccessSnapshotInfo>) {
@@ -235,21 +244,18 @@ class GroupBatchArchiver(
         val totalSize = successedList.sumOf { it.archiveSize }
         val avgTimeMillis = if (totalCount > 0) totalTimeMillis / totalCount else 0L
         val avgSize = if (totalCount > 0) totalSize / totalCount else 0L
-        fun formatTime(ms: Long): String {
-            val s = ms / 1000
-            return if (s < 60) "${s}秒" else "${s / 60}分${s % 60}秒"
-        }
+        fun formatTime(ms: Long): String = formatDuration(ms)
         val message = buildString {
-            appendLine("成功项数: $totalCount")
-            appendLine("总耗时: ${formatTime(totalTimeMillis)}")
-            appendLine("平均耗时: ${formatTime(avgTimeMillis)}")
-            appendLine("总数据大小: ${Formatter.formatFileSize(context, totalSize)}")
-            appendLine("平均数据大小: ${Formatter.formatFileSize(context, avgSize)}")
+            appendLine(context.getString(R.string.snapshot_success_stats_count, totalCount))
+            appendLine(context.getString(R.string.snapshot_success_stats_total_time, formatTime(totalTimeMillis)))
+            appendLine(context.getString(R.string.snapshot_success_stats_avg_time, formatTime(avgTimeMillis)))
+            appendLine(context.getString(R.string.snapshot_success_stats_total_size, Formatter.formatFileSize(context, totalSize)))
+            appendLine(context.getString(R.string.snapshot_success_stats_avg_size, Formatter.formatFileSize(context, avgSize)))
         }
         MaterialAlertDialogBuilder(context)
-            .setTitle("成功项统计数据")
+            .setTitle(R.string.snapshot_success_stats_title)
             .setMessage(message)
-            .setPositiveButton("OK", null).show()
+            .setPositiveButton(R.string.confirm, null).show()
     }
 
     fun showGroupStatistics(group: SnapGroup) {
@@ -263,16 +269,30 @@ class GroupBatchArchiver(
         }
         val avgArchives = if (archivedApps > 0) totalArchives.toDouble() / archivedApps else 0.0
         val message = buildString {
-            appendLine("总应用数: $totalApps")
-            appendLine("已安装应用: $installedApps")
-            appendLine("已存档应用: $archivedApps")
-            appendLine("总存档数: $totalArchives")
-            appendLine("平均存档数: ${String.format("%.1f", avgArchives)}")
-            appendLine("总存档大小: ${Formatter.formatFileSize(context, totalSize)}")
+            appendLine(context.getString(R.string.group_stats_total_apps, totalApps))
+            appendLine(context.getString(R.string.group_stats_installed_apps, installedApps))
+            appendLine(context.getString(R.string.group_stats_archived_apps, archivedApps))
+            appendLine(context.getString(R.string.group_stats_total_archives, totalArchives))
+            appendLine(context.getString(R.string.group_stats_avg_archives, String.format("%.1f", avgArchives)))
+            appendLine(context.getString(R.string.group_stats_total_size, Formatter.formatFileSize(context, totalSize)))
         }
         MaterialAlertDialogBuilder(context)
-            .setTitle("${group.name} - 统计数据")
+            .setTitle(context.getString(R.string.group_stats_title, group.name))
             .setMessage(message)
-            .setPositiveButton("OK", null).show()
+            .setPositiveButton(R.string.confirm, null).show()
+    }
+
+    private fun formatDuration(ms: Long): String {
+        val timeMillis = ms
+        val timeSeconds = timeMillis / 1000
+        return when {
+            timeSeconds < 1 -> context.getString(R.string.time_format_millis, timeMillis)
+            timeSeconds < 60 -> context.getString(R.string.timeline_batch_time_seconds, timeSeconds)
+            else -> context.getString(
+                R.string.timeline_batch_time_minutes,
+                timeSeconds / 60,
+                timeSeconds % 60
+            )
+        }
     }
 }

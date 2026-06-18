@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
@@ -14,7 +15,7 @@
         android:layout_marginStart="4dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:clickable="true"
-        android:contentDescription="锁定/解锁"
+        android:contentDescription="@string/desc_archive_lock"
         android:focusable="true"
         android:padding="4dp"
         android:scaleType="fitCenter"
@@ -24,7 +25,7 @@
         android:id="@+id/archive_icon"
         android:layout_width="32dp"
         android:layout_height="32dp"
-        android:contentDescription="存档图标"
+        android:contentDescription="@string/desc_archive_icon"
         android:clickable="true"
         android:focusable="true"
         android:padding="4dp"
@@ -37,7 +38,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_weight="1"
-        android:text="存档名称"
+        tools:text="@string/archive_name_placeholder" android:text=""
         android:textColor="?attr/colorOnSurface"
         android:textSize="13sp" />
 

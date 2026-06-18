@@ -129,11 +129,11 @@ class ArchiveItemPopupMenu(
             val newLockState = !isLocked
             if (isLocked) {
                 group.config.removeFromLockedList(packageName)
-                Toast.makeText(context, "已解锁应用，自动卸载跟随应用或组策略", Toast.LENGTH_SHORT)
+                Toast.makeText(context, R.string.app_unlocked_auto_uninstall, Toast.LENGTH_SHORT)
                     .show()
             } else {
                 group.config.addToLockedList(packageName)
-                Toast.makeText(context, "已锁定应用，应用不会被自动卸载", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.app_locked_no_auto_uninstall, Toast.LENGTH_SHORT).show()
             }
             updateLockIcon(newLockState)
             callback.onLockStateChanged(item, newLockState)
@@ -242,7 +242,7 @@ class ArchiveItemPopupMenu(
     private fun showEditNameHint() {
         Toast.makeText(
             context,
-            "请长按下方存档列表中的存档项，在信息对话框中点击\"重命名\"",
+            R.string.archive_rename_hint,
             Toast.LENGTH_LONG
         ).show()
     }
@@ -261,7 +261,7 @@ class ArchiveItemPopupMenu(
                 val fallbackIntent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
                 context.startActivity(fallbackIntent)
             } catch (ex: Exception) {
-                Toast.makeText(context, "无法打开应用详情", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.archive_cannot_open_app_details, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -275,13 +275,13 @@ class ArchiveItemPopupMenu(
         onDismiss: () -> Unit
     ) {
         AlertDialog.Builder(context)
-            .setTitle("删除所有存档？")
-            .setMessage("确定要删除应用所有存档吗？此操作不可恢复。")
-            .setPositiveButton("清空存档") { _, _ ->
+            .setTitle(R.string.archive_delete_all_title)
+            .setMessage(R.string.archive_delete_all_message)
+            .setPositiveButton(R.string.archive_clear_archives) { _, _ ->
                 callback.onClearAllArchives(item, onDismiss)
             }
-            .setNegativeButton("取消", null)
-            .setNeutralButton("删除全部") { _, _ ->
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.archive_delete_all) { _, _ ->
                 callback.onDeleteApp(item, onDismiss)
             }
             .show()

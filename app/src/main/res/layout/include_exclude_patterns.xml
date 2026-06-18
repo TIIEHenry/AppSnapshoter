@@ -17,7 +17,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="排除项目"
+            android:text="@string/exclude_patterns_title"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:contentDescription="复制"
+            android:contentDescription="@string/desc_copy"
             app:icon="@drawable/ic_content_copy"
             app:iconTint="@color/icon_secondary" />
 
@@ -37,7 +37,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:contentDescription="添加"
+            android:contentDescription="@string/desc_add"
             app:icon="@drawable/plus"
             app:iconTint="@color/icon_secondary" />
 

@@ -167,7 +167,7 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
      * 更新选中状态UI
      */
     private fun updateSelectionUI() {
-        binding.tvSelectedCount.text = "已选择: ${selectedFiles.size}"
+        binding.tvSelectedCount.text = getString(R.string.file_picker_selected_count, selectedFiles.size)
         binding.btnConfirm.isEnabled = selectedFiles.isNotEmpty()
     }
 

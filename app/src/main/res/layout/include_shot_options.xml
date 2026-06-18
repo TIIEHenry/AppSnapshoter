@@ -15,7 +15,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="存档选项"
+            android:text="@string/shot_options_title"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -23,7 +23,7 @@
             android:id="@+id/switch_enabled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="启用单独控制" />
+            android:text="@string/shot_enable_individual" />
 
     </LinearLayout>
 
@@ -31,7 +31,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="存档项目"
+        android:text="@string/shot_items_label"
         android:textSize="16sp" />
 
     <com.google.android.material.chip.ChipGroup
@@ -47,42 +47,42 @@
             style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="APK" />
+            android:text="@string/shot_item_apk" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_data"
             style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DATA" />
+            android:text="@string/shot_item_data" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_user"
             style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="USER" />
+            android:text="@string/shot_item_user" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_user_de"
             style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="USER_DE" />
+            android:text="@string/shot_item_user_de" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_obb"
             style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="OBB" />
+            android:text="@string/shot_item_obb" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chip_media"
             style="@style/Widget.AppSnapshot.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="MEDIA" />
+            android:text="@string/shot_item_media" />
 
     </com.google.android.material.chip.ChipGroup>
 

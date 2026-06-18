@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.archive.manage.ArchiveManager
@@ -53,8 +54,8 @@ class SnapshotCreator(
      */
     fun createSnapshot(item: ArchivedApp, group: SnapGroup, callback: Callback? = null) {
         val loadingDialog = ItemProgressDialog(context)
-        loadingDialog.setItemMessage("正在创建存档")
-        loadingDialog.setItemStatus("...")
+        loadingDialog.setItemMessage(context.getString(R.string.progress_creating_archive))
+        loadingDialog.setItemStatus(context.getString(R.string.ellipsis))
         loadingDialog.showItem()
         createSnapshot(loadingDialog, item, group, AtomicBoolean(false), callback)
     }
@@ -126,7 +127,7 @@ class SnapshotCreator(
                         withContext(Dispatchers.Main) {
                             updateIndex(currentIndex)
                             loadingDialog.setCurrentItem(entry.key)
-                            loadingDialog.setItemMessage("处理中")
+                            loadingDialog.setItemMessage(context.getString(R.string.progress_processing))
                             loadingDialog.setItemStatus("...")
                         }
                         entry.value.start()
@@ -187,7 +188,7 @@ class SnapshotCreator(
             override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
                 viewModelScope.launch(Dispatchers.Main) {
                     val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                    loadingDialog.setItemMessage("已写入: $fileSize")
+                    loadingDialog.setItemMessage(context.getString(R.string.progress_written, fileSize))
                     if (bytesPerS == 0L) {
                         loadingDialog.setItemStatus("...")
                     } else {

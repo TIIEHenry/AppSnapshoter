@@ -63,13 +63,13 @@ open class AbstractProgressDialog(
     }
 
     override fun setItemException(e: Exception) {
-        setItemMessage("出现错误")
+        setItemMessage(context.getString(R.string.progress_error_occurred))
         setItemStatus((e.javaClass.simpleName + "[" + e.message + "]"))
         itemBinding.statusText.setOnClickListener {
             MaterialAlertDialogBuilder(context)
-                .setTitle("错误信息")
+                .setTitle(R.string.progress_error_title)
                 .setMessage(e.stackTraceToString())
-                .setPositiveButton("确定") { dialog, which -> dialog.dismiss() }
+                .setPositiveButton(R.string.confirm) { dialog, which -> dialog.dismiss() }
                 .show()
         }
         setCancelable(true)

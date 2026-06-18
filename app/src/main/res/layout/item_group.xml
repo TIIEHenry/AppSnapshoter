@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -26,7 +27,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:paddingHorizontal="8dp"
-                android:text="分组名称"
+                tools:text="@string/group_name_hint" android:text=""
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
@@ -36,7 +37,7 @@
                 android:layout_height="36dp"
                 android:layout_margin="3dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="确认排序"
+                android:contentDescription="@string/desc_confirm_sort"
                 android:padding="7dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/check"
@@ -49,7 +50,7 @@
                 android:layout_height="36dp"
                 android:layout_margin="3dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="刷新"
+                android:contentDescription="@string/desc_refresh"
                 android:padding="7dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/refresh"
@@ -61,7 +62,7 @@
                 android:layout_height="36dp"
                 android:layout_margin="3dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="添加"
+                android:contentDescription="@string/desc_add"
                 android:padding="7dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/app_add"
@@ -73,7 +74,7 @@
                 android:layout_height="36dp"
                 android:layout_margin="3dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="移动"
+                android:contentDescription="@string/desc_move"
                 android:padding="7dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/group_sort"
@@ -85,7 +86,7 @@
                 android:layout_height="36dp"
                 android:layout_margin="3dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="设置"
+                android:contentDescription="@string/settings"
                 android:padding="7dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/tune"

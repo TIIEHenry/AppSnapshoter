@@ -123,7 +123,7 @@ summary: "组头布局重构、批量操作菜单与配置对话框"
 
 ### 字符串资源
 
-新文案统一进 `strings.xml`（`GroupBatchArchiver` 现有硬编码中文不在本 PR 强制迁移，可后续单独整理）：
+新文案统一进 `strings.xml`（`GroupBatchArchiver` 等批量操作文案已迁移，见 `group_batch_*` 键）：
 
 - `group_batch_restore_title`
 - `group_batch_menu_archive` / `group_batch_menu_restore`

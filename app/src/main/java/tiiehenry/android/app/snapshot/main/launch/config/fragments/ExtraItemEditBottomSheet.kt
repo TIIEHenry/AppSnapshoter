@@ -106,7 +106,11 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
 
     private fun initViews() {
         // 设置标题
-        binding.tvTitle.text = if (isEditMode) "编辑额外项目" else "添加额外项目"
+        binding.tvTitle.text = if (isEditMode) {
+            getString(R.string.extra_item_edit_title)
+        } else {
+            getString(R.string.extra_item_add_title)
+        }
 
         // 关闭按钮
         binding.btnClose.setOnClickListener {
@@ -217,13 +221,13 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
         val path = binding.etPath.text.toString().trim()
 
         if (name.isEmpty()) {
-            binding.tilName.error = "请输入名称"
+            binding.tilName.error = getString(R.string.error_enter_name)
             return
         }
         binding.tilName.error = null
 
         if (path.isEmpty()) {
-            binding.tilPath.error = "请输入路径"
+            binding.tilPath.error = getString(R.string.error_enter_path)
             return
         }
         binding.tilPath.error = null

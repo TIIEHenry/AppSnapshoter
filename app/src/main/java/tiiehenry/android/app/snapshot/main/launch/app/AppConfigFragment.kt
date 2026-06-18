@@ -7,10 +7,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import com.google.android.material.R
+import com.google.android.material.R as MaterialR
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.tabs.TabLayout
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.app.snapshot.config.AppConfig
@@ -83,7 +84,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             // 设置全屏显示
             setOnShowListener {
                 val bottomSheet =
-                    findViewById<View>(R.id.design_bottom_sheet)
+                    findViewById<View>(MaterialR.id.design_bottom_sheet)
                 bottomSheet?.let {
                     // 设置为全屏
                     val layoutParams = it.layoutParams
@@ -102,7 +103,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             saveConfig()
             dismiss()
         }
-        binding.btnSave.contentDescription = "保存"
+        binding.btnSave.contentDescription = getString(R.string.save)
 
         // 初始化截图选项管理器
         shotOptionsManager = ShotOptionsManager(
@@ -150,9 +151,9 @@ class AppConfigFragment : BottomSheetDialogFragment() {
 
     private fun setupTabLayout() {
         binding.tabLayout.apply {
-            addTab(newTab().setText("项目"))
-            addTab(newTab().setText("行为"))
-            addTab(newTab().setText("保留"))
+            addTab(newTab().setText(R.string.config_tab_items))
+            addTab(newTab().setText(R.string.config_tab_actions))
+            addTab(newTab().setText(R.string.config_tab_retention))
             
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab) {
@@ -218,7 +219,7 @@ class AppConfigFragment : BottomSheetDialogFragment() {
     private fun resetConfig() {
         appConfig.reset()
         loadConfig()
-        Toast.makeText(requireContext(), "配置已重置", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), R.string.config_reset_done, Toast.LENGTH_SHORT).show()
     }
 
     fun setOnDismissListener(listener: () -> Unit) {

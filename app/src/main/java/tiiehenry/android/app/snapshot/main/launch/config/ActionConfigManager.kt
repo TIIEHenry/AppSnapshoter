@@ -3,6 +3,7 @@ package tiiehenry.android.app.snapshot.main.launch.config
 import android.content.Context
 import android.view.View
 import com.google.android.material.chip.Chip
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.config.ActionConfig
 import tiiehenry.android.app.snapshot.databinding.IncludeActionConfigBinding
 
@@ -121,15 +122,16 @@ class ActionConfigManager(
     }
 
     private fun updateCompressLevelLabel(level: Int) {
+        val ctx = binding.tvCompressLevelLabel.context
         val levelText = when (level) {
-            1 -> "极快 - 体积最大"
-            3 -> "快 - 体积稍大"
-            5 -> "中 - 体积一般"
-            7 -> "慢 - 体积较小"
-            9 -> "极慢 - 体积最小"
-            else -> "未知"
+            1 -> ctx.getString(R.string.compress_level_1)
+            3 -> ctx.getString(R.string.compress_level_3)
+            5 -> ctx.getString(R.string.compress_level_5)
+            7 -> ctx.getString(R.string.compress_level_7)
+            9 -> ctx.getString(R.string.compress_level_9)
+            else -> ctx.getString(R.string.compress_level_unknown)
         }
-        binding.tvCompressLevelLabel.text = "压缩级别：$level ($levelText)"
+        binding.tvCompressLevelLabel.text = ctx.getString(R.string.compress_level_label, level, levelText)
     }
 
     fun setCompressLevel(level: Int) {

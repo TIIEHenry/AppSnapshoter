@@ -133,4 +133,240 @@
     <string name="provider_check_error_no_root">没有Root权限，请授予Root权限后点击重试</string>
     <string name="provider_check_error_no_files_access">未授权所有文件访问权限，请授权后点击重试</string>
     <string name="provider_check_status_desc">状态</string>
+
+    <!-- 通用操作 -->
+    <string name="save">保存</string>
+    <string name="delete">删除</string>
+    <string name="more">更多</string>
+    <string name="action_import">导入</string>
+    <string name="user_label">用户</string>
+    <string name="ellipsis">…</string>
+
+    <!-- 存档恢复 -->
+    <string name="archive_user_mismatch">存档用户（%1$d）与当前分组用户（%2$d）不一致，已阻止恢复以防止数据写入错误目录</string>
+    <string name="archive_preparing_restore">正在准备恢复存档</string>
+    <string name="archive_preparing_advanced_restore">正在准备高级恢复</string>
+    <string name="archive_restore_failed">恢复失败: %s</string>
+    <string name="archive_no_available">没有可用的存档</string>
+    <string name="archive_clearing_app_data">清除应用数据</string>
+    <string name="archive_restore_success">存档恢复成功</string>
+    <string name="archive_no_selected_data">没有选中的数据项</string>
+    <string name="archive_app_not_installed_restore_apk">应用未安装，请先恢复APK或安装应用</string>
+    <string name="archive_advanced_restore_success">高级恢复成功</string>
+    <string name="archive_read_progress">已读取: %s</string>
+    <string name="archive_restoring_permissions">正在恢复权限</string>
+
+    <!-- 存档 UI -->
+    <string name="archive_delete_confirm_title">确认删除</string>
+    <string name="archive_delete_confirm_message">确定要删除 \'%s\' 吗？</string>
+    <string name="archive_info_title">存档信息 - %s</string>
+    <string name="archive_info_app_name">应用名称: %s</string>
+    <string name="archive_info_package">包名: %s</string>
+    <string name="archive_info_version">版本: %1$s (%2$d)</string>
+    <string name="archive_info_user_id">用户ID: %d</string>
+    <string name="archive_info_backup_time">备份时间: %s</string>
+    <string name="archive_info_data_count">数据项数量: %d</string>
+    <string name="archive_info_compressed_size">压缩后大小: %s</string>
+    <string name="archive_info_original_size">原始大小: %s</string>
+    <string name="archive_info_compression_ratio">压缩率: %s</string>
+    <string name="archive_info_data_items_detail">数据项详情:</string>
+    <string name="archive_info_extra_items_detail">额外数据项:</string>
+    <string name="archive_info_data_item_line">%1$d. %2$s: %3$s</string>
+    <string name="archive_info_data_item_with_algo">%1$d. %2$s: %3$s [%4$s]</string>
+    <string name="archive_rename">重命名</string>
+    <string name="archive_advanced_restore">高级恢复</string>
+    <string name="archive_rename_title">重命名存档</string>
+    <string name="archive_rename_same_name">新名称与原名称相同</string>
+    <string name="archive_renamed">存档 \'%1$s\' 已重命名为 \'%2$s\'</string>
+    <string name="archive_rename_failed">重命名失败</string>
+    <string name="archive_locked_no_auto_cleanup">存档已锁定，不会被自动清理</string>
+    <string name="archive_unlocked">存档已解锁</string>
+    <string name="archive_lock_save_failed">锁定状态保存失败</string>
+    <string name="archive_advanced_restore_not_configured">高级恢复功能未配置</string>
+    <string name="archive_no_restorable_data">没有可恢复的数据项</string>
+    <string name="archive_select_data_to_restore">选择要恢复的数据</string>
+    <string name="archive_select_at_least_one">请至少选择一项数据</string>
+    <string name="archive_data_type_apk">APK 安装包</string>
+    <string name="archive_data_type_data">应用数据 (data)</string>
+    <string name="archive_data_type_user">用户数据 (user)</string>
+    <string name="archive_data_type_user_de">用户 DE 数据 (user_de)</string>
+    <string name="archive_data_type_obb">OBB 数据 (obb)</string>
+    <string name="archive_data_type_media">外部媒体数据 (media)</string>
+    <string name="archive_delete_all_title">删除所有存档？</string>
+    <string name="archive_delete_all_message">确定要删除应用所有存档吗？此操作不可恢复。</string>
+    <string name="archive_clear_archives">清空存档</string>
+    <string name="archive_delete_all">删除全部</string>
+    <string name="app_unlocked_auto_uninstall">已解锁应用，自动卸载跟随应用或组策略</string>
+    <string name="app_locked_no_auto_uninstall">已锁定应用，应用不会被自动卸载</string>
+    <string name="archive_rename_hint">请长按下方存档列表中的存档项，在信息对话框中点击\"重命名\"</string>
+    <string name="archive_cannot_open_app_details">无法打开应用详情</string>
+
+    <!-- 分组操作 -->
+    <string name="group_confirm_action">确认操作</string>
+    <string name="group_restore_confirm">确定要恢复存档 \'%s\' 吗？</string>
+    <string name="group_archive_deleted_success">存档删除成功</string>
+    <string name="group_delete_failed">删除失败</string>
+    <string name="group_app_not_installed_no_snapshot">应用未安装，无法创建快照</string>
+    <string name="group_delete_archive_success">删除存档成功</string>
+    <string name="group_delete_app_success">删除应用成功</string>
+    <string name="group_cannot_launch_app">无法启动应用</string>
+    <string name="group_add_title">添加分组</string>
+    <string name="group_sort_title">分组排序</string>
+    <string name="group_sort_hint">长按并拖动以调整分组顺序</string>
+    <string name="group_sort_mode_title">%s (排序模式)</string>
+    <string name="group_delete_title">删除组</string>
+    <string name="group_delete_message">确定要删除组 %1$s[%2$s] 吗？\n此操作不可恢复。</string>
+    <string name="group_delete_config_only">仅删除组</string>
+    <string name="group_delete_with_files">包括文件</string>
+    <string name="group_settings_title">分组配置</string>
+    <string name="group_config_title">分组配置</string>
+    <string name="group_name_hint">分组名称</string>
+    <string name="group_path_hint">分组路径</string>
+    <string name="group_root_path_hint">根路径</string>
+    <string name="group_delete_button">删除分组</string>
+    <string name="error_enter_group_name">请输入分组名称</string>
+    <string name="error_select_group_path">请选择分组路径</string>
+    <string name="group_batch_archive_confirm">确定为 %1$s 中的 %2$d/%3$d 个应用创建快照？</string>
+    <string name="group_batch_archive_stopping">正在停止</string>
+    <string name="group_batch_archive_complete">全部归档完成</string>
+    <string name="group_batch_archive_cancelled">已中止归档</string>
+    <string name="group_batch_no_installed_apps">没有已安装的应用可归档</string>
+    <string name="snapshot_create_failed_title">创建快照失败 (%d个)</string>
+    <string name="snapshot_create_success_title">创建快照成功 (%d个)</string>
+    <string name="snapshot_error_detail_title">错误: %s</string>
+    <string name="snapshot_success_item_info">耗时: %1$s, 数据: %2$s</string>
+    <string name="snapshot_success_stats_title">成功项统计数据</string>
+    <string name="snapshot_success_stats_count">成功项数: %d</string>
+    <string name="snapshot_success_stats_total_time">总耗时: %s</string>
+    <string name="snapshot_success_stats_avg_time">平均耗时: %s</string>
+    <string name="snapshot_success_stats_total_size">总数据大小: %s</string>
+    <string name="snapshot_success_stats_avg_size">平均数据大小: %s</string>
+    <string name="group_stats_title">%s - 统计数据</string>
+    <string name="group_stats_total_apps">总应用数: %d</string>
+    <string name="group_stats_installed_apps">已安装应用: %d</string>
+    <string name="group_stats_archived_apps">已存档应用: %d</string>
+    <string name="group_stats_total_archives">总存档数: %d</string>
+    <string name="group_stats_avg_archives">平均存档数: %s</string>
+    <string name="group_stats_total_size">总存档大小: %s</string>
+    <string name="time_format_millis">%dms</string>
+
+    <!-- 配置 -->
+    <string name="config_tab_items">项目</string>
+    <string name="config_tab_actions">行为</string>
+    <string name="config_tab_retention">保留</string>
+    <string name="config_reset_done">配置已重置</string>
+    <string name="app_config_title">应用配置</string>
+
+    <!-- 排除项目 -->
+    <string name="exclude_patterns_title">排除项目</string>
+    <string name="exclude_pattern_add_title">添加排除项目</string>
+    <string name="exclude_patterns_added">已添加的排除项目</string>
+    <string name="exclude_pattern_browse_files">浏览文件</string>
+    <string name="exclude_pattern_add_button">添加</string>
+    <string name="exclude_pattern_done">完成</string>
+    <string name="exclude_pattern_select_archive_item">选择存档项目</string>
+    <string name="exclude_pattern_input_hint">输入排除模式</string>
+    <string name="exclude_pattern_help_title">排除项目使用说明</string>
+    <string name="exclude_pattern_help_message">排除项目用于 tar 命令的 --exclude 参数，支持以下模式：\n\n1. 精确匹配：直接输入文件名或目录名\n   例如：cache、temp.txt\n\n2. 通配符匹配：\n   • * 匹配任意字符（不包括/）\n     例如：*.log、cache/*\n   • ? 匹配单个字符\n     例如：file?.txt\n   • ** 匹配任意字符（包括/）\n     例如：**/cache/**\n\n3. 路径匹配：\n   • 相对路径：从备份目录开始的相对路径\n     例如：files/cache、shared_prefs/*.xml\n   • 绝对路径：完整路径（不推荐）\n\n常用示例：\n• cache - 排除所有名为 cache 的目录\n• *.tmp - 排除所有临时文件\n• files/logs/* - 排除 logs 目录下的所有文件\n• **/thumbnail* - 排除所有缩略图相关文件\n\n注意：排除模式在打包时生效，已排除的文件不会包含在备份中。</string>
+    <string name="exclude_list_empty_no_copy">排除列表为空，无需复制</string>
+    <string name="exclude_list_copied">已复制排除列表到剪切板</string>
+    <string name="clipboard_empty">剪切板为空</string>
+    <string name="clipboard_content_empty">剪切板内容为空</string>
+    <string name="clipboard_no_valid_exclude">剪切板中没有有效的排除项目</string>
+    <string name="clipboard_invalid_format">剪切板内容格式无效</string>
+    <string name="exclude_import_detected_prefix">检测到 %d 个排除项目：\n\n</string>
+    <string name="exclude_import_confirm_question">\n是否导入？</string>
+    <string name="exclude_import_title">导入排除项目</string>
+    <string name="exclude_imported">已导入排除项目</string>
+    <string name="exclude_clipboard_label">排除项目列表</string>
+    <string name="extra_item_edit_title">编辑额外项目</string>
+    <string name="extra_item_add_title">添加额外项目</string>
+    <string name="extra_item_name_hint">名称</string>
+    <string name="extra_item_path_hint">路径</string>
+    <string name="error_enter_name">请输入名称</string>
+    <string name="error_enter_path">请输入路径</string>
+    <string name="extra_items_title">额外项目</string>
+    <string name="extra_items_description">添加需要额外压缩的目录，每个项目可设置专属排除模式</string>
+    <string name="exclude_mode_label">排除模式</string>
+
+    <!-- 存档/动作/保留选项 -->
+    <string name="shot_options_title">存档选项</string>
+    <string name="shot_enable_individual">启用单独控制</string>
+    <string name="shot_items_label">存档项目</string>
+    <string name="shot_item_apk">APK</string>
+    <string name="shot_item_data">DATA</string>
+    <string name="shot_item_user">USER</string>
+    <string name="shot_item_user_de">USER_DE</string>
+    <string name="shot_item_obb">OBB</string>
+    <string name="shot_item_media">MEDIA</string>
+    <string name="action_options_title">动作选项</string>
+    <string name="action_enable_individual">启用单独控制</string>
+    <string name="action_follow_quick_archive">跟随一键存档</string>
+    <string name="action_uninstall_archived">卸载已归档版本</string>
+    <string name="pack_algorithm">打包算法</string>
+    <string name="compress_level_label">压缩级别：%1$d (%2$s)</string>
+    <string name="compress_level_1">极快 - 体积最大</string>
+    <string name="compress_level_3">快 - 体积稍大</string>
+    <string name="compress_level_5">中 - 体积一般</string>
+    <string name="compress_level_7">慢 - 体积较小</string>
+    <string name="compress_level_9">极慢 - 体积最小</string>
+    <string name="compress_level_unknown">未知</string>
+    <string name="retention_policy_title">保留策略</string>
+    <string name="retention_max_versions">最大保留版本数</string>
+    <string name="retention_min_same_version">同版本最低保留</string>
+    <string name="retention_extra_same_version">同版本额外保留</string>
+    <string name="retention_expiry_time">过期时间</string>
+
+    <!-- 进度 -->
+    <string name="progress_creating_archive">正在创建存档</string>
+    <string name="progress_processing">处理中</string>
+    <string name="progress_written">已写入: %s</string>
+    <string name="progress_error_occurred">出现错误</string>
+    <string name="progress_error_title">错误信息</string>
+    <string name="progress_success_items">成功项</string>
+    <string name="progress_fail_items">失败项</string>
+
+    <!-- 排序 -->
+    <string name="sort_default">默认排序</string>
+    <string name="sort_name_asc">按名称升序</string>
+    <string name="sort_name_desc">按名称降序</string>
+    <string name="sort_install_time_asc">按安装时间升序</string>
+    <string name="sort_install_time_desc">按安装时间降序</string>
+    <string name="sort_custom">自定义排序</string>
+
+    <!-- 文件选择 -->
+    <string name="file_picker_selected_count">已选择: %d</string>
+    <string name="file_picker_selected_count_zero">已选择: 0</string>
+    <string name="file_picker_empty_dir">目录为空</string>
+
+    <!-- 无障碍描述 -->
+    <string name="desc_snapshot">快照</string>
+    <string name="desc_lock">锁定</string>
+    <string name="desc_info">信息</string>
+    <string name="desc_delete">删除</string>
+    <string name="desc_app_icon">应用图标</string>
+    <string name="desc_app_running">应用运行状态</string>
+    <string name="desc_app_lock">应用锁定状态</string>
+    <string name="desc_app_status">应用状态</string>
+    <string name="desc_archive_lock">锁定/解锁</string>
+    <string name="desc_archive_icon">存档图标</string>
+    <string name="desc_drag_sort">拖拽排序</string>
+    <string name="desc_copy">复制</string>
+    <string name="desc_add">添加</string>
+    <string name="desc_confirm_sort">确认排序</string>
+    <string name="desc_refresh">刷新</string>
+    <string name="desc_move">移动</string>
+    <string name="desc_error">错误</string>
+    <string name="desc_exclude_add">添加排除模式</string>
+    <string name="desc_close">关闭</string>
+    <string name="desc_go_up">返回上级</string>
+
+    <!-- 菜单 -->
+    <string name="menu_add_group">添加分组</string>
+    <string name="menu_group_sort">分组排序</string>
+
+    <!-- 其他 -->
+    <string name="file_name_placeholder">文件名</string>
+    <string name="archive_name_placeholder">存档名称</string>
+    <string name="error_unknown">未知错误</string>
 </resources>

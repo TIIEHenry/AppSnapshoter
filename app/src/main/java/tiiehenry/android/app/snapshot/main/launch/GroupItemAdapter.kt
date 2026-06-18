@@ -234,9 +234,9 @@ class GroupItemAdapter(
                 archiveAdapter: ArchiveItemAdapter
             ) {
                 androidx.appcompat.app.AlertDialog.Builder(binding.root.context)
-                    .setTitle("确认操作")
-                    .setMessage("确定要恢复存档 '${archiveItem.name}' 吗？")
-                    .setPositiveButton("确认") { _, _ ->
+                    .setTitle(R.string.group_confirm_action)
+                    .setMessage(binding.root.context.getString(R.string.group_restore_confirm, archiveItem.name))
+                    .setPositiveButton(R.string.confirm) { _, _ ->
                         viewModel.onGroupItemClicked(
                             binding.root.context,
                             group.id,
@@ -245,8 +245,8 @@ class GroupItemAdapter(
                             item
                         ) { updateCurrent(item) }
                     }
-                    .setNegativeButton("取消", null)
-                    .setNeutralButton("删除") { _, _ ->
+                    .setNegativeButton(R.string.cancel, null)
+                    .setNeutralButton(R.string.delete) { _, _ ->
                         deleteArchive(item, archiveItem, archiveAdapter)
                     }
                     .show()
@@ -267,10 +267,10 @@ class GroupItemAdapter(
                             archiveAdapter.notifyDataSetChanged()
                         }
                         ArchiveManager.reloadArchives(item, true)
-                        Toast.makeText(binding.root.context, "存档删除成功", Toast.LENGTH_SHORT)
+                        Toast.makeText(binding.root.context, R.string.group_archive_deleted_success, Toast.LENGTH_SHORT)
                             .show()
                     } else {
-                        Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT)
+                        Toast.makeText(binding.root.context, R.string.group_delete_failed, Toast.LENGTH_SHORT)
                             .show()
                     }
                 }
@@ -294,7 +294,7 @@ class GroupItemAdapter(
                 if (!AppStatusHelper.isAppInstalled(item)) {
                     Toast.makeText(
                         binding.root.context,
-                        "应用未安装，无法创建快照",
+                        R.string.group_app_not_installed_no_snapshot,
                         Toast.LENGTH_SHORT
                     ).show()
                     return
@@ -322,10 +322,10 @@ class GroupItemAdapter(
                 val success = ArchiveManager.clearAllArchives(item)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除存档成功", Toast.LENGTH_SHORT)
+                        Toast.makeText(binding.root.context, R.string.group_delete_archive_success, Toast.LENGTH_SHORT)
                             .show()
                     } else {
-                        Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(binding.root.context, R.string.group_delete_failed, Toast.LENGTH_SHORT).show()
                     }
                     ArchiveManager.reloadArchives(item, true)
                     onComplete()
@@ -338,10 +338,10 @@ class GroupItemAdapter(
                 val success = ArchiveManager.deleteAppCompletely(item, group)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(binding.root.context, "删除应用成功", Toast.LENGTH_SHORT)
+                        Toast.makeText(binding.root.context, R.string.group_delete_app_success, Toast.LENGTH_SHORT)
                             .show()
                     } else {
-                        Toast.makeText(binding.root.context, "删除失败", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(binding.root.context, R.string.group_delete_failed, Toast.LENGTH_SHORT).show()
                     }
                     group.apps.remove(item)
                     groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
@@ -355,7 +355,7 @@ class GroupItemAdapter(
             val context = binding.root.context
             val success = AppStatusHelper.launchApp(packageName, userId)
             if (!success) {
-                Toast.makeText(context, "无法启动应用", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.group_cannot_launch_app, Toast.LENGTH_SHORT).show()
             }
         }
 
