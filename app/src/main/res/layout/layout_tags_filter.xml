@@ -1,18 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/tags_filter_content"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="2dp"
-    android:paddingBottom="4dp">
+    android:orientation="vertical">
 
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group_tags"
+    <LinearLayout
+        android:id="@+id/tags_chip_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:chipSpacingHorizontal="@dimen/tag_chip_spacing_horizontal"
-        app:chipSpacingVertical="@dimen/tag_chip_spacing_vertical"
-        app:singleLine="false" />
+        android:baselineAligned="false"
+        android:clipToPadding="false"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/filter_row_height"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/tags_chip_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1">
+
+            <HorizontalScrollView
+                android:id="@+id/tags_scroll_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:fillViewport="false"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_tags"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    app:chipSpacingHorizontal="@dimen/tag_chip_spacing_horizontal"
+                    app:singleLine="true" />
+
+            </HorizontalScrollView>
+
+        </FrameLayout>
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/btn_toggle_tags"
+            style="@style/Widget.AppSnapshot.FilterRowIcon"
+            android:layout_marginStart="@dimen/filter_chip_row_end_padding"
+            android:contentDescription="@string/tags_filter_expand"
+            android:visibility="gone"
+            app:srcCompat="@drawable/ic_chevron_down" />
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -112,9 +112,10 @@ data class ArchivedApp(val group: SnapGroup, val packageDir: String, val iconFil
 
     val isRunning: Boolean
         get() {
-            return appInfo.appManager.isPackageRunning(
-                appInfo.packageName,
-                appInfo.userId
+            val info = if (this::appInfo.isInitialized) appInfo else return false
+            return info.appManager.isPackageRunning(
+                info.packageName,
+                info.userId
             )
         }
 }

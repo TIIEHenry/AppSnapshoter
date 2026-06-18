@@ -50,21 +50,29 @@ class TimelineViewModel : ViewModel() {
     private var boundGroupList: LiveData<List<SnapGroup>>? = null
     private var groupListObserver: androidx.lifecycle.Observer<List<SnapGroup>>? = null
     private var timeRangeObserver: androidx.lifecycle.Observer<TimeRange>? = null
+    private var isBound = false
 
     fun bindGroupList(groupList: LiveData<List<SnapGroup>>) {
+        if (isBound && boundGroupList === groupList) return
+        unbindGroupList()
+        groupListObserver = androidx.lifecycle.Observer { requery(groupList, timeRange) }
+        timeRangeObserver = androidx.lifecycle.Observer { requery(groupList, timeRange) }
+        groupList.observeForever(groupListObserver!!)
+        timeRange.observeForever(timeRangeObserver!!)
+        boundGroupList = groupList
+        isBound = true
+        requery(groupList, timeRange)
+    }
+
+    fun unbindGroupList() {
         boundGroupList?.let { old ->
             groupListObserver?.let { old.removeObserver(it) }
         }
         timeRangeObserver?.let { timeRange.removeObserver(it) }
-
-        groupListObserver = androidx.lifecycle.Observer { requery(groupList, timeRange) }
-        timeRangeObserver = androidx.lifecycle.Observer { requery(groupList, timeRange) }
-
-        groupList.observeForever(groupListObserver!!)
-        timeRange.observeForever(timeRangeObserver!!)
-        boundGroupList = groupList
-
-        requery(groupList, timeRange)
+        groupListObserver = null
+        timeRangeObserver = null
+        boundGroupList = null
+        isBound = false
     }
 
     private fun requery(groupList: LiveData<List<SnapGroup>>, timeRange: LiveData<TimeRange>) {
@@ -114,10 +122,7 @@ class TimelineViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        boundGroupList?.let { old ->
-            groupListObserver?.let { old.removeObserver(it) }
-        }
-        timeRangeObserver?.let { timeRange.removeObserver(it) }
+        unbindGroupList()
     }
 
     companion object {

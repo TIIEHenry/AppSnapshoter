@@ -67,8 +67,8 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 |-----|----------------|
 | 存档 | `LauncherFragment` — 分组 RecyclerView |
 | 时间线 | `TimelineFragment` — 筛选 Chip、可折叠搜索、热力图、列表 |
-| 应用 | `AppsFragment` — 用户 Tab、筛选 Chip、可折叠搜索、标签、列表 |
-| 选应用 / 忽略应用 | `SelectAppFragment`、`IgnoreAppsFragment` — 同上搜索模式 |
+| 应用 | `AppsFragment` — `apps_filter_header`：用户 Tab + 系统/用户图标筛选 + 搜索（`layout_apps_filter_row`，32dp 图标）；下方 Tag 行（单行滚动 + 展开/收起） |
+| 选应用 / 忽略应用 | `SelectAppFragment`、`IgnoreAppsFragment` — 同上筛选/搜索模式 |
 
 ### 可折叠搜索
 
@@ -76,26 +76,49 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 
 | 项 | 说明 |
 |----|------|
-| 默认 | 筛选 Chip 行右侧仅显示搜索图标（44dp 触控区，24dp 图标） |
+| 触发控件 | 筛选行右侧 `AppCompatImageButton`（`Widget.AppSnapshot.FilterRowIcon` 32dp / `FilterToolbarIcon` 44dp）；`scaleType=fitCenter` + `filter_row_icon_inset` 保证图标居中 |
+| 默认 | 仅显示搜索图标 |
 | 展开 | 下方显示 `layout_search_field`（Dense Outlined，14sp），自动弹出键盘 |
 | 收起 | 点击行内 ✕；过滤词保留，图标在有过滤时变主题色 |
-| 动画 | `CollapsibleSearchController` + `AutoTransition`（180ms） |
-| 样式 | `Widget.AppSnapshot.SearchField` / `Widget.AppSnapshot.IconButton` |
-| 间距 | `@dimen/filter_horizontal_padding`（12dp）统一水平 inset |
+| 动画 | `CollapsibleSearchController`（`ImageView`）+ `AutoTransition`（180ms）；应用 Tab 动画容器为 `apps_filter_header` |
+| 样式 | `Widget.AppSnapshot.SearchField` |
+| 水平间距 | 左 `@dimen/filter_horizontal_padding`（12dp）；右 `@dimen/filter_section_inset_end`（8dp） |
 
 实现：`CollapsibleSearchController`；应用列表通过 `AppsListComponent` 回调 `getSearchFieldBinding` / `getSearchToggle` / `getSearchTransitionHost` 接入。
 
-### 标签筛选（应用 Tab / 选应用）
+### 应用 Tab 筛选区（`apps_filter_header`）
 
-分组名与 Xposed 等标签由 `TagsFilterLayout` 渲染，位于系统/用户筛选 Chip 下方：
+```
+LinearLayout (@id/apps_filter_header)     ← 左 12dp / 右 8dp padding
+├── include layout_apps_filter_row        ← 单行
+│   ├── TabLayout user_tab_layout       ← 用户切换（Tab.Inline，tab 左 8dp padding）
+│   └── filter_icon_group               ← 系统 / 用户 / 搜索图标（各 32dp）
+├── include layout_search_field           ← 可折叠（默认 gone）
+└── TagsFilterLayout                    ← 与筛选区间隔 filter_row_section_gap（8dp）
+```
 
 | 项 | 说明 |
 |----|------|
-| 样式 | `Widget.AppSnapshot.Chip.Tag`（继承 Filter Chip，26dp 高、12sp、6dp 水平 padding） |
-| 筛选 Chip | `Widget.AppSnapshot.Chip.Filter`（32dp 高、13sp）— 系统/用户、时间线预设等 |
-| 间距 | `@dimen/tag_chip_spacing_*`；容器 `layout_tags_filter` 仅保留上下 2/4dp |
+| 系统/用户筛选 | `AppFilterHelper.setupFilterIconToggles`；`FilterRowIcon.Toggle`；可多选，至少保留一项 |
+| 图标 | `ic_filter_system` / `ic_filter_user` / `ic_search`；选中态背景 `bg_filter_row_icon_toggle` |
+| 用户 Tab | `Widget.AppSnapshot.TabLayout.Inline`；`filter_tab_start_padding` 8dp、`filter_tab_end_padding` 12dp |
+
+布局：`fragment_apps.xml`、`layout_apps_filter_row.xml`；逻辑：`AppsListComponent` + `AppFilterHelper`。
+
+### 标签筛选（应用 Tab / 选应用）
+
+分组名与 Xposed 等标签由 `TagsFilterLayout` 渲染，位于筛选区第二行（与展开按钮**同一行**）：
+
+| 项 | 说明 |
+|----|------|
+| 样式 | `Widget.AppSnapshot.Chip.Tag`（`chipMinHeight` 22dp、11sp） |
+| 筛选 Chip | `Widget.AppSnapshot.Chip.Filter`（32dp 高、13sp）— 时间线预设等 |
+| 布局 | 左侧 `HorizontalScrollView` + `ChipGroup`（默认单行）；右侧 `FilterRowIcon` 展开/收起 |
+| 展开 | Chip 换行占满左侧，按钮仍固定于行右；`ic_chevron_down` / `ic_chevron_up` |
+| 展开按钮 | 标签数 > 1 时显示；仅 1 个标签时始终单行且不显示按钮 |
 | 选中 | 多选；`ChipGroup` 要求每个 Chip 有唯一 `id`，由 `TagsFilterLayout` 在代码中分配 |
-| 数据 | `AppTagHelper.getAllAvailableTags()` → `AppsViewModel.setSelectedTags()` |
+| 数据 | `AppTagHelper.getAllAvailableTags()` 从 `SnapshotViewModel.groupList` 取分组名，回退 `groupId` → `AppsViewModel.setSelectedTags()` |
+| 实现注意 | reparent `ChipGroup` 时须使用 `FrameLayout.LayoutParams`（`HorizontalScrollView.measureChildWithMargins` 要求 `MarginLayoutParams`） |
 
 布局：`layout_tags_filter.xml`；逻辑：`ui/widget/TagsFilterLayout.kt` + `AppsListComponent.setupTagsFilter()`。
 
@@ -123,8 +146,9 @@ LinearLayout (@id/settings_root)
 | 文件 | 职责 |
 |------|------|
 | `values/themes.xml` | Fluent 2 色板与 Material3 组件样式（含 `Chip.Filter` / `Chip.Tag`） |
-| `values/dimens.xml` | `toolbar_height`、`filter_*`、`tag_chip_*`、`floating_nav_*` 尺寸 |
-| `layout/layout_tags_filter.xml` | 应用 Tab 标签 Chip 行 |
+| `values/dimens.xml` | `toolbar_height`、`filter_*`（含 `filter_row_*`、`filter_tab_*`、`filter_section_inset_end`）、`tag_chip_*`、`floating_nav_*` |
+| `layout/layout_apps_filter_row.xml` | 应用 Tab 用户 Tab + 图标筛选 + 搜索（单行） |
+| `layout/layout_tags_filter.xml` | 应用 Tab 标签 Chip 行 + 展开按钮 |
 | `layout/layout_search_field.xml` | 共享搜索输入布局 |
 | `layout/activity_settings.xml` | 设置页顶栏 + 列表 |
 | `main/settings/SettingsActivity.kt` | 设置页 Activity |

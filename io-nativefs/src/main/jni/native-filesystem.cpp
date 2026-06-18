@@ -51,6 +51,7 @@ Java_nota_android_io_NativeFileSystem_calculateTreeSize(JNIEnv *env, jobject, js
     int64_t *p_total_size = &total_size;
     const char *p_path = env->GetStringUTFChars(path, JNI_FALSE);
     NativeNS::calculate_tree_size(p_path, p_total_size);
+    env->ReleaseStringUTFChars(path, p_path);
     return total_size;
 }
 
@@ -59,8 +60,10 @@ Java_nota_android_io_NativeFileSystem_getUid(JNIEnv *env, jobject, jstring path)
     struct stat file_stat{};
     const char *p_path = env->GetStringUTFChars(path, JNI_FALSE);
     if (stat(p_path, &file_stat) == -1) {
+        env->ReleaseStringUTFChars(path, p_path);
         return -1;
     }
+    env->ReleaseStringUTFChars(path, p_path);
     return (jint) file_stat.st_uid;
 }
 
@@ -69,7 +72,9 @@ Java_nota_android_io_NativeFileSystem_getGid(JNIEnv *env, jobject, jstring path)
     struct stat file_stat{};
     const char *p_path = env->GetStringUTFChars(path, JNI_FALSE);
     if (stat(p_path, &file_stat) == -1) {
+        env->ReleaseStringUTFChars(path, p_path);
         return -1;
     }
+    env->ReleaseStringUTFChars(path, p_path);
     return (jint) file_stat.st_gid;
 }

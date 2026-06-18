@@ -4,13 +4,23 @@
     <dimen name="filter_horizontal_padding">12dp</dimen>
     <dimen name="filter_row_padding_vertical">8dp</dimen>
     <dimen name="filter_chip_row_end_padding">8dp</dimen>
-    <dimen name="tag_chip_min_height">26dp</dimen>
-    <dimen name="tag_chip_horizontal_padding">6dp</dimen>
-    <dimen name="tag_chip_spacing_horizontal">6dp</dimen>
+    <dimen name="tag_chip_min_height">22dp</dimen>
+    <dimen name="tag_chip_horizontal_padding">4dp</dimen>
+    <dimen name="tag_chip_spacing_horizontal">4dp</dimen>
     <dimen name="tag_chip_spacing_vertical">2dp</dimen>
     <dimen name="search_field_corner_radius">4dp</dimen>
     <dimen name="filter_icon_button_size">44dp</dimen>
     <dimen name="filter_icon_button_icon_size">24dp</dimen>
+    <dimen name="filter_row_icon_button_size">32dp</dimen>
+    <dimen name="filter_row_icon_button_icon_size">18dp</dimen>
+    <dimen name="filter_row_icon_inset">7dp</dimen>
+    <dimen name="filter_toolbar_icon_inset">10dp</dimen>
+    <dimen name="filter_row_height">32dp</dimen>
+    <dimen name="filter_row_icon_spacing">4dp</dimen>
+    <dimen name="filter_row_section_gap">8dp</dimen>
+    <dimen name="filter_tab_end_padding">12dp</dimen>
+    <dimen name="filter_tab_start_padding">8dp</dimen>
+    <dimen name="filter_section_inset_end">@dimen/filter_row_padding_vertical</dimen>
     <dimen name="toolbar_height">48dp</dimen>
 
     <!-- Fluent 2 corner radii -->
@@ -18,12 +28,12 @@
     <dimen name="fluent_corner_radius_overlay">8dp</dimen>
 
     <!-- Floating bottom navigation — Fluent acrylic bar -->
-    <dimen name="floating_nav_corner_radius">12dp</dimen>
+    <dimen name="floating_nav_corner_radius">@dimen/floating_nav_icon_size</dimen>
     <dimen name="floating_nav_bottom_margin">44dp</dimen>
     <dimen name="floating_nav_horizontal_padding">10dp</dimen>
     <dimen name="floating_nav_height">58dp</dimen>
     <dimen name="floating_nav_content_gap">12dp</dimen>
-    <dimen name="floating_nav_blur_radius">24dp</dimen>
+    <dimen name="floating_nav_blur_radius">50dp</dimen>
     <!-- 3 × item_max_width + 2 × horizontal_padding = 176dp -->
     <dimen name="floating_nav_total_width">176dp</dimen>
     <dimen name="floating_nav_icon_size">26dp</dimen>

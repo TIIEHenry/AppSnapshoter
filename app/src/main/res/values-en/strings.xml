@@ -1,0 +1,136 @@
+<resources>
+    <string name="app_name">AppSnapshot</string>
+    <string name="apps">Apps</string>
+    <string name="nav_archive">Archive</string>
+
+    <!-- Search -->
+    <string name="search_apps_hint">Search apps…</string>
+
+    <!-- App filters -->
+    <string name="app_filter_system">System apps</string>
+    <string name="app_filter_user">User apps</string>
+    <string name="tags_filter_expand">Expand tags</string>
+    <string name="tags_filter_collapse">Collapse tags</string>
+
+    <!-- Multi-select -->
+    <string name="selected_count">%d selected</string>
+    <string name="please_select_apps">Please select apps to add</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="ignore_apps">Ignored apps</string>
+    <string name="ignore_apps_description">Manage ignored apps. Ignored apps are hidden from the app list.</string>
+    <string name="add_ignore_app">Add ignored app</string>
+    <string name="remove_ignore_app">Remove</string>
+    <string name="remove_ignore_app_confirm">Remove %s from the ignore list?</string>
+    <string name="no_ignored_apps">No ignored apps</string>
+    <string name="long_press_to_remove">Long press to remove an app</string>
+
+    <!-- About -->
+    <string name="about">About</string>
+    <string name="about_description">App info and open-source components</string>
+    <string name="about_github_url">github.com/TIIEHenry/AppSnapshoter</string>
+    <string name="about_license">This project is open source under the GNU General Public License v3.0</string>
+    <string name="about_open_source">Open-source components</string>
+    <string name="about_open_source_list">libsu - topjohnwu (Apache-2.0)\nMMKV - Tencent (BSD-3-Clause)\nFastJSON2 - Alibaba (Apache-2.0)\nGlide - bumptech (BSD-2-Clause)\nKotlin Coroutines - JetBrains (Apache-2.0)\nAndroidX - Google (Apache-2.0)\nMaterial Components - Google (Apache-2.0)\nGNU Tar - FSF (GPL-3.0)\nZstandard - Facebook (BSD-3-Clause)</string>
+
+    <!-- Timeline -->
+    <string name="timeline">Timeline</string>
+    <string name="timeline_today">Today</string>
+    <string name="timeline_yesterday">Yesterday</string>
+    <string name="timeline_7days">7 days</string>
+    <string name="timeline_30days">30 days</string>
+    <string name="timeline_custom">Custom</string>
+    <string name="timeline_search_hint">Search apps or groups…</string>
+    <string name="timeline_search_toggle">Search</string>
+    <string name="timeline_search_close">Close search</string>
+    <string name="timeline_empty">No backup snapshots in this time range</string>
+    <string name="timeline_empty_hint">Go to Archive to create or view backups</string>
+    <string name="timeline_go_archive">Go to Archive</string>
+    <string name="timeline_expand_desc">Expand snapshot details</string>
+    <string name="timeline_collapse_desc">Collapse snapshot details</string>
+    <string name="timeline_app_icon_desc">App icon</string>
+    <string name="timeline_restore">Restore</string>
+    <string name="timeline_export">Export</string>
+    <string name="timeline_delete">Delete</string>
+    <string name="timeline_export_confirm">Export snapshots for %d apps?</string>
+    <string name="timeline_export_select_dir">Select export directory</string>
+    <string name="timeline_export_done">Export complete: %1$d succeeded, %2$d failed</string>
+    <string name="timeline_no_selection">Select apps to operate on first</string>
+    <string name="timeline_restore_confirm">Restore snapshots for %d apps?</string>
+    <string name="timeline_delete_confirm">Delete %2$d snapshots in the time range for %1$d apps (%3$d locked will be skipped). Continue?</string>
+    <string name="timeline_batch_cancelled">Cancelled</string>
+    <string name="timeline_batch_finished">Finished</string>
+    <string name="timeline_batch_no_errors">No errors</string>
+    <string name="timeline_batch_no_success">No successes</string>
+    <string name="timeline_batch_total_time">Total time: %s</string>
+    <string name="timeline_batch_success_count">Succeeded: %d</string>
+    <string name="timeline_batch_fail_count">Failed: %d</string>
+    <string name="timeline_batch_error_title">Failed (%d)</string>
+    <string name="timeline_batch_error_detail_title">Error: %s</string>
+    <string name="timeline_batch_success_title">Succeeded (%d)</string>
+    <string name="timeline_batch_time_seconds">%d s</string>
+    <string name="timeline_batch_time_minutes">%1$d min %2$d s</string>
+    <string name="timeline_batch_delete_done">Delete complete: %1$d succeeded, %2$d failed%3$s</string>
+    <string name="timeline_batch_skipped_locked">, skipped %d locked</string>
+    <string name="timeline_entry_stale">App data is stale</string>
+    <string name="timeline_restore_strategy_title">Batch restore (%d apps)</string>
+    <string name="timeline_restore_strategy_desc">%d apps have multiple snapshots in the selected time range. Choose a restore strategy:</string>
+    <string name="timeline_restore_strategy_confirm">Start restore</string>
+    <string name="timeline_restore_newest">Newest first — restore the latest snapshot for each app</string>
+    <string name="timeline_restore_oldest">Oldest first — restore the oldest snapshot for each app</string>
+    <string name="timeline_snapshot_count_single">1 snapshot  %1$s</string>
+    <string name="timeline_snapshot_count_multi">%1$d snapshots  %2$s ~ %3$s</string>
+
+    <!-- Group batch operations -->
+    <string name="batch_operation_in_progress">A batch task is already in progress</string>
+    <string name="group_batch_menu_title">Batch actions</string>
+    <string name="group_batch_menu_archive">Archive all</string>
+    <string name="group_batch_menu_restore">Batch restore…</string>
+    <string name="group_batch_restore_title">Batch restore</string>
+    <string name="group_batch_restore_scope_label">Restore scope</string>
+    <string name="group_batch_restore_scope_not_installed">Not installed (%d)</string>
+    <string name="group_batch_restore_scope_all">All apps with snapshots (%d)</string>
+    <string name="group_batch_restore_scope_since_last">Since last restore (%d)</string>
+    <string name="group_batch_restore_strategy_label">Snapshot selection</string>
+    <string name="group_batch_restore_strategy_newest">Newest snapshot</string>
+    <string name="group_batch_restore_strategy_oldest">Oldest snapshot</string>
+    <string name="group_batch_restore_strategy_last_restored">Same as last restore</string>
+    <string name="group_batch_restore_preview">Preview: will restore %d apps</string>
+    <string name="group_batch_restore_preview_empty">No apps match the selected scope</string>
+    <string name="group_batch_restore_preview_fallback">%d apps will fall back to the newest snapshot</string>
+    <string name="group_batch_restore_warning">Installed apps will be cleared and overwritten with archived data</string>
+    <string name="group_batch_restore_confirm">Start restore</string>
+    <string name="group_batch_restore_no_archives">No archives to restore</string>
+
+    <!-- Extra items -->
+    <string name="extra_item_excludes_count">%d exclude patterns</string>
+    <string name="extra_item_no_excludes">No exclude patterns</string>
+
+    <!-- Common -->
+    <string name="confirm">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="select_all">Select all</string>
+
+    <!-- Select app -->
+    <string name="select_app_title">Select apps</string>
+
+    <!-- Users -->
+    <string name="user_primary">Primary user</string>
+    <string name="user_named">User %d</string>
+
+    <!-- Provider check -->
+    <string name="provider_check_title">Permission check</string>
+    <string name="provider_check_root_permission">Root access</string>
+    <string name="provider_check_all_files_access">All files access</string>
+    <string name="provider_check_waiting">Waiting</string>
+    <string name="provider_check_in_progress">Checking…</string>
+    <string name="provider_check_connected">Connected</string>
+    <string name="provider_check_failed_retry">Failed (tap to retry)</string>
+    <string name="provider_check_service_connect_failed">Service connection failed: %s</string>
+    <string name="provider_check_no_root">Root access not granted</string>
+    <string name="provider_check_no_all_files_access">All files access not granted</string>
+    <string name="provider_check_error_no_root">Root access is required. Grant root and tap to retry.</string>
+    <string name="provider_check_error_no_files_access">All files access is required. Grant permission and tap to retry.</string>
+    <string name="provider_check_status_desc">Status</string>
+</resources>

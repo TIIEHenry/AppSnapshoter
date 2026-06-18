@@ -4,7 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="@dimen/filter_horizontal_padding">
+    android:paddingStart="@dimen/filter_horizontal_padding"
+    android:paddingTop="@dimen/filter_horizontal_padding"
+    android:paddingEnd="@dimen/filter_section_inset_end"
+    android:paddingBottom="@dimen/filter_horizontal_padding">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,7 +20,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="选择应用"
+            android:text="@string/select_app_title"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -25,59 +28,38 @@
             android:id="@+id/btn_confirm"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="确定"
+            android:text="@string/confirm"
             android:visibility="gone" />
     </LinearLayout>
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/user_tab_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/filter_row_padding_vertical"
-        app:tabGravity="start"
-        app:tabMode="scrollable" />
-
     <LinearLayout
-        android:id="@+id/filter_chip_row"
+        android:id="@+id/apps_filter_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:layout_marginBottom="@dimen/filter_row_padding_vertical">
+        android:orientation="vertical">
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_app_filter"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:paddingEnd="@dimen/filter_chip_row_end_padding"
-            app:selectionRequired="true"
-            app:singleSelection="true" />
+        <include
+            android:id="@+id/apps_filter_row"
+            layout="@layout/layout_apps_filter_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_search_toggle"
-            style="@style/Widget.AppSnapshot.IconButton"
-            android:layout_width="wrap_content"
+        <include
+            android:id="@+id/search_field"
+            layout="@layout/layout_search_field"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:contentDescription="@string/timeline_search_toggle"
-            app:icon="@drawable/ic_search" />
+            android:layout_marginTop="@dimen/filter_row_section_gap"
+            android:visibility="gone" />
+
+        <tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
+            android:id="@+id/tags_filter_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/filter_row_section_gap"
+            android:layout_marginBottom="@dimen/filter_row_padding_vertical" />
 
     </LinearLayout>
-
-    <include
-        android:id="@+id/search_field"
-        layout="@layout/layout_search_field"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/filter_row_padding_vertical"
-        android:visibility="gone" />
-
-    <!-- Tags Filter Layout -->
-    <tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
-        android:id="@+id/tags_filter_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/filter_row_padding_vertical" />
 
     <!-- 多选工具栏 -->
     <include

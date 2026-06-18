@@ -27,7 +27,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 | 类 | 职责 |
 |---|------|
 | `AppInfo` | 应用信息数据类（包名、图标、标签、版本） |
-| `AppFilterHelper` | 多维过滤辅助（系统/用户、标签、用户 ID） |
+| `AppFilterHelper` | 多维过滤辅助（`setupFilterIconToggles` 系统/用户图标、`setupFilterChips` 文字 Chip、标签、用户 ID） |
 | `AppFilterType` | 过滤类型枚举 |
 | `AppPermission` | 应用权限数据类 |
 | `tag/AppTag`, `AppTagHelper`, `TagType` | 标签分类系统 |
@@ -120,9 +120,9 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `ui.widget` — 自定义组件
 | 类 | 职责 |
 |---|------|
-| `TagsFilterLayout` | 标签筛选 ChipGroup；动态 Chip 须 `View.generateViewId()` + `ChipGroup.setOnCheckedStateChangeListener`；样式 `Widget.AppSnapshot.Chip.Tag`（26dp，12sp，比筛选 Chip 更紧凑） |
+| `TagsFilterLayout` | 标签筛选：单行横向滚动 + 同行展开/收起；展开后 Chip 换行；动态 Chip 须 `View.generateViewId()`；样式 `Widget.AppSnapshot.Chip.Tag`（22dp，11sp） |
 | `SearchFieldExt` | 搜索框扩展函数 |
-| `CollapsibleSearchController` | Chip 行搜索图标 ↔ `layout_search_field` 展开/收起（时间线、应用 Tab、选应用、忽略应用） |
+| `CollapsibleSearchController` | 筛选行 `ImageView` 图标 ↔ `layout_search_field` 展开/收起（时间线、应用 Tab、选应用、忽略应用） |
 | `FloatingBottomNav` | 悬浮底栏 `BlurView` 毛玻璃（采样根 `coordinator`） |
 
 ## 主界面布局（`activity_main.xml`）

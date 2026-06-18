@@ -22,7 +22,8 @@ import java.io.File
 
     val fileCompressor = FileCompressor(this, context)
 
-    private fun getRootService() = rootServiceClient.client!!
+    private fun getRootService() =
+        rootServiceClient.client ?: throw IllegalStateException("Root service not connected")
 
     override fun fileType(path: String): Int {
         try {

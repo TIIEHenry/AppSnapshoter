@@ -53,9 +53,11 @@ provider → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 
 **Main shell UI**: `MainActivity` uses a `ConstraintLayout` host (`@id/coordinator`) with a fixed compact `MaterialToolbar` (`toolbar_height` 48dp, title via Navigation), fragment content below `toolbar_header`, and a floating `BlurView` bottom nav (`FloatingBottomNav`) built from a fixed-width `LinearLayout` + three equal `ImageButton` tabs (not `BottomNavigationView` — avoids landscape re-layout gaps). Navigation is wired in `setupBottomNavigation()`; cross-tab jumps use `selectBottomNavTab()`. No collapsing/large-title app bar — list scroll does not affect the toolbar. Both `MainActivity` and `SettingsActivity` declare `android:screenOrientation="portrait"` in the manifest — the UI is portrait-only; this avoids configuration-change recreation and dialog loss during rotation. See `docs/guides/getting-started/ui-shell.md`.
 
-**Collapsible search**: List filter screens share `layout_search_field` + `CollapsibleSearchController` — a 44dp icon button on the Chip row toggles the search field (timeline, apps tab, select-app and ignore-apps sheets). Spacing uses `filter_horizontal_padding` (12dp). Styles: `Widget.AppSnapshot.SearchField`, `Widget.AppSnapshot.IconButton`.
+**Collapsible search**: List filter screens share `layout_search_field` + `CollapsibleSearchController` — filter row right-side `AppCompatImageButton` (`Widget.AppSnapshot.FilterRowIcon` 32dp on apps tab; `FilterToolbarIcon` 44dp on timeline / ignore-apps) toggles the search field. Horizontal inset: `filter_horizontal_padding` (12dp) start, `filter_section_inset_end` (8dp) end. Styles: `Widget.AppSnapshot.SearchField`.
 
-**Tag filter chips**: `TagsFilterLayout` renders group/Xposed tags below the system/user filter row on the apps tab (and select-app sheets). Use `Widget.AppSnapshot.Chip.Tag` (26dp, 12sp) — compact variant of `Chip.Filter` (32dp). Each dynamic Chip must have a unique `View.id` for `ChipGroup` selection to work.
+**Apps filter row**: User `TabLayout` + system/user icon toggles + search share one row (`layout_apps_filter_row.xml`), hosted in `apps_filter_header` with tags below (`filter_row_section_gap` 8dp). System/user filters use `AppFilterHelper.setupFilterIconToggles` on `FilterRowIcon.Toggle` (32dp, `fitCenter`).
+
+**Tag filter chips**: `TagsFilterLayout` renders scrollable tag chips and expand/collapse on the **same row** (`layout_tags_filter.xml`). Use `Widget.AppSnapshot.Chip.Tag` (22dp min height, 11sp). Each dynamic Chip must have a unique `View.id` for `ChipGroup` selection.
 
 ## Documentation System
 

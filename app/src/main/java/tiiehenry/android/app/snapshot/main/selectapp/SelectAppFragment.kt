@@ -8,8 +8,8 @@ import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.chip.ChipGroup
+import android.widget.ImageButton
+import android.widget.ImageView
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SingletonViewModelFactory
@@ -98,20 +98,25 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     override fun getRecyclerView(binding: FragmentSelectAppBinding): RecyclerView = binding.appsRecyclerView
 
-    override fun getUserTabLayout(binding: FragmentSelectAppBinding): TabLayout = binding.userTabLayout
+    override fun getUserTabLayout(binding: FragmentSelectAppBinding): TabLayout =
+        binding.appsFilterRow.userTabLayout
 
-    override fun getFilterChipGroup(binding: FragmentSelectAppBinding): ChipGroup = binding.chipGroupAppFilter
+    override fun getFilterSystemButton(binding: FragmentSelectAppBinding): ImageButton =
+        binding.appsFilterRow.btnFilterSystem
+
+    override fun getFilterUserButton(binding: FragmentSelectAppBinding): ImageButton =
+        binding.appsFilterRow.btnFilterUser
 
     override fun getTagsFilterLayout(binding: FragmentSelectAppBinding): TagsFilterLayout = binding.tagsFilterLayout
 
     override fun getSearchFieldBinding(binding: FragmentSelectAppBinding): LayoutSearchFieldBinding =
         binding.searchField
 
-    override fun getSearchToggle(binding: FragmentSelectAppBinding): MaterialButton =
-        binding.btnSearchToggle
+    override fun getSearchToggle(binding: FragmentSelectAppBinding): ImageView =
+        binding.appsFilterRow.btnSearchToggle
 
     override fun getSearchTransitionHost(binding: FragmentSelectAppBinding): ViewGroup =
-        binding.root
+        binding.appsFilterHeader
 
     override fun setupRecyclerViewAdapter(binding: FragmentSelectAppBinding) {
         selectAppAdapter = SelectAppAdapter(

@@ -67,14 +67,16 @@ object AppTagHelper {
         // 添加内置标签
         tags.add(AppTag.XPOSED_TAG)
 
-        // 添加所有分组标签
-        val groups = GlobalConfig.groups
-        for (groupId in groups) {
-            val group = SnapGroup(groupId)
+        // 使用已加载的分组对象，避免新建 SnapGroup 时 name 等字段未初始化
+        val loadedGroups = SnapshotApp.getViewModel().groupList.value
+        val groupIds = GlobalConfig.groups
+        for (groupId in groupIds) {
+            val groupName = loadedGroups?.find { it.id == groupId }?.name
+                ?: groupId
             tags.add(
                 AppTag(
                     id = "group_$groupId",
-                    name = group.name,
+                    name = groupName,
                     type = TagType.GROUP
                 )
             )

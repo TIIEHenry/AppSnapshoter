@@ -9,7 +9,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
-        android:text="权限检查"
+        android:text="@string/provider_check_title"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -26,7 +26,7 @@
             android:id="@+id/icon_root_permission"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:contentDescription="状态"
+            android:contentDescription="@string/provider_check_status_desc"
             android:src="@android:drawable/ic_popup_sync" />
 
         <TextView
@@ -34,14 +34,14 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_weight="1"
-            android:text="Root权限"
+            android:text="@string/provider_check_root_permission"
             android:textSize="16sp" />
 
         <TextView
             android:id="@+id/status_root_permission"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="等待中"
+            android:text="@string/provider_check_waiting"
             android:textColor="?android:textColorSecondary"
             android:textSize="14sp" />
 
@@ -67,7 +67,7 @@
             android:id="@+id/icon_file_system"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:contentDescription="状态"
+            android:contentDescription="@string/provider_check_status_desc"
             android:src="@android:drawable/ic_popup_sync" />
 
         <TextView
@@ -75,14 +75,14 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_weight="1"
-            android:text="所有文件访问权限"
+            android:text="@string/provider_check_all_files_access"
             android:textSize="16sp" />
 
         <TextView
             android:id="@+id/status_file_system"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="等待中"
+            android:text="@string/provider_check_waiting"
             android:textColor="?android:textColorSecondary"
             android:textSize="14sp" />
 

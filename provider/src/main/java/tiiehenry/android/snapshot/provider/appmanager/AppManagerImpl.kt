@@ -32,9 +32,8 @@ class AppManagerImpl(
     private val packageManager: PackageManager = context.packageManager
     private val appInfos = mutableListOf<AppInfo>()
 
-    private fun rootService(): ISnapShotRootService {
-        return rootServiceClient.client!!
-    }
+    private fun rootService(): ISnapShotRootService =
+        rootServiceClient.client ?: throw IllegalStateException("Root service not connected")
 
     private inline fun <T> safeCall(method: String, default: T, block: ISnapShotRootService.() -> T): T {
         return try {

@@ -32,13 +32,11 @@
             app:selectionRequired="true"
             app:singleSelection="true" />
 
-        <com.google.android.material.button.MaterialButton
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/btn_search_toggle"
-            style="@style/Widget.AppSnapshot.IconButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            style="@style/Widget.AppSnapshot.FilterToolbarIcon"
             android:contentDescription="@string/timeline_search_toggle"
-            app:icon="@drawable/ic_search" />
+            app:srcCompat="@drawable/ic_search" />
 
     </LinearLayout>
 

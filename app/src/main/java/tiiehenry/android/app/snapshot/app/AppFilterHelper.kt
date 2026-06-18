@@ -2,6 +2,7 @@ package tiiehenry.android.app.snapshot.app
 
 import android.content.Context
 import android.view.ContextThemeWrapper
+import android.widget.ImageButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import tiiehenry.android.app.snapshot.R
@@ -59,6 +60,37 @@ object AppFilterHelper {
                 }
                 val selected = chips.mapIndexedNotNull { i, c ->
                     if (c.isChecked) filterOptions[i].second else null
+                }.toSet()
+                onFilterTypeSelected(selected)
+            }
+        }
+    }
+
+    /**
+     * 设置系统/用户应用筛选图标按钮（可多选，至少保留一项）
+     */
+    fun setupFilterIconToggles(
+        systemButton: ImageButton,
+        userButton: ImageButton,
+        onFilterTypeSelected: (Set<AppFilterType>) -> Unit
+    ) {
+        val buttons = listOf(
+            systemButton to AppFilterType.SYSTEM,
+            userButton to AppFilterType.USER
+        )
+
+        buttons.forEach { (button, _) ->
+            button.isSelected = true
+        }
+
+        buttons.forEach { (button, _) ->
+            button.setOnClickListener {
+                if (button.isSelected && buttons.count { it.first.isSelected } == 1) {
+                    return@setOnClickListener
+                }
+                button.isSelected = !button.isSelected
+                val selected = buttons.mapNotNull { (btn, type) ->
+                    if (btn.isSelected) type else null
                 }.toSet()
                 onFilterTypeSelected(selected)
             }

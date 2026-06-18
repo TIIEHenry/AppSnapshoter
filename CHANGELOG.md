@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 应用 Tab 筛选行改为用户 Tab + 系统/用户图标切换 + 搜索图标（`layout_apps_filter_row`），与选应用/忽略应用页共用；`apps_filter_header` 统一水平边距（左 12dp / 右 8dp）
+- 筛选图标改用 `FilterRowIcon`（`AppCompatImageButton` + `fitCenter`），修复系统/用户/搜索/展开按钮未居中
+- 标签筛选支持单行横向滚动与展开/收起（`TagsFilterLayout`）；Tag Chip 缩小为 22dp / 11sp
+- 权限检查对话框与部分 UI 文案抽取为字符串资源（含 `values-zh-rCN`、`values-en`）
+
+### Fixed
+
+- 应用 Tab 标签筛选展开/收起时 `ClassCastException`（`HorizontalScrollView` 子 View 须使用 `MarginLayoutParams`）
+- 应用 Tab 标签列表因 `SnapGroup.name` 未初始化导致的 `NullPointerException`（`AppTagHelper` 改为从已加载 `groupList` 取名称）
+- JNI `GetStringUTFChars` 未释放导致的 native 内存泄漏（`io-nativefs`）
+- Root 服务未连接时 `FileSystemImpl` / `AppManagerImpl` 强制解包 `client` 崩溃
+- `FileSystemProviderImpl.provide()` 无限阻塞（`fsmFuture.get()` 增加 10s 超时）
+- `TimelineViewModel` 重复 `observeForever` 导致观察者泄漏
+- `ArchivedApp.isRunning` 在 `appInfo` 未初始化时访问 `lateinit` 崩溃
+- 时间线列表项内容区/展开按钮长按进入多选
+
 ## [1.1.0] - 2026-06-18
 
 ### Added

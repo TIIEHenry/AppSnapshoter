@@ -5,6 +5,10 @@ import android.util.AttributeSet
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -13,7 +17,7 @@ import tiiehenry.android.app.snapshot.app.tag.AppTag
 
 /**
  * 标签过滤器布局
- * 用于显示和选择标签进行过滤
+ * 默认单行横向滚动，点击展开后换行显示全部标签
  */
 class TagsFilterLayout @JvmOverloads constructor(
     context: Context,
@@ -21,15 +25,26 @@ class TagsFilterLayout @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
+    private val chipContainer: FrameLayout
+    private val scrollContainer: HorizontalScrollView
     private val chipGroup: ChipGroup
+    private val toggleButton: ImageButton
     private val selectedTagIds = mutableSetOf<String>()
     private var onTagSelectionChangedListener: ((Set<String>) -> Unit)? = null
     private var suppressSelectionCallback = false
+    private var isExpanded = false
 
     init {
         orientation = VERTICAL
         val view = LayoutInflater.from(context).inflate(R.layout.layout_tags_filter, this, true)
+        chipContainer = view.findViewById(R.id.tags_chip_container)
+        scrollContainer = view.findViewById(R.id.tags_scroll_container)
         chipGroup = view.findViewById(R.id.chip_group_tags)
+        toggleButton = view.findViewById(R.id.btn_toggle_tags)
+        toggleButton.setOnClickListener {
+            isExpanded = !isExpanded
+            updateExpandState()
+        }
         chipGroup.setOnCheckedStateChangeListener { _, checkedChipIds ->
             if (suppressSelectionCallback) return@setOnCheckedStateChangeListener
             selectedTagIds.clear()
@@ -44,13 +59,7 @@ class TagsFilterLayout @JvmOverloads constructor(
     private val chipIdToTagId = mutableMapOf<Int, String>()
     private val tagIdToChipId = mutableMapOf<String, Int>()
 
-    /**
-     * 设置标签列表
-     * @param tags 标签列表
-     * @param clearSelection 是否清除之前的选中状态，默认为true
-     */
     fun setTags(tags: List<AppTag>, clearSelection: Boolean = true) {
-        // 如果需要，先清除选中状态
         if (clearSelection) {
             selectedTagIds.clear()
         }
@@ -67,15 +76,63 @@ class TagsFilterLayout @JvmOverloads constructor(
                 chipIdToTagId[chip.id] = tag.id
                 tagIdToChipId[tag.id] = chip.id
             }
+
+            isExpanded = false
+            updateExpandState()
         } finally {
             suppressSelectionCallback = false
         }
-
     }
 
-    /**
-     * 创建Chip视图
-     */
+    private fun updateExpandState() {
+        val needsToggle = chipGroup.childCount > 1
+        if (!needsToggle) {
+            toggleButton.visibility = View.GONE
+            applyExpandedLayout(expanded = true)
+            return
+        }
+
+        toggleButton.visibility = View.VISIBLE
+        if (isExpanded) {
+            toggleButton.setImageResource(R.drawable.ic_chevron_up)
+            toggleButton.contentDescription = context.getString(R.string.tags_filter_collapse)
+        } else {
+            toggleButton.setImageResource(R.drawable.ic_chevron_down)
+            toggleButton.contentDescription = context.getString(R.string.tags_filter_expand)
+        }
+        applyExpandedLayout(expanded = isExpanded)
+    }
+
+    private fun applyExpandedLayout(expanded: Boolean) {
+        chipGroup.isSingleLine = !expanded
+        if (expanded) {
+            if (chipGroup.parent == scrollContainer) {
+                scrollContainer.removeView(chipGroup)
+                chipContainer.addView(
+                    chipGroup,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                )
+            }
+            scrollContainer.visibility = View.GONE
+        } else {
+            if (chipGroup.parent != scrollContainer) {
+                chipContainer.removeView(chipGroup)
+                scrollContainer.addView(
+                    chipGroup,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                )
+            }
+            scrollContainer.visibility = View.VISIBLE
+            scrollContainer.post { scrollContainer.scrollTo(0, 0) }
+        }
+    }
+
     private fun createChip(tag: AppTag): Chip {
         val chipContext = ContextThemeWrapper(context, R.style.Widget_AppSnapshot_Chip_Tag)
         return Chip(chipContext).apply {
@@ -86,16 +143,8 @@ class TagsFilterLayout @JvmOverloads constructor(
         }
     }
 
-    /**
-     * 获取选中的标签ID集合
-     */
-    fun getSelectedTagIds(): Set<String> {
-        return selectedTagIds.toSet()
-    }
+    fun getSelectedTagIds(): Set<String> = selectedTagIds.toSet()
 
-    /**
-     * 设置选中的标签ID
-     */
     fun setSelectedTagIds(tagIds: Set<String>) {
         selectedTagIds.clear()
         selectedTagIds.addAll(tagIds)
@@ -108,12 +157,8 @@ class TagsFilterLayout @JvmOverloads constructor(
         } finally {
             suppressSelectionCallback = false
         }
-
     }
 
-    /**
-     * 清除所有选中
-     */
     fun clearSelection() {
         selectedTagIds.clear()
         suppressSelectionCallback = true
@@ -125,9 +170,6 @@ class TagsFilterLayout @JvmOverloads constructor(
         onTagSelectionChangedListener?.invoke(emptySet())
     }
 
-    /**
-     * 设置标签选择变化监听器
-     */
     fun setOnTagSelectionChangedListener(listener: (Set<String>) -> Unit) {
         onTagSelectionChangedListener = listener
     }

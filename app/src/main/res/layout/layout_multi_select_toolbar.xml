@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/multi_select_toolbar"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -20,7 +21,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="已选择 0 项"
+            android:text=""
+            tools:text="@string/selected_count"
             android:textColor="?attr/colorOnSurface"
             android:textSize="16sp" />
 
@@ -29,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:text="全选"
+            android:text="@string/select_all"
             android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:background="?attr/selectableItemBackgroundBorderless"
@@ -42,7 +44,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:text="取消"
+            android:text="@string/cancel"
             android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:background="?attr/selectableItemBackgroundBorderless"
@@ -54,7 +56,7 @@
             android:id="@+id/confirm_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="确定"
+            android:text="@string/confirm"
             android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:background="?attr/selectableItemBackgroundBorderless"

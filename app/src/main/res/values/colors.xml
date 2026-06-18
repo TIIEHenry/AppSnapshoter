@@ -54,7 +54,7 @@
     <color name="icon_primary">@color/on_surface</color>
 
     <!-- Acrylic floating nav (Fluent reveal / acrylic material) -->
-    <color name="floating_nav_glass_fill">#4DFFFFFF</color>
+    <color name="floating_nav_glass_fill">#18FFFFFF</color>
     <color name="floating_nav_glass_fill_fallback">#E6FAFAFA</color>
     <color name="floating_nav_glass_stroke">#14000000</color>
     <color name="icon_secondary">@color/fluent_text_secondary</color>

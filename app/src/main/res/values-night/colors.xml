@@ -45,7 +45,7 @@
     <color name="icon_primary">@color/on_surface</color>
 
     <!-- Acrylic floating nav (dark) -->
-    <color name="floating_nav_glass_fill">#4D202020</color>
+    <color name="floating_nav_glass_fill">#06000000</color>
     <color name="floating_nav_glass_fill_fallback">#E6202020</color>
     <color name="floating_nav_glass_stroke">#12FFFFFF</color>
     <color name="icon_secondary">@color/fluent_text_secondary</color>

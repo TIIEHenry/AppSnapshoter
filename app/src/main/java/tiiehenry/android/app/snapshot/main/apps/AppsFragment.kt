@@ -2,8 +2,8 @@ package tiiehenry.android.app.snapshot.main.apps
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.chip.ChipGroup
+import android.widget.ImageButton
+import android.widget.ImageView
 import com.google.android.material.tabs.TabLayout
 import androidx.recyclerview.widget.RecyclerView
 import tiiehenry.android.app.snapshot.main.launch.app.AppConfigFragment
@@ -22,20 +22,25 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
 
     override fun getRecyclerView(binding: FragmentAppsBinding): RecyclerView = binding.appsRecyclerView
 
-    override fun getUserTabLayout(binding: FragmentAppsBinding): TabLayout = binding.userTabLayout
+    override fun getUserTabLayout(binding: FragmentAppsBinding): TabLayout =
+        binding.appsFilterRow.userTabLayout
 
-    override fun getFilterChipGroup(binding: FragmentAppsBinding): ChipGroup = binding.chipGroupAppFilter
+    override fun getFilterSystemButton(binding: FragmentAppsBinding): ImageButton =
+        binding.appsFilterRow.btnFilterSystem
+
+    override fun getFilterUserButton(binding: FragmentAppsBinding): ImageButton =
+        binding.appsFilterRow.btnFilterUser
 
     override fun getTagsFilterLayout(binding: FragmentAppsBinding): TagsFilterLayout = binding.tagsFilterLayout
 
     override fun getSearchFieldBinding(binding: FragmentAppsBinding): LayoutSearchFieldBinding =
         binding.searchField
 
-    override fun getSearchToggle(binding: FragmentAppsBinding): MaterialButton =
-        binding.btnSearchToggle
+    override fun getSearchToggle(binding: FragmentAppsBinding): ImageView =
+        binding.appsFilterRow.btnSearchToggle
 
     override fun getSearchTransitionHost(binding: FragmentAppsBinding): ViewGroup =
-        binding.root
+        binding.appsFilterHeader
 
     override fun setupRecyclerViewAdapter(binding: FragmentAppsBinding) {
         appsAdapter = AppsAdapter { appInfo ->

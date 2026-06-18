@@ -98,7 +98,8 @@ class MainActivity : AppCompatActivity() {
 
         // 设置 Navigation
         val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+            ?: throw IllegalStateException("NavHostFragment not found")
         navController = navHostFragment.navController
 
         val appBarConfiguration = AppBarConfiguration(
@@ -366,26 +367,28 @@ class MainActivity : AppCompatActivity() {
                         }
                     } catch (e: Exception) {
                         rootPermissionOk = false
-                        rootCheckState = CheckState.Failed("服务连接失败: ${e.message}")
+                        val message = getString(R.string.provider_check_service_connect_failed, e.message)
+                        rootCheckState = CheckState.Failed(message)
                         dialogBinding?.let { binding ->
                             setItemFailed(
                                 binding.iconRootPermission,
                                 binding.statusRootPermission,
                                 binding.progressRootPermission,
-                                "服务连接失败: ${e.message}"
+                                message
                             )
                         }
                         providers.bindRootService()
                     }
                 } else {
                     rootPermissionOk = false
-                    rootCheckState = CheckState.Failed("未获取到Root权限")
+                    val message = getString(R.string.provider_check_no_root)
+                    rootCheckState = CheckState.Failed(message)
                     dialogBinding?.let { binding ->
                         setItemFailed(
                             binding.iconRootPermission,
                             binding.statusRootPermission,
                             binding.progressRootPermission,
-                            "未获取到Root权限"
+                            message
                         )
                     }
                 }
@@ -433,13 +436,14 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             allFilesAccessOk = false
-            filesAccessCheckState = CheckState.Failed("未授权所有文件访问权限")
+            val message = getString(R.string.provider_check_no_all_files_access)
+            filesAccessCheckState = CheckState.Failed(message)
             dialogBinding?.let { binding ->
                 setItemFailed(
                     binding.iconFileSystem,
                     binding.statusFileSystem,
                     binding.progressFileSystem,
-                    "未授权所有文件访问权限"
+                    message
                 )
             }
             // 打开所有文件访问权限设置页面
@@ -464,10 +468,10 @@ class MainActivity : AppCompatActivity() {
         // 显示错误信息
         dialogBinding?.let { binding ->
             if (!rootPermissionOk) {
-                binding.tvErrorMessage.text = "没有Root权限，请授予Root权限后点击重试"
+                binding.tvErrorMessage.text = getString(R.string.provider_check_error_no_root)
                 binding.tvErrorMessage.visibility = View.VISIBLE
             } else if (!allFilesAccessOk) {
-                binding.tvErrorMessage.text = "未授权所有文件访问权限，请授权后点击重试"
+                binding.tvErrorMessage.text = getString(R.string.provider_check_error_no_files_access)
                 binding.tvErrorMessage.visibility = View.VISIBLE
             } else {
                 binding.tvErrorMessage.visibility = View.GONE
@@ -478,7 +482,7 @@ class MainActivity : AppCompatActivity() {
     private fun setItemLoading(icon: ImageView, status: TextView, progress: ProgressBar) {
         icon.setImageResource(AndroidR.drawable.ic_popup_sync)
         icon.clearColorFilter()
-        status.text = "检查中..."
+        status.text = getString(R.string.provider_check_in_progress)
         status.setTextColor(currentThemeTextColor())
         progress.visibility = View.VISIBLE
     }
@@ -486,7 +490,7 @@ class MainActivity : AppCompatActivity() {
     private fun setItemSuccess(icon: ImageView, status: TextView, progress: ProgressBar) {
         icon.setImageResource(R.drawable.check_success)
         icon.setColorFilter(ContextCompat.getColor(this, R.color.status_success))
-        status.text = "已连接"
+        status.text = getString(R.string.provider_check_connected)
         status.setTextColor(ContextCompat.getColor(this, R.color.status_success))
         progress.visibility = View.GONE
     }
@@ -499,7 +503,7 @@ class MainActivity : AppCompatActivity() {
     ) {
         icon.setImageResource(R.drawable.check_error)
         icon.setColorFilter(ContextCompat.getColor(this, R.color.status_error))
-        status.text = "失败 (点击重试)"
+        status.text = getString(R.string.provider_check_failed_retry)
         status.setTextColor(ContextCompat.getColor(this, R.color.status_error))
         progress.visibility = View.GONE
     }

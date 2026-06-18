@@ -4,16 +4,17 @@ import android.content.res.ColorStateList
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import androidx.core.widget.ImageViewCompat
 import androidx.transition.AutoTransition
 import androidx.transition.TransitionManager
-import com.google.android.material.button.MaterialButton
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
 
 class CollapsibleSearchController(
-    private val toggle: MaterialButton,
+    private val toggle: ImageView,
     private val searchField: LayoutSearchFieldBinding,
     private val transitionHost: ViewGroup,
     private val onQueryChanged: (String) -> Unit,
@@ -51,7 +52,7 @@ class CollapsibleSearchController(
         expanded = true
         animateTransition {
             searchField.root.visibility = View.VISIBLE
-            toggle.setIconResource(R.drawable.ic_close)
+            toggle.setImageResource(R.drawable.ic_close)
             toggle.contentDescription = toggle.context.getString(R.string.timeline_search_close)
         }
         updateToggleState()
@@ -65,7 +66,7 @@ class CollapsibleSearchController(
         expanded = false
         animateTransition {
             searchField.root.visibility = View.GONE
-            toggle.setIconResource(R.drawable.ic_search)
+            toggle.setImageResource(R.drawable.ic_search)
             toggle.contentDescription = toggle.context.getString(R.string.timeline_search_toggle)
         }
         hideIme(searchField.searchInput)
@@ -78,7 +79,10 @@ class CollapsibleSearchController(
     private fun updateToggleState() {
         val hasQuery = currentQuery().isNotBlank()
         val tintRes = if (hasQuery && !expanded) R.color.primary else R.color.icon_secondary
-        toggle.iconTint = ColorStateList.valueOf(ContextCompat.getColor(toggle.context, tintRes))
+        ImageViewCompat.setImageTintList(
+            toggle,
+            ColorStateList.valueOf(ContextCompat.getColor(toggle.context, tintRes))
+        )
     }
 
     private fun animateTransition(block: () -> Unit) {

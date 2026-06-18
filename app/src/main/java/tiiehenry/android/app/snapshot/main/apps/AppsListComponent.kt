@@ -8,8 +8,8 @@ import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.chip.ChipGroup
+import android.widget.ImageButton
+import android.widget.ImageView
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,10 +48,11 @@ class AppsListComponent<VB : ViewBinding>(
     interface Callbacks<VB : ViewBinding> {
         fun getRecyclerView(binding: VB): RecyclerView
         fun getUserTabLayout(binding: VB): TabLayout
-        fun getFilterChipGroup(binding: VB): ChipGroup
+        fun getFilterSystemButton(binding: VB): ImageButton
+        fun getFilterUserButton(binding: VB): ImageButton
         fun getTagsFilterLayout(binding: VB): TagsFilterLayout
         fun getSearchFieldBinding(binding: VB): LayoutSearchFieldBinding
-        fun getSearchToggle(binding: VB): MaterialButton
+        fun getSearchToggle(binding: VB): ImageView
         fun getSearchTransitionHost(binding: VB): ViewGroup
         fun setupRecyclerViewAdapter(binding: VB)
         fun onAppsLoadingStateChanged(isLoading: Boolean)
@@ -73,8 +74,8 @@ class AppsListComponent<VB : ViewBinding>(
         }
         callbacks.setupRecyclerViewAdapter(binding)
 
-        // 设置 Filter ChipGroup
-        setupFilterChips()
+        // 设置 Filter 图标按钮
+        setupFilterIconToggles()
 
         // 设置 Tags Filter
         setupTagsFilter()
@@ -127,7 +128,11 @@ class AppsListComponent<VB : ViewBinding>(
 
         val tabs = userList.map { userInfo ->
             val tab = tabLayout.newTab()
-            tab.text = userInfo.name ?: if (userInfo.id == 0) "主用户" else "用户 ${userInfo.id}"
+            tab.text = userInfo.name ?: if (userInfo.id == 0) {
+                fragment.getString(R.string.user_primary)
+            } else {
+                fragment.getString(R.string.user_named, userInfo.id)
+            }
             tab.tag = userInfo
             tab
         }
@@ -146,12 +151,28 @@ class AppsListComponent<VB : ViewBinding>(
         })
 
         tabs.firstOrNull()?.select()
+        trimUserTabPadding(tabLayout)
     }
 
-    private fun setupFilterChips() {
-        AppFilterHelper.setupFilterChips(
-            callbacks.getFilterChipGroup(binding),
-            fragment.requireContext()
+    private fun trimUserTabPadding(tabLayout: TabLayout) {
+        val startPadding = tabLayout.resources.getDimensionPixelSize(R.dimen.filter_tab_start_padding)
+        val endPadding = tabLayout.resources.getDimensionPixelSize(R.dimen.filter_tab_end_padding)
+        tabLayout.post {
+            for (index in 0 until tabLayout.tabCount) {
+                tabLayout.getTabAt(index)?.view?.updatePadding(
+                    left = startPadding,
+                    top = 0,
+                    right = endPadding,
+                    bottom = 0
+                )
+            }
+        }
+    }
+
+    private fun setupFilterIconToggles() {
+        AppFilterHelper.setupFilterIconToggles(
+            callbacks.getFilterSystemButton(binding),
+            callbacks.getFilterUserButton(binding)
         ) { filterType ->
             viewModel.setFilterType(filterType)
         }

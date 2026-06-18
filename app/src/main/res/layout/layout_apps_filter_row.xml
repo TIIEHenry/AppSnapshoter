@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/filter_chip_row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:clipToPadding="false"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/filter_row_height"
+    android:orientation="horizontal">
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/user_tab_layout"
+        style="@style/Widget.AppSnapshot.TabLayout.Inline"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/filter_row_height"
+        android:layout_gravity="center_vertical"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp"
+        app:tabGravity="start"
+        app:tabMode="scrollable" />
+
+    <LinearLayout
+        android:id="@+id/filter_icon_group"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/filter_row_height"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="@dimen/filter_chip_row_end_padding"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/btn_filter_system"
+            style="@style/Widget.AppSnapshot.FilterRowIcon.Toggle"
+            android:contentDescription="@string/app_filter_system"
+            app:srcCompat="@drawable/ic_filter_system" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/btn_filter_user"
+            style="@style/Widget.AppSnapshot.FilterRowIcon.Toggle"
+            android:layout_marginStart="@dimen/filter_row_icon_spacing"
+            android:contentDescription="@string/app_filter_user"
+            app:srcCompat="@drawable/ic_filter_user" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/btn_search_toggle"
+            style="@style/Widget.AppSnapshot.FilterRowIcon"
+            android:layout_marginStart="@dimen/filter_row_icon_spacing"
+            android:contentDescription="@string/timeline_search_toggle"
+            app:srcCompat="@drawable/ic_search" />
+
+    </LinearLayout>
+
+</LinearLayout>

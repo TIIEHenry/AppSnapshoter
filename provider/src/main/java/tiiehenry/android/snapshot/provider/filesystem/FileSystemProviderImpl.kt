@@ -43,15 +43,18 @@ class FileSystemProviderImpl(
     }
 
     override fun provide(): IFileSystem {
-        // 如果外部未提供 serviceClient，需要等待连接
         if (serviceClient.waitFetch(context) == null) {
             throw Exception("SnapShotRootService is not available")
         }
-        // 如果已连接，直接使用
         if (!serviceClient.isConnected) {
             throw Exception("SnapShotRootService is not connected")
         }
-        val fileSystemManager = FileSystemManager.getRemote(fsmFuture.get())
+        val binder = try {
+            fsmFuture.get(10, java.util.concurrent.TimeUnit.SECONDS)
+        } catch (e: java.util.concurrent.TimeoutException) {
+            throw IllegalStateException("FileSystemManagerRootService connection timeout", e)
+        } ?: throw IllegalStateException("FileSystemManagerRootService binder is null")
+        val fileSystemManager = FileSystemManager.getRemote(binder)
         return FileSystemImpl(serviceClient, fileSystemManager, context)
     }
 

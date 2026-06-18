@@ -34,12 +34,14 @@ object GroupBatchRestoreDialog {
         fun selectedScope(): GroupRestoreScope = when (binding.scopeGroup.checkedRadioButtonId) {
             R.id.radio_scope_not_installed -> GroupRestoreScope.NOT_INSTALLED
             R.id.radio_scope_since_last -> GroupRestoreScope.SINCE_LAST_RESTORE
+            R.id.radio_scope_all -> GroupRestoreScope.ALL
             else -> GroupRestoreScope.ALL
         }
 
         fun selectedStrategy(): ArchivePickStrategy = when (binding.strategyGroup.checkedRadioButtonId) {
             R.id.radio_strategy_oldest -> ArchivePickStrategy.OLDEST
             R.id.radio_strategy_last_restored -> ArchivePickStrategy.LAST_RESTORED
+            R.id.radio_strategy_newest -> ArchivePickStrategy.NEWEST
             else -> ArchivePickStrategy.NEWEST
         }
 

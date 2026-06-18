@@ -8,8 +8,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.chip.ChipGroup
+import android.widget.ImageButton
+import android.widget.ImageView
 import com.google.android.material.tabs.TabLayout
 import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
@@ -53,9 +53,11 @@ abstract class BaseAppsFragment<VB : ViewBinding> : Fragment(), AppsListComponen
     abstract override fun getUserTabLayout(binding: VB): TabLayout
 
     /**
-     * 获取 FilterChipGroup 实例，由子类实现
+     * 获取系统/用户筛选图标按钮，由子类实现
      */
-    abstract override fun getFilterChipGroup(binding: VB): ChipGroup
+    abstract override fun getFilterSystemButton(binding: VB): ImageButton
+
+    abstract override fun getFilterUserButton(binding: VB): ImageButton
 
     /**
      * 获取 TagsFilterLayout 实例，由子类实现
@@ -70,7 +72,7 @@ abstract class BaseAppsFragment<VB : ViewBinding> : Fragment(), AppsListComponen
     /**
      * 获取搜索切换按钮，由子类实现
      */
-    abstract override fun getSearchToggle(binding: VB): MaterialButton
+    abstract override fun getSearchToggle(binding: VB): ImageView
 
     /**
      * 获取搜索展开/收起动画容器，由子类实现
