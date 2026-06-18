@@ -20,8 +20,8 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 | 类 | 职责 |
 |---|------|
 | `SnapshotApp` | Application 入口，初始化 MMKV → ProvidersImpl → Root 检查 → 绑定服务 |
-| `SnapshotViewModel` | 全局单例 ViewModel，管理 `groupList` 和 `appList` |
-| `SingletonViewModelFactory` | 直接实例化 ViewModel（非 ViewModelProvider） |
+| `SnapshotViewModel` | 全局单例 ViewModel；`groupList` / `appsList` 来自 `AppDataRepository` LiveData；数据变更委托 repository 进程级协程（不用 `viewModelScope`） |
+| `SingletonViewModelFactory` | 将 `SnapshotApp` 预创建的 `SnapshotViewModel` 注入 `activityViewModels()` |
 
 ### `app` — 应用模型与过滤
 | 类 | 职责 |
@@ -109,7 +109,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `repository` — 数据仓库
 | 类 | 职责 |
 |---|------|
-| `AppDataRepository` | 单例仓库，管理应用数据、分组和应用列表 |
+| `AppDataRepository` | 单例仓库；`scope`（`SupervisorJob + IO`）执行 `loadGroups` / `addGroup` / `deleteGroup`；`loadGroupsMutex` 防并发 stale；`groupList` / `appsList` LiveData |
 
 ### `glide` — 图片加载
 | 类 | 职责 |
@@ -177,7 +177,7 @@ Insets 与主界面一致：`toolbar_header` 顶栏避让状态栏，`settings_r
 
 - Kotlin + ViewBinding + DataBinding
 - Material3 + Navigation Component
-- Coroutines + Flow（viewModelScope + Dispatchers.IO）
+- Coroutines + Flow（`AppDataRepository.scope` 管全局分组/应用数据；各 Tab ViewModel 用 `viewModelScope`）
 - Glide（kapt 注解处理器）
 - FastJSON2（主）、Moshi、Gson（可用）
 

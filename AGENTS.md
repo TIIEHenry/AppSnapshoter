@@ -47,7 +47,7 @@ provider → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 
 **Config**: MMKV is the sole persistence mechanism. `GlobalConfig` (Kotlin object singleton) stores group ID ordering and timeline filter presets (`timelinePreset`, `timelineCustomStart`, `timelineCustomEnd`). Per-group config uses separate MMKV instances; `group.json` `name` may be absent — `SnapGroup.name` falls back to directory basename then group `id`.
 
-**ViewModels**: `SnapshotApp` instantiates `SnapshotViewModel` directly in `onCreate()` (not via `ViewModelProvider`) and exposes it as a top-level property. `AppsViewModel` filters the app list from `SnapshotViewModel` using multi-dimensional filters. `TimelineViewModel` queries in-memory snapshots from `groupList` by time range; `navigateToGroup` on `SnapshotViewModel` scrolls the archive tab to a group when invoked from the timeline tab.
+**ViewModels**: `SnapshotApp` instantiates `SnapshotViewModel` directly in `onCreate()` (not via `ViewModelProvider`) and exposes it as a top-level property via `SingletonViewModelFactory`. **Do not use `viewModelScope` on `SnapshotViewModel` for data loading** — Activity `onCleared()` cancels the scope while the singleton instance survives; group/app list mutations (`loadGroups`, `addGroup`, `deleteGroup`, `addAppsToGroup`) run on `AppDataRepository`'s process-level `CoroutineScope` (`SupervisorJob + Dispatchers.IO`) with `loadGroupsMutex` for serial reloads. `AppsViewModel` filters the app list from `SnapshotViewModel` using multi-dimensional filters. `TimelineViewModel` queries in-memory snapshots from `groupList` by time range; `navigateToGroup` on `SnapshotViewModel` scrolls the archive tab to a group when invoked from the timeline tab.
 
 **Timeline tab**: Bottom nav order is `存档 | 时间线 | 应用`. Implementation lives under `app/.../main/timeline/` — see `docs/systems/timeline/INDEX.md`.
 
@@ -72,6 +72,6 @@ Reading path: `AGENTS.md` → `DESIGN.md` → `docs/architecture/overview.md` �
 - ViewBinding + DataBinding for UI — do not add Compose
 - JSON: FastJSON2 is the primary library; Moshi and Gson are also available
 - Image loading: Glide (with kapt annotation processor in `app`)
-- Async: Kotlin Coroutines on `viewModelScope` + `Dispatchers.IO`
+- Async: Kotlin Coroutines — `AppDataRepository.scope` for global snapshot data; per-screen ViewModels (`AppsViewModel`, `TimelineViewModel`, `LauncherViewModel`) may use `viewModelScope` + `Dispatchers.IO`
 - The `api` module must remain free of implementation details — only interfaces and data classes
 - Native modules (`io-*`) each have their own `CMakeLists.txt` under `src/main/jni/`
