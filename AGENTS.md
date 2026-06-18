@@ -55,6 +55,8 @@ provider → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 
 **Collapsible search**: List filter screens share `layout_search_field` + `CollapsibleSearchController` — a 44dp icon button on the Chip row toggles the search field (timeline, apps tab, select-app and ignore-apps sheets). Spacing uses `filter_horizontal_padding` (12dp). Styles: `Widget.AppSnapshot.SearchField`, `Widget.AppSnapshot.IconButton`.
 
+**Tag filter chips**: `TagsFilterLayout` renders group/Xposed tags below the system/user filter row on the apps tab (and select-app sheets). Use `Widget.AppSnapshot.Chip.Tag` (26dp, 12sp) — compact variant of `Chip.Filter` (32dp). Each dynamic Chip must have a unique `View.id` for `ChipGroup` selection to work.
+
 ## Documentation System
 
 The project has a two-layer documentation system:

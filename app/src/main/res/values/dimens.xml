@@ -4,6 +4,10 @@
     <dimen name="filter_horizontal_padding">12dp</dimen>
     <dimen name="filter_row_padding_vertical">8dp</dimen>
     <dimen name="filter_chip_row_end_padding">8dp</dimen>
+    <dimen name="tag_chip_min_height">26dp</dimen>
+    <dimen name="tag_chip_horizontal_padding">6dp</dimen>
+    <dimen name="tag_chip_spacing_horizontal">6dp</dimen>
+    <dimen name="tag_chip_spacing_vertical">2dp</dimen>
     <dimen name="search_field_corner_radius">4dp</dimen>
     <dimen name="filter_icon_button_size">44dp</dimen>
     <dimen name="filter_icon_button_icon_size">24dp</dimen>

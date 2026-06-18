@@ -120,7 +120,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `ui.widget` — 自定义组件
 | 类 | 职责 |
 |---|------|
-| `TagsFilterLayout` | 标签筛选 ChipGroup 自定义 LinearLayout |
+| `TagsFilterLayout` | 标签筛选 ChipGroup；动态 Chip 须 `View.generateViewId()` + `ChipGroup.setOnCheckedStateChangeListener`；样式 `Widget.AppSnapshot.Chip.Tag`（26dp，12sp，比筛选 Chip 更紧凑） |
 | `SearchFieldExt` | 搜索框扩展函数 |
 | `CollapsibleSearchController` | Chip 行搜索图标 ↔ `layout_search_field` 展开/收起（时间线、应用 Tab、选应用、忽略应用） |
 | `FloatingBottomNav` | 悬浮底栏 `BlurView` 毛玻璃（采样根 `coordinator`） |

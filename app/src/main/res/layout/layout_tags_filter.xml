@@ -4,14 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:paddingTop="2dp"
+    android:paddingBottom="4dp">
 
     <com.google.android.material.chip.ChipGroup
         android:id="@+id/chip_group_tags"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:chipSpacingHorizontal="8dp"
-        app:chipSpacingVertical="4dp"
+        app:chipSpacingHorizontal="@dimen/tag_chip_spacing_horizontal"
+        app:chipSpacingVertical="@dimen/tag_chip_spacing_vertical"
         app:singleLine="false" />
 
 </LinearLayout>

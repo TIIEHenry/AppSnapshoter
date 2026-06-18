@@ -2,7 +2,9 @@ package tiiehenry.android.app.snapshot.ui.widget
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.LinearLayout
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -22,16 +24,25 @@ class TagsFilterLayout @JvmOverloads constructor(
     private val chipGroup: ChipGroup
     private val selectedTagIds = mutableSetOf<String>()
     private var onTagSelectionChangedListener: ((Set<String>) -> Unit)? = null
+    private var suppressSelectionCallback = false
 
     init {
         orientation = VERTICAL
         val view = LayoutInflater.from(context).inflate(R.layout.layout_tags_filter, this, true)
         chipGroup = view.findViewById(R.id.chip_group_tags)
-
+        chipGroup.setOnCheckedStateChangeListener { _, checkedChipIds ->
+            if (suppressSelectionCallback) return@setOnCheckedStateChangeListener
+            selectedTagIds.clear()
+            checkedChipIds.forEach { chipId ->
+                chipIdToTagId[chipId]?.let { selectedTagIds.add(it) }
+            }
+            onTagSelectionChangedListener?.invoke(selectedTagIds.toSet())
+        }
     }
 
-    // 保存tag id到chip的映射
-    private val tagIdToChip = mutableMapOf<String, Chip>()
+    // ChipGroup 要求每个可勾选 Chip 拥有唯一 id，否则无法正确切换选中状态
+    private val chipIdToTagId = mutableMapOf<Int, String>()
+    private val tagIdToChipId = mutableMapOf<String, Int>()
 
     /**
      * 设置标签列表
@@ -44,13 +55,20 @@ class TagsFilterLayout @JvmOverloads constructor(
             selectedTagIds.clear()
         }
 
-        chipGroup.removeAllViews()
-        tagIdToChip.clear()
+        suppressSelectionCallback = true
+        try {
+            chipGroup.removeAllViews()
+            chipIdToTagId.clear()
+            tagIdToChipId.clear()
 
-        for (tag in tags) {
-            val chip = createChip(tag)
-            chipGroup.addView(chip)
-            tagIdToChip[tag.id] = chip
+            for (tag in tags) {
+                val chip = createChip(tag)
+                chipGroup.addView(chip)
+                chipIdToTagId[chip.id] = tag.id
+                tagIdToChipId[tag.id] = chip.id
+            }
+        } finally {
+            suppressSelectionCallback = false
         }
 
     }
@@ -59,20 +77,12 @@ class TagsFilterLayout @JvmOverloads constructor(
      * 创建Chip视图
      */
     private fun createChip(tag: AppTag): Chip {
-        return Chip(context, null, R.style.Widget_AppSnapshot_Chip_Filter).apply {
+        val chipContext = ContextThemeWrapper(context, R.style.Widget_AppSnapshot_Chip_Tag)
+        return Chip(chipContext).apply {
+            id = View.generateViewId()
             text = tag.name
             isCheckable = true
             isChecked = selectedTagIds.contains(tag.id)
-            chipStrokeWidth = resources.displayMetrics.density // 1dp
-
-            setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) {
-                    selectedTagIds.add(tag.id)
-                } else {
-                    selectedTagIds.remove(tag.id)
-                }
-                onTagSelectionChangedListener?.invoke(selectedTagIds.toSet())
-            }
         }
     }
 
@@ -90,9 +100,13 @@ class TagsFilterLayout @JvmOverloads constructor(
         selectedTagIds.clear()
         selectedTagIds.addAll(tagIds)
 
-        // 更新所有chip的状态
-        tagIdToChip.forEach { (id, chip) ->
-            chip.isChecked = selectedTagIds.contains(id)
+        suppressSelectionCallback = true
+        try {
+            tagIdToChipId.forEach { (tagId, chipId) ->
+                chipGroup.findViewById<Chip>(chipId)?.isChecked = selectedTagIds.contains(tagId)
+            }
+        } finally {
+            suppressSelectionCallback = false
         }
 
     }
@@ -102,11 +116,12 @@ class TagsFilterLayout @JvmOverloads constructor(
      */
     fun clearSelection() {
         selectedTagIds.clear()
-
-        tagIdToChip.values.forEach { chip ->
-            chip.isChecked = false
+        suppressSelectionCallback = true
+        try {
+            chipGroup.clearCheck()
+        } finally {
+            suppressSelectionCallback = false
         }
-
         onTagSelectionChangedListener?.invoke(emptySet())
     }
 

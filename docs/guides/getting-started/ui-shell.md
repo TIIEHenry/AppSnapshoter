@@ -85,6 +85,20 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 
 实现：`CollapsibleSearchController`；应用列表通过 `AppsListComponent` 回调 `getSearchFieldBinding` / `getSearchToggle` / `getSearchTransitionHost` 接入。
 
+### 标签筛选（应用 Tab / 选应用）
+
+分组名与 Xposed 等标签由 `TagsFilterLayout` 渲染，位于系统/用户筛选 Chip 下方：
+
+| 项 | 说明 |
+|----|------|
+| 样式 | `Widget.AppSnapshot.Chip.Tag`（继承 Filter Chip，26dp 高、12sp、6dp 水平 padding） |
+| 筛选 Chip | `Widget.AppSnapshot.Chip.Filter`（32dp 高、13sp）— 系统/用户、时间线预设等 |
+| 间距 | `@dimen/tag_chip_spacing_*`；容器 `layout_tags_filter` 仅保留上下 2/4dp |
+| 选中 | 多选；`ChipGroup` 要求每个 Chip 有唯一 `id`，由 `TagsFilterLayout` 在代码中分配 |
+| 数据 | `AppTagHelper.getAllAvailableTags()` → `AppsViewModel.setSelectedTags()` |
+
+布局：`layout_tags_filter.xml`；逻辑：`ui/widget/TagsFilterLayout.kt` + `AppsListComponent.setupTagsFilter()`。
+
 ## 设置页壳层
 
 > 布局文件：`app/src/main/res/layout/activity_settings.xml`  
@@ -108,12 +122,14 @@ LinearLayout (@id/settings_root)
 
 | 文件 | 职责 |
 |------|------|
-| `values/themes.xml` | Fluent 2 色板与 Material3 组件样式 |
-| `values/dimens.xml` | `toolbar_height`、`filter_*`、`floating_nav_*` 尺寸 |
+| `values/themes.xml` | Fluent 2 色板与 Material3 组件样式（含 `Chip.Filter` / `Chip.Tag`） |
+| `values/dimens.xml` | `toolbar_height`、`filter_*`、`tag_chip_*`、`floating_nav_*` 尺寸 |
+| `layout/layout_tags_filter.xml` | 应用 Tab 标签 Chip 行 |
 | `layout/layout_search_field.xml` | 共享搜索输入布局 |
 | `layout/activity_settings.xml` | 设置页顶栏 + 列表 |
 | `main/settings/SettingsActivity.kt` | 设置页 Activity |
 | `AndroidManifest.xml` | Activity `screenOrientation="portrait"` |
 | `ui/widget/FloatingBottomNav.kt` | 底栏毛玻璃 |
 | `ui/widget/CollapsibleSearchController.kt` | 可折叠搜索 |
+| `ui/widget/TagsFilterLayout.kt` | 应用 Tab 标签多选筛选 |
 | `ui/widget/SearchFieldExt.kt` | 搜索框文本监听 |
