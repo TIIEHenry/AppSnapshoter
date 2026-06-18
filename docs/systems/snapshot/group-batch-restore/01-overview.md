@@ -39,7 +39,7 @@ summary: "需求背景、目标、非目标与已定设计决策"
    - **恢复范围**：未安装 / 全部 / 自上次恢复以来
    - **快照选择**：最新 / 最旧 / 与上次恢复相同
 3. 实时预览 **将恢复的应用数量**，并提示破坏性操作（覆盖已安装应用数据）
-4. **重构组头布局**：标题与工具栏分行，缩小按钮尺寸，合并批量操作为单一菜单入口
+4. **调整组头布局**：合并批量操作为 `btn_batch` 菜单入口；保持标题与工具栏单行，按钮 36dp、标题 17sp
 5. 执行过程使用 **串行恢复 + 统一进度对话框**，支持取消与成功/失败汇总
 6. 持久化 **恢复记录**（`RestoreRecord`），支撑「自上次恢复以来」范围与「与上次相同」策略
 
@@ -61,7 +61,7 @@ summary: "需求背景、目标、非目标与已定设计决策"
 | 「自上次恢复以来」 | 从未恢复过 **或** 最新快照 `makeTime` > 上次恢复的 `archiveMakeTime` | 语义为增量恢复，非按日历筛 archive |
 | 恢复记录粒度 | 按 `(groupId, packageName, userId)` 存储 | 与 `TimelineEntryKey` 对齐，支持多用户 |
 | 恢复记录写入 | 单应用恢复成功 **和** 批量恢复每项成功均写入 | 避免单条/批量混用时范围判断不一致 |
-| 组头入口 | **批量操作菜单**（归档 + 恢复），不新增独立恢复按钮 | 避免 6 个 40dp 按钮导致标题区不可用 |
+| 组头入口 | **批量操作菜单**（归档 + 恢复），不新增独立恢复按钮 | 避免 6 个独立大按钮挤占标题区；单行 + 36dp 折中 |
 | 执行 API | `ArchiveRestorer.restoreArchiveSuspend` | 已有无 UI 挂起版本，适合批量 |
 | 进度 UI | `GroupItemsProgressDialog`，不逐条弹 `ItemProgressDialog` | 与 `GroupBatchArchiver` / `TimelineBatchOperator` 一致 |
 | 批量互斥 | `SnapshotViewModel.isBatchRunning`，存档 / 时间线 Tab 共用 | 避免跨 Tab 并行 root IO；见 [附录 §A.5](../07-appendix.md#a5-全局批量互斥snapshotviewmodel) |

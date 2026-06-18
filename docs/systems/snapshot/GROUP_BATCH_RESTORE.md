@@ -2,7 +2,7 @@
 title: "Group 批量恢复功能设计"
 type: system
 status: draft
-updated: 2026-06-17
+updated: 2026-06-18
 summary: "存档 Tab 分组级批量恢复：可配置恢复范围与快照策略，并重构组头工具栏布局"
 ---
 
@@ -35,7 +35,7 @@ summary: "存档 Tab 分组级批量恢复：可配置恢复范围与快照策�
 | **恢复范围** | 未安装 / 全部有快照 / 自上次恢复以来 |
 | **快照选择** | 最新 / 最旧 / 与上次恢复相同 |
 
-组头工具栏改为 **标题一行 + 图标一行**，「全部归档 / 批量恢复」收入 **批量操作菜单**（`btn_batch`），避免第 6 个 40dp 按钮挤占标题区。
+组头工具栏保持 **标题与图标同一行**，「全部归档 / 批量恢复」收入 **批量操作菜单**（`btn_batch`），避免第 6 个独立 40dp 按钮挤占标题区；按钮尺寸折中为 36dp。
 
 **执行层**直接镜像 `TimelineBatchOperator.batchRestore`：`ArchiveRestorer.restoreArchiveSuspend` + `GroupItemsProgressDialog` + 结束后 `snapshotViewModel.loadGroups()`。
 

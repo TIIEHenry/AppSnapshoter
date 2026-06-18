@@ -90,7 +90,16 @@ SnapshotApp.onCreate()
 
 - 5 × (40 + 8 margin) = **240dp**
 - 扣除 padding 后标题区约 **100dp**，长组名易截断
-- 若再加独立「批量恢复」按钮，标题区基本不可用 → 本方案改为 **双行 + 批量菜单**
+- 若再加独立「批量恢复」按钮，标题区基本不可用 → 本方案改为 **批量菜单**（`btn_batch`），并保持 **单行** 布局
+
+### 实施后（`item_group.xml`）
+
+| 元素 | 值 |
+|------|-----|
+| 结构 | 单行 `horizontal`：标题 `layout_weight=1` + 6 个 `ImageButton` |
+| 标题 | 17sp，`ellipsize=end`，`maxLines=1` |
+| 按钮 | 36×36dp，margin 3dp，padding 7dp |
+| 批量入口 | `btn_batch`（`ic_folder_open`）PopupMenu，替代 `btn_archive_all` |
 
 ## 2.6 可复用能力清单
 

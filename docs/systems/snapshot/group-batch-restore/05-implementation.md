@@ -37,7 +37,7 @@ app/src/main/java/tiiehenry/android/app/snapshot/main/launch/batch/
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `res/layout/item_group.xml` | **修改** | 双行布局；32dp 按钮；`btn_batch` 替代 `btn_archive_all` |
+| `res/layout/item_group.xml` | **修改** | 单行布局；36dp 按钮；`btn_batch` 替代 `btn_archive_all` |
 | `res/layout/dialog_group_batch_restore.xml` | **新增** | 范围 + 策略 + 预览 |
 | `res/values/strings.xml` | **修改** | 对话框、菜单、批量互斥 Toast |
 | `res/values/ids.xml` | **新增**（若无） | `menu_batch_archive` / `menu_batch_restore` |
@@ -128,29 +128,23 @@ fun endBatchOperation() {
 ## 5.6 布局 XML 要点（item_group.xml）
 
 ```xml
-<LinearLayout android:orientation="vertical">
+<LinearLayout
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
     <TextView
         android:id="@+id/group_title"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:maxLines="1"
         android:ellipsize="end"
-        android:textSize="16sp"
+        android:textSize="17sp"
         android:textStyle="bold" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="end|center_vertical"
-        android:orientation="horizontal">
-        <!-- 32dp ImageButton: refresh, add, move, tune, batch -->
-    </LinearLayout>
-
-    <!-- 下方 FrameLayout 折叠区不变 -->
+    <!-- 36dp ImageButton: confirm, refresh, add, move, tune, batch -->
 </LinearLayout>
 ```
 
-`GroupActionsController.updateButtonVisibility` 需适配第二行工具栏中 `btn_confirm` 的显示逻辑。
+`GroupActionsController.updateButtonVisibility` 需适配同行工具栏中 `btn_confirm` 的显示逻辑。
 
 ---
 

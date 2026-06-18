@@ -40,7 +40,7 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 | 计划构建 | 纯内存过滤，`O(组内应用数 × 快照数)`，对话框内实时计算可接受 |
 | MMKV 读取 | 打开对话框时 `loadAll` 一次；不必逐项读 |
 | UI 线程 | 计划构建在 Main；执行在 `Dispatchers.IO` |
-| 组头布局 | 32dp 按钮降低单行宽度压力；标题独立行避免 measure 抖动 |
+| 组头布局 | 36dp 按钮 + 17sp 标题；单行 `layout_weight` 省略长组名 |
 
 ---
 
@@ -97,7 +97,7 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 
 ### Phase 2：UI（约 1 天）
 
-- [ ] `item_group.xml` 双行布局 + `btn_batch`
+- [x] `item_group.xml` 单行布局 + `btn_batch`
 - [ ] `GroupActionsController` 批量菜单
 - [ ] `dialog_group_batch_restore.xml` + `GroupBatchRestoreDialog`
 - [ ] `strings.xml` 文案
