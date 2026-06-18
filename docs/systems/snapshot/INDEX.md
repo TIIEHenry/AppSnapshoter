@@ -119,4 +119,4 @@ sequenceDiagram
 - [Group 批量恢复设计](GROUP_BATCH_RESTORE.md) — 存档 Tab 分组级批量恢复（v1.1 设计 · 待实施）
 - [多用户适配分析](multi-user-adaptation.md) — Android 多用户场景下的适配现状、压缩/恢复链路与已知问题
 - [添加分组后列表不刷新](add-group-refresh.md) — Application 单例 `viewModelScope` 失效导致 `addGroup` 后 UI 不更新；已改走 `AppDataRepository.scope`
-- [添加应用后刷新不及时](add-app-refresh-stale-group.md) — SnapGroup 实例分裂、DiffUtil 与数据层刷新缺失；分阶段修复方案与验收清单
+- [添加应用后刷新不及时](add-app-refresh-stale-group.md) — SnapGroup stale 引用与 DiffUtil；已于 6f21f95 完成修复

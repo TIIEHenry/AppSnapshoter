@@ -1,26 +1,28 @@
 ---
-title: "添加应用后刷新不及时 — 根因与修复方案"
+title: "添加应用后刷新不及时 — 根因与修复"
 type: system
-status: active
+status: implemented
 updated: 2026-06-18
-summary: "SnapGroup 实例分裂、DiffUtil 与数据层刷新缺失导致添加应用后 UI/全部归档不同步；分阶段修复与验收清单"
+summary: "SnapGroup 实例分裂、DiffUtil 与数据层刷新缺失导致添加应用后 UI/全部归档不同步；已于 6f21f95 完成四阶段修复"
 ---
 
-# 添加应用后刷新不及时 — 根因与修复方案
+# 添加应用后刷新不及时 — 根因与修复
 
 [← 返回快照系统索引](INDEX.md)
+
+> **实施状态**：已于 `6f21f95` / `0ce6cdb` 落地 Phase 1–4（数据层 mutex + `reloadGroupsLocked`、DiffUtil、`resolveGroup`、实例复用）。下文 §6 保留设计说明；验收见 §7。
 
 ---
 
 ## 0. 结论摘要
 
-| 症状 | 直接原因 | 推荐修复 |
-|------|----------|----------|
-| 添加后网格不立即显示 | `addAppsToGroup` 不通知 `groupList`；`onRefresh` 可能拿到 stale 实例 | Phase 1 数据层串行 + `loadGroups`；Phase 2 修正 DiffUtil |
-| 「全部归档」漏新应用 | `GroupActionsController` 闭包持有 bind 时的旧 `SnapGroup` | Phase 3 点击时按 `groupId` 解析当前实例 |
+| 症状 | 直接原因 | 修复（已实施） |
+|------|----------|----------------|
+| 添加后网格不立即显示 | `addAppsToGroup` 不通知 `groupList`；`onRefresh` 可能拿到 stale 实例 | Phase 1：`loadGroupsMutex` + `reloadGroupsLocked`；Phase 2：DiffUtil 比较包名列表 |
+| 「全部归档」漏新应用 | `GroupActionsController` 闭包持有 bind 时的旧 `SnapGroup` | Phase 3：`SnapshotViewModel.resolveGroup` + 各入口解析 |
 | 手动刷新可恢复 | 在闭包实例上 `loadApps(reload=true)` 重扫磁盘，绕过 `groupList` | 说明 stale 是内存引用问题，非磁盘写入失败 |
 
-**推荐路径**：先完成 Phase 1 + 2（数据层 + DiffUtil，约 2 个文件），再补 Phase 3（UI 防御，对齐批量恢复已有模式）。Phase 4 实例复用为性能优化，非阻塞。
+**实施提交**：`0ce6cdb`（文档与 repository 互斥锁）、`6f21f95`（DiffUtil、`resolveGroup`、实例复用、空分组入口修复）。
 
 ---
 
@@ -190,7 +192,7 @@ onRefresh(group)
 
 ---
 
-## 6. 修复方案
+## 6. 修复方案与实施
 
 ### 6.1 设计原则
 
@@ -200,40 +202,35 @@ onRefresh(group)
 4. **Diff 感知 `apps`**：`submitList` 后 apps 变化必须能触发 rebind。
 5. **对齐既有模式**：批量恢复已在执行循环内用 `groupList` 重查（`GroupBatchRestorePlanner.resolveTaskAt`），存档 Tab 应复用同一思路。
 
-### 6.2 Phase 1 — 数据层（P0，必做）
+### 6.2 Phase 1 — 数据层 ✅
 
 **目标**：消除 `addAppsToGroup` 与 `loadGroups` 竞态；写盘后 `groupList` 必然更新。
 
-**改动**：`AppDataRepository.kt`
+**实施**（`AppDataRepository.kt`）：抽出 `reloadGroupsLocked()`，避免在已持锁时再次调用 `loadGroups()` 导致 mutex 死锁。
 
 ```kotlin
 fun addAppsToGroup(...) {
     scope.launch {
-        loadGroupsMutex.withLock {
-            try {
+        try {
+            loadGroupsMutex.withLock {
                 val group = (groupList.value ?: currentGroups)
                     .find { it.id == groupId } ?: return@launch
-                // mkdir + 保存图标（保持现有逻辑）
-                for (appInfo in appInfos) { ... }
-
-                loadGroups(context, fileSystem, appManager)
-                // 注意：loadGroups 内部已 postValue，无需再 group.loadApps
-            } catch (e: Exception) { ... }
-        }
-        withContext(Dispatchers.Main) { onComplete?.invoke() }
+                for (appInfo in appInfos) { /* mkdir + 图标 */ }
+                reloadGroupsLocked(context, fileSystem, appManager)
+            }
+            withContext(Dispatchers.Main) { onComplete?.invoke() }
+        } catch (e: Exception) { ... }
     }
 }
 ```
 
 要点：
 
-- 整个写盘 + 重载在 **同一 mutex** 内；`loadGroups` 已是 `suspend` 且在锁内，可直接调用。
-- 回调移到 mutex **外** 的 Main，避免阻塞其他读操作过久。
-- `currentGroups` 参数可保留兼容，但组查找优先 `groupList.value`（mutex 内最新）。
+- 写盘与重载在 **同一 mutex** 内；通过 `reloadGroupsLocked` 复用加载逻辑，而非嵌套 `loadGroups()`。
+- 回调在 mutex **外** 切到 Main，避免阻塞其他读操作。
+- 组查找优先 `groupList.value`（mutex 内最新）。
 
-**单独 Phase 1 能修复**：添加后 `groupList` 数据正确；配合 Phase 2 后网格才稳定刷新。
-
-### 6.3 Phase 2 — DiffUtil（P0，必做）
+### 6.3 Phase 2 — DiffUtil ✅
 
 **目标**：`groupList` 更新后 ViewHolder 重新 bind，闭包自动指向新实例。
 
@@ -253,11 +250,9 @@ override fun areContentsTheSame(old: SnapGroup, new: SnapGroup): Boolean {
 
 - 比较 **有序包名列表**（非仅 `Set`），与 `SortConfig` 自定义排序一致。
 - `isCollapsed` 纳入比较，避免折叠状态与列表不同步。
-- 不在 `SnapGroup.equals` 中加入 `apps`（会影响其他 `==` 语义）；仅 DiffUtil 层感知。
+- 不在 `SnapGroup.equals` 中加入 `apps`；仅 DiffUtil 层感知。
 
-**单独 Phase 2 不能修复**：若未做 Phase 1，添加应用仍可能不触发 `submitList`。
-
-### 6.4 Phase 3 — 使用时解析（P1，防御层）
+### 6.4 Phase 3 — 使用时解析 ✅
 
 **目标**：即使 rebind 遗漏或用户极快连点，批量/配置操作仍读当前 `groupList`。
 
@@ -278,11 +273,11 @@ fun resolveGroup(groupId: String, fallback: SnapGroup? = null): SnapGroup? =
 | `SelectAppFragment` 回调 `onRefresh(updatedGroup ?: group)` | `onRefresh(resolveGroup(group.id, group)!!)` |
 | `GroupSettingFragment.newInstance(group)` 等 Fragment 参数 | 传 `groupId`，Fragment 内 `resolveGroup`（`GroupSettingFragment` 已有类似写法） |
 
-`GroupItemAdapter`：Phase 2 rebind 会重建 adapter；若需加固，可将构造参数改为 `groupId` + `() -> SnapGroup` 懒解析（改动面较大，可后续迭代）。
+**已接入**（`GroupActionsController.kt`）：全部归档、批量恢复、添加应用回调、配置/设置、手动刷新、统计等均经 `resolveGroup(fallback)`。
 
-**参考**：`GroupBatchRestorer` 循环内 `resolveTaskAt(task, groupList.value.orEmpty())`，stale 项进 failed 而非静默漏项。
+`GroupItemAdapter` 仍通过 Phase 2 rebind 重建；若后续需加固可改为 `groupId` + 懒解析（未做）。
 
-### 6.5 Phase 4 — 实例复用（P2，可选）
+### 6.5 Phase 4 — 实例复用 ✅
 
 **目标**：减少 `loadGroups` 分配与 MMKV/配置对象抖动；降低闭包分裂概率。
 
@@ -297,21 +292,28 @@ val groups = groupIds.map { groupId ->
 }
 ```
 
-注意：与 Phase 2 配合时，复用实例 + `apps` 内容变化仍会触发 rebind（因 DiffUtil 比较包名列表）。
+**实施**（`reloadGroupsLocked` 内）：
 
-### 6.6 改动文件清单
+```kotlin
+val existing = groupList.value.orEmpty().associateBy { it.id }
+val groups = groupIds.map { groupId ->
+    (existing[groupId] ?: SnapGroup(groupId)).apply {
+        loadApps(context, fileSystem, appManager, true)
+    }
+}
+```
 
-| Phase | 文件 | 改动量 |
-|-------|------|--------|
-| 1 | `AppDataRepository.kt` | 中 — mutex + 末尾 `loadGroups` |
-| 2 | `GroupsAdapter.kt` | 小 — `areContentsTheSame` |
-| 3 | `GroupActionsController.kt` | 中 — 各入口 `resolveGroup` |
-| 3 | `SnapshotViewModel.kt` | 小 — 新增 `resolveGroup` |
-| 4 | `AppDataRepository.kt` | 小 — `loadGroups` 复用 map |
+### 6.6 改动文件清单（已合并）
 
-**不建议**仅靠 `addAppsToGroup` 末尾 `group.loadApps` + `postValue(currentGroups)` 而不走 `loadGroups`：无法保证与其他并发 `loadGroups` 一致，且仍可能分裂实例。
+| Phase | 文件 | 状态 |
+|-------|------|------|
+| 1 + 4 | `AppDataRepository.kt` | ✅ `reloadGroupsLocked`、mutex、`addAppsToGroup` |
+| 2 | `GroupsAdapter.kt` | ✅ `areContentsTheSame` |
+| 3 | `GroupActionsController.kt` | ✅ `resolveGroup` 各入口 |
+| 3 | `SnapshotViewModel.kt` | ✅ `resolveGroup` |
+| — | `GroupsAdapter.kt`（空分组） | ✅ 空布局点击改调 `btnAdd` 而非重复 `setupActions` |
 
-### 6.7 实施顺序与依赖
+### 6.7 里程碑（已完成）
 
 ```mermaid
 flowchart LR
@@ -321,15 +323,17 @@ flowchart LR
     P3 -.->|可并行| P4
 ```
 
-| 里程碑 | 包含 Phase | 预期效果 |
-|--------|------------|----------|
-| M1 最小可用 | 1 + 2 | 添加后网格即时更新；Tab 切换后数据一致 |
-| M2 加固 | + 3 | 极快连点「全部归档」不漏项 |
-| M3 优化 | + 4 | 减少无谓对象分配 |
+| 里程碑 | 包含 Phase | 状态 |
+|--------|------------|------|
+| M1 最小可用 | 1 + 2 | ✅ |
+| M2 加固 | + 3 | ✅ |
+| M3 优化 | + 4 | ✅ |
 
 ---
 
 ## 7. 验证清单
+
+> 以下项建议在真机/仪器上手工确认；代码修复已合入 main。
 
 ### 7.1 功能
 
