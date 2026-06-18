@@ -52,8 +52,8 @@ summary: "组头布局重构、批量操作菜单与配置对话框"
 | `btn_add` | app_add | 添加应用 | 保留 |
 | `btn_move` | group_sort | 排序 PopupMenu | 保留 |
 | `btn_tune` | tune | 分组配置 | 保留 |
-| ~~`btn_archive_all`~~ | — | — | **移除独立按钮** |
-| **`btn_batch`** | briefcase 或 playlist | **批量操作 PopupMenu** | **新增** |
+| ~~`btn_archive_all`~~ | briefcase_download_outline | — | **移除独立按钮**（收入菜单项） |
+| **`btn_batch`** | **layers / ic_folder_open**（待选，勿复用 `briefcase_download_outline`） | **批量操作 PopupMenu** | **新增** |
 
 ### 批量操作菜单（`btn_batch`）
 
@@ -73,10 +73,10 @@ summary: "组头布局重构、批量操作菜单与配置对话框"
 
 ### 批量进行中 UI 状态
 
-- `LauncherViewModel.isBatchRunning == true` 时：
+- `SnapshotViewModel.isBatchRunning == true` 时（存档 Tab **与** 时间线 Tab 共用）：
   - 禁用 `btn_batch`、各应用恢复入口
   - 可选：组内 `GroupItemAdapter` 整体 `alpha=0.5`
-- 与时间线 `isBatchRunning` 互斥（全局同一时刻只允许一个批量任务）
+- 后触发的批量操作 Toast 提示「已有批量任务进行中」
 
 ---
 
@@ -120,9 +120,12 @@ summary: "组头布局重构、批量操作菜单与配置对话框"
 | 破坏性警告 | 始终显示；不再额外弹二次确认（若评审要求更保守，可加最终确认） |
 | 「与上次相同」 | 无记录的应用在预览脚注中标注「N 个应用将回退为最新快照」 |
 
-### 字符串资源（unable 硬编码中文（与 `GroupBatchArchiver` 部分硬编码并存，新文案统一进 `strings.xml`）：
+### 字符串资源
+
+新文案统一进 `strings.xml`（`GroupBatchArchiver` 现有硬编码中文不在本 PR 强制迁移，可后续单独整理）：
 
 - `group_batch_restore_title`
+- `group_batch_menu_archive` / `group_batch_menu_restore`
 - `group_batch_restore_scope_*`
 - `group_batch_restore_strategy_*`
 - `group_batch_restore_preview`
@@ -153,8 +156,10 @@ summary: "组头布局重构、批量操作菜单与配置对话框"
 
 ### 取消行为
 
-- 点取消 → 当前应用恢复完成后停止（与归档一致）
-- 恢复中途 **不支持** force-cancel 到 JNI 层（v1）
+与 `TimelineBatchOperator` / `GroupBatchArchiver` 一致：
+
+- 点取消 → 设置 `isCancelled`；**当前应用**恢复完成后停止，不启动下一项
+- 对话框可显示「强制取消」按钮（`setFinishButtonAsForceCancel`），但 `restoreArchiveSuspend` 在 JNI 解压中途 **无法** 中断 — 与归档 force-cancel 能力不对等，UI 可保留按钮以统一体验，实际仅标记取消、等当前项自然结束
 
 ---
 
@@ -172,5 +177,5 @@ flowchart TD
     H --> I[GroupItemsProgressDialog]
     I --> J{完成}
     J --> K[成功/失败汇总]
-    J --> L[onRefresh + 写 RestoreRecord]
+    J --> L[loadGroups + RestoreRecord 写入]
 ```

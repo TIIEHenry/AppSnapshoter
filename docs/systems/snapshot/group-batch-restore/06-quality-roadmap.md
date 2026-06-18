@@ -23,12 +23,12 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 | 记录中的 `archiveName` 已被删除 | 回退最新；若恢复仍失败则进 failed 列表 |
 | 应用正在运行 | v1 建议恢复前 `forceStopPackage`（当前 `restoreArchive` 仅 `clearAppData`） |
 | 磁盘空间不足 | 该项失败，继续下一项 |
-| 批量进行中用户触发单应用恢复 | `isBatchRunning` 阻止 |
-| 批量归档与批量恢复同时触发 | 互斥，后触发者 Toast 提示 |
+| 批量进行中用户触发单应用恢复 | `SnapshotViewModel.isBatchRunning` 阻止 |
+| 批量归档与批量恢复 / 时间线批量同时触发 | `tryBeginBatchOperation()` 互斥，后触发 Toast |
 | 多用户 / 工作配置文件 | `userId` 来自 `SnapGroup.userId`，与 `AppRestoreKey` 一致 |
 | 锁定快照 | 不阻止恢复 |
 | 取消批量 | 当前 app 完成后停止；未执行项不写 `RestoreRecord` |
-| 执行中 `loadGroups()` | 每项前从 `groupList` 重查 `ArchivedApp`，避免 stale |
+| 执行中 `loadGroups()` | 循环内 `resolveTaskAt` 重查；stale 项进 failed 列表 |
 
 ---
 
@@ -46,7 +46,15 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 
 ## 6.3 测试范围
 
-### 单元测试（`GroupBatchRestorePlanner`）
+### 单元测试
+
+| 模块 | 用例 |
+|------|------|
+| `GroupBatchRestorePlanner` | 见下表 |
+| `ArchiveResolver` | `NEWEST` / `OLDEST` / `LAST_RESTORED` + 回退 |
+| `RestoreRecordStore` | MMKV round-trip（Robolectric 或 instrumented） |
+
+**Planner 用例：**
 
 | 用例 | 断言 |
 |------|------|
@@ -74,12 +82,18 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 
 ## 6.4 实施计划
 
+### Phase 0：全局批量互斥（约 0.5 天）
+
+- [ ] `SnapshotViewModel.isBatchRunning` + `tryBeginBatchOperation` / `endBatchOperation`
+- [ ] `TimelineBatchOperator` / `TimelineFragment` 迁移至 `SnapshotViewModel`
+- [ ] `GroupBatchArchiver` 接入互斥（归档也纳入，避免与时间线并行）
+
 ### Phase 1：基础设施（约 1 天）
 
-- [ ] `RestoreRecord` + `RestoreRecordStore`
-- [ ] `GroupBatchRestorePlanner` + 单元测试
-- [ ] `ArchivePickStrategy` / 共享 `resolveArchive`
-- [ ] `ArchiveRestorer` 成功路径写 record
+- [ ] `RestoreRecord` + `RestoreRecordStore` + `RestoreRecordWriter`
+- [ ] `ArchiveResolver` + `TimelineRepository` 薄包装
+- [ ] `GroupBatchRestorePlanner` + `resolveTaskAt` + 单元测试
+- [ ] `ArchiveRestorer` 成功路径写 record（含 `restoreLatest`）
 
 ### Phase 2：UI（约 1 天）
 
@@ -90,16 +104,16 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 
 ### Phase 3：执行与集成（约 1 天）
 
-- [ ] `GroupBatchRestorer`
-- [ ] `LauncherViewModel.isBatchRunning` + UI 互斥
-- [ ] 与时间线批量互斥（可选）
-- [ ] 恢复前 `forceStopPackage`（建议纳入 Phase 3）
+- [ ] `GroupBatchRestorer`（对照 [附录 §A.1](../07-appendix.md#a1-与-timelinebatchoperator-的对照)）
+- [ ] `LauncherFragment` 观察 `isBatchRunning`
+- [ ] 恢复前 `forceStopPackage`（建议纳入本 Phase）
 
 ### Phase 4：v2 增强（可选）
 
 - [ ] 记住上次对话框选项（group MMKV）
 - [ ] 提取 `BatchProgressDialogs` 共用组件
 - [ ] 溢出菜单 `btn_more`（若真机验证仍拥挤）
+- [ ] `GroupBatchArchiver` 硬编码文案迁移
 
 ---
 
@@ -110,7 +124,8 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 - [ ] 批量恢复对话框可配置 **三种范围 × 三种快照策略**
 - [ ] 预览数量与实执行数量一致
 - [ ] 串行进度、取消、成功/失败汇总可用
-- [ ] 单应用恢复与批量恢复均正确写入 `RestoreRecord`
+- [ ] 存档 Tab 与时间线 Tab 批量任务 **互斥**（同一时刻仅一项）
+- [ ] 单应用 `restoreLatest` 成功后写入 `RestoreRecord`
 - [ ] 「自上次恢复以来」仅命中从未恢复或有新快照的应用
 - [ ] 「与上次相同」在无记录或快照缺失时回退最新且不崩溃
 - [ ] 批量进行中无法重复触发归档/恢复
@@ -124,4 +139,5 @@ summary: "边界情况、性能与测试范围、Phase 划分与验收标准"
 | 恢复中应用未 force stop 导致失败 | Phase 3 增加 force stop |
 | 组头改版影响排序模式 | `updateButtonVisibility` 一并测试自定义排序 |
 | `RestoreRecord` 与跨设备同步 | 存 group MMKV / 组目录均可被 Syncthing 同步；需在文档注明「恢复记录会随组目录同步」 |
-| 与时间线 `RestoreStrategy` 命名混淆 | Group 专用 `ArchivePickStrategy`；文档与代码注释区分 |
+| 与时间线 `RestoreStrategy` 命名混淆 | Group 专用 `ArchivePickStrategy`；共享逻辑在 `ArchiveResolver` |
+| Phase 0 迁移 Timeline 互斥引入回归 | 先手工验证时间线批量恢复 / 删除 / 导出仍正常 |

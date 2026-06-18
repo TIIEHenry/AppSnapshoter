@@ -2,7 +2,7 @@
 title: "主界面壳层"
 type: guide
 status: active
-updated: 2026-06-17
+updated: 2026-06-18
 summary: "MainActivity 顶栏、底栏、可折叠搜索与内容区布局说明"
 ---
 
@@ -19,8 +19,11 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 │   ├── MaterialToolbar (48dp)
 │   └── toolbar_divider (1dp)
 ├── FragmentContainerView              ← NavHost，顶部约束到 toolbar_header 底部
-└── BlurView (bottom_navigation_container)
-    └── BottomNavigationView (仅图标，无文字)
+└── BlurView (bottom_navigation_container)   固定宽 176dp，水平居中
+    └── LinearLayout (@id/bottom_navigation)
+        ├── ImageButton bottom_nav_archive
+        ├── ImageButton bottom_nav_timeline
+        └── ImageButton bottom_nav_apps
 ```
 
 ## 顶栏
@@ -39,9 +42,16 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 | 项 | 说明 |
 |----|------|
 | 容器 | `eightbitlab.com.blurview.BlurView`，圆角胶囊悬浮于内容之上 |
-| 初始化 | `FloatingBottomNav.setup(activity, bottomNavigationContainer)` |
-| Tab 顺序 | `存档 \| 时间线 \| 应用`（`bottom_nav_menu.xml`） |
+| 宽度 | `@dimen/floating_nav_total_width`（176dp = 3×52dp item + 2×10dp 内边距） |
+| Tab UI | 3 个等宽 `ImageButton`（`design_bottom_navigation_item_max_width` 52dp） |
+| 图标 | `@dimen/floating_nav_icon_size`（26dp），由 `floating_nav_icon_padding_*` 居中 |
+| 导航 | `MainActivity.setupBottomNavigation()` 手动绑定 `NavController`（`launchSingleTop` + `restoreState`） |
+| 跨 Tab 跳转 | `MainActivity.selectBottomNavTab(destinationId)`（如时间线 → 存档） |
+| 毛玻璃 | `FloatingBottomNav.setup(activity, container)`，采样根为 `@id/coordinator` |
+| Tab 顺序 | `存档 \| 时间线 \| 应用` |
 | 避让 | 列表调用 `MainActivity.floatingNavContentPaddingBottom()` 增加 `paddingBottom` |
+
+> **为何不用 `BottomNavigationView`**：Material 底栏在横屏切换 Tab 时会 re-layout 并居中 item，导致第一个图标前出现空白；自定义 `LinearLayout` 可保持等宽左对齐。
 
 ## 各 Tab 内容区
 

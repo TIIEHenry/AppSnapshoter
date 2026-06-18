@@ -45,7 +45,7 @@
 
     <eightbitlab.com.blurview.BlurView
         android:id="@+id/bottom_navigation_container"
-        android:layout_width="wrap_content"
+        android:layout_width="@dimen/floating_nav_total_width"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_floating_nav_clip"
         android:elevation="2dp"
@@ -53,19 +53,55 @@
         app:blurOverlayColor="@color/floating_nav_glass_fill"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginBottom="@dimen/floating_nav_bottom_margin">
 
-        <com.google.android.material.bottomnavigation.BottomNavigationView
+        <LinearLayout
             android:id="@+id/bottom_navigation"
-            style="@style/Widget.AppSnapshot.BottomNavigationView.Floating"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="@dimen/floating_nav_horizontal_padding"
-            android:paddingEnd="@dimen/floating_nav_horizontal_padding"
-            app:itemIconTint="@color/bottom_nav_item_color"
-            app:labelVisibilityMode="unlabeled"
-            app:menu="@menu/bottom_nav_menu" />
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/floating_nav_height"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/floating_nav_horizontal_padding">
+
+            <ImageButton
+                android:id="@+id/bottom_nav_archive"
+                android:layout_width="@dimen/design_bottom_navigation_item_max_width"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/nav_archive"
+                android:paddingHorizontal="@dimen/floating_nav_icon_padding_horizontal"
+                android:paddingVertical="@dimen/floating_nav_icon_padding_vertical"
+                android:scaleType="fitCenter"
+                android:src="@drawable/tab_archive"
+                app:tint="@color/bottom_nav_item_color" />
+
+            <ImageButton
+                android:id="@+id/bottom_nav_timeline"
+                android:layout_width="@dimen/design_bottom_navigation_item_max_width"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/timeline"
+                android:paddingHorizontal="@dimen/floating_nav_icon_padding_horizontal"
+                android:paddingVertical="@dimen/floating_nav_icon_padding_vertical"
+                android:scaleType="fitCenter"
+                android:src="@drawable/tab_timeline"
+                app:tint="@color/bottom_nav_item_color" />
+
+            <ImageButton
+                android:id="@+id/bottom_nav_apps"
+                android:layout_width="@dimen/design_bottom_navigation_item_max_width"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/apps"
+                android:paddingHorizontal="@dimen/floating_nav_icon_padding_horizontal"
+                android:paddingVertical="@dimen/floating_nav_icon_padding_vertical"
+                android:scaleType="fitCenter"
+                android:src="@drawable/tab_apps"
+                app:tint="@color/bottom_nav_item_color" />
+
+        </LinearLayout>
 
     </eightbitlab.com.blurview.BlurView>
 

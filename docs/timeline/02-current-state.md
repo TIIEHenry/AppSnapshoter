@@ -54,8 +54,9 @@ private val snapshotViewModel: SnapshotViewModel by activityViewModels {
 
 ## 2.4 导航结构
 
-- 菜单：`app/src/main/res/menu/bottom_nav_menu.xml`
+- Tab 布局：`activity_main.xml` 内 `LinearLayout` + 3 个 `ImageButton`（存档 / 时间线 / 应用）
 - 导航图：`app/src/main/res/navigation/nav_graph.xml`
-- 宿主：`MainActivity` + 悬浮 `BlurView` 底栏（`FloatingBottomNav`）
+- 宿主：`MainActivity.setupBottomNavigation()` + 悬浮 `BlurView` 底栏（`FloatingBottomNav`）
+- 跨 Tab：`MainActivity.selectBottomNavTab(R.id.launcherFragment)`（时间线点击条目跳转存档）
 - 顶栏：固定紧凑 `MaterialToolbar`（`toolbar_height` 48dp），标题随 Tab 切换，设置入口在 `menu_main.xml`
 - 布局：`activity_main.xml`（`ConstraintLayout`，内容区在顶栏下方，不重叠）

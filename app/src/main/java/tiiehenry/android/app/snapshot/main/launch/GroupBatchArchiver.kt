@@ -8,7 +8,8 @@ import android.view.ViewGroup
 import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
-import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.R
+import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.databinding.ItemErrorAppBinding
 import tiiehenry.android.app.snapshot.databinding.ItemSuccessAppBinding
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class GroupBatchArchiver(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
+    private val snapshotViewModel: SnapshotViewModel,
     private val onRefresh: (SnapGroup) -> Unit
 ) {
 
@@ -48,6 +50,10 @@ class GroupBatchArchiver(
             .setTitle("全部归档")
             .setMessage("确定为 ${group.name} 中的 ${installedApps.size}/${group.apps.size} 个应用创建快照？")
             .setPositiveButton("确认") { _, _ ->
+                if (!snapshotViewModel.tryBeginBatchOperation()) {
+                    Toast.makeText(context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
                 val loadingDialog = GroupItemsProgressDialog(context)
                 loadingDialog.setTotalProgress(installedApps.size)
                 val erroredList = mutableMapOf<ArchivedApp, Exception>()
@@ -96,7 +102,8 @@ class GroupBatchArchiver(
         if (isCancelled.get()) return
         if (currentIndex >= apps.size) {
             onRefresh(group)
-            SnapshotApp.getViewModel().loadGroups()
+            snapshotViewModel.loadGroups()
+            snapshotViewModel.endBatchOperation()
             Toast.makeText(context, "全部归档完成", Toast.LENGTH_SHORT).show()
             updateDialogFinishState(
                 loadingDialog, System.currentTimeMillis() - totalStartTime,
@@ -127,6 +134,7 @@ class GroupBatchArchiver(
 
                 override fun onFinish() {
                     if (isCancelled.get() && currentIndex < apps.size) {
+                        snapshotViewModel.endBatchOperation()
                         updateDialogFinishState(
                             loadingDialog, System.currentTimeMillis() - startTime,
                             succeedList.size, erroredList.size, true

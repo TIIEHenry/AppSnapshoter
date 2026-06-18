@@ -10,7 +10,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.datepicker.MaterialDatePicker
 import tiiehenry.android.app.snapshot.R
@@ -41,7 +40,6 @@ class TimelineFragment : Fragment() {
     private lateinit var adapter: TimelineAdapter
     private lateinit var batchOperator: TimelineBatchOperator
     private lateinit var exportDirPicker: GroupPathPickerHelper
-    private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var bottomNavigationContainer: View
 
     private var pendingExportEntries: List<TimelineEntry> = emptyList()
@@ -76,10 +74,9 @@ class TimelineFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        bottomNavigation = requireActivity().findViewById(R.id.bottom_navigation)
         bottomNavigationContainer = requireActivity().findViewById(R.id.bottom_navigation_container)
 
-        batchOperator = TimelineBatchOperator(requireContext(), viewLifecycleOwner.lifecycleScope, snapshotViewModel, timelineViewModel)
+        batchOperator = TimelineBatchOperator(requireContext(), viewLifecycleOwner.lifecycleScope, snapshotViewModel)
 
         setupRecyclerView()
         setupChips()
@@ -102,7 +99,7 @@ class TimelineFragment : Fragment() {
         adapter = TimelineAdapter(
             onItemClick = { entry ->
                 snapshotViewModel.navigateToGroup.value = entry.key.groupId
-                bottomNavigation.selectedItemId = R.id.launcherFragment
+                (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
             },
             onMultiSelectModeChanged = { _ ->
                 timelineViewModel.enterMultiSelectMode()
@@ -301,7 +298,7 @@ class TimelineFragment : Fragment() {
 
     private fun setupEmptyState() {
         binding.btnGoArchive.setOnClickListener {
-            bottomNavigation.selectedItemId = R.id.launcherFragment
+            (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
         }
     }
 
@@ -379,7 +376,7 @@ class TimelineFragment : Fragment() {
             binding.multiSelectToolbar.selectedCountText.text = getString(R.string.selected_count, ids.size)
         }
 
-        timelineViewModel.isBatchRunning.observe(viewLifecycleOwner) { running ->
+        snapshotViewModel.isBatchRunning.observe(viewLifecycleOwner) { running ->
             binding.btnRestore.isEnabled = !running
             binding.btnDelete.isEnabled = !running
             binding.btnExport.isEnabled = !running

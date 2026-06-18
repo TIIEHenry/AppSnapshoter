@@ -30,7 +30,7 @@ enum class ArchivePickStrategy {
 }
 ```
 
-> `RestoreStrategy`（`NEWEST_FIRST` / `OLDEST_FIRST`）保留给时间线；Group 使用 `ArchivePickStrategy`，选取逻辑可放在共享工具类中避免重复。
+> `RestoreStrategy`（`NEWEST_FIRST` / `OLDEST_FIRST`）保留给时间线；Group 使用 `ArchivePickStrategy`。新/旧选取逻辑统一放入 `ArchiveResolver`（见 [附录 §A.4](../07-appendix.md#a4-archiveresolver共享快照选取)），`TimelineRepository.resolveArchive` 改为薄包装。
 
 ---
 
@@ -57,7 +57,7 @@ data class AppRestoreKey(
 
 ### 存储
 
-- **位置**：group 级 MMKV（`GroupConfig.mmkv` / `SnapGroup.mmkv`）
+- **位置**：`SnapGroup.mmkv`（即 `group.config.mmkv`，MMKV id = `"group:" + groupId`）
 - **Key 格式**：`restore_record:{packageName}:{userId}`
 - **Value**：JSON 序列化的 `RestoreRecord`（FastJSON2，与项目一致）
 
@@ -71,13 +71,13 @@ object RestoreRecordStore {
 
 ### 写入时机
 
-| 场景 | 是否写入 |
-|------|----------|
-| 单应用 `restoreArchiveItem` / `restoreLatest` 成功 | ✅ |
-| 单应用高级恢复成功 | ✅（记录实际恢复的 archive） |
-| 批量恢复单项成功 | ✅ |
-| 批量恢复单项失败 | ❌ |
-| 用户取消批量（未完成项） | ❌ |
+| 场景 | 是否写入 | 实现位置 |
+|------|----------|----------|
+| 单应用 `restoreLatest` / `restoreArchiveItem` 成功 | ✅ | `RestoreRecordWriter.onRestoreSuccess`（在 `ArchiveRestorer` 成功路径调用） |
+| 单应用高级恢复成功 | ✅ | 同上 |
+| 批量恢复单项成功 | ✅ | 同上（`restoreArchiveSuspend` 成功即写入；`GroupBatchRestorer` 不重复写） |
+| 批量恢复单项失败 | ❌ | — |
+| 用户取消批量（未完成项） | ❌ | — |
 
 ---
 
@@ -123,8 +123,10 @@ fun needsRestoreSinceLast(app: ArchivedApp, record: RestoreRecord?): Boolean {
 
 ## 4.4 快照选取逻辑
 
+由 `ArchiveResolver.pick(archives, strategy, record?)` 实现：
+
 ```kotlin
-fun resolveArchive(
+fun pick(
     archives: Collection<ArchiveItem>,
     strategy: ArchivePickStrategy,
     record: RestoreRecord?
@@ -148,6 +150,8 @@ fun resolveArchive(
     }
 }
 ```
+
+`LAST_RESTORED` 回退最新时，`GroupRestoreTask.fallbackToNewest = true`，供对话框脚注展示。
 
 ---
 
@@ -175,6 +179,12 @@ object GroupBatchRestorePlanner {
         records: Map<String, RestoreRecord>,
         isInstalled: (ArchivedApp) -> Boolean
     ): Preview
+
+    /** 执行前 / 循环内重查，对齐 TimelineRepository.resolveEntry */
+    fun resolveTaskAt(
+        task: GroupRestoreTask,
+        groups: List<SnapGroup>
+    ): GroupRestoreTask?
 }
 ```
 
@@ -223,42 +233,60 @@ sequenceDiagram
 class GroupBatchRestorer(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
-    private val onRefresh: (SnapGroup) -> Unit
+    private val snapshotViewModel: SnapshotViewModel
 ) {
     fun execute(group: SnapGroup, tasks: List<GroupRestoreTask>) {
-        launcherViewModel.isBatchRunning.value = true
-        val dialog = GroupItemsProgressDialog(context)
-        dialog.setTotalProgress(tasks.size)
+        if (!snapshotViewModel.tryBeginBatchOperation()) {
+            Toast.makeText(context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val loadingDialog = GroupItemsProgressDialog(context)
+        loadingDialog.setTotalProgress(tasks.size)
+        val succeeded = mutableListOf<ArchivedApp>()
+        val failed = mutableMapOf<ArchivedApp, Exception>()
+        val isCancelled = AtomicBoolean(false)
+        val startTime = System.currentTimeMillis()
+
+        loadingDialog.setOnCancelListener { /* 同 TimelineBatchOperator */ }
 
         coroutineScope.launch(Dispatchers.IO) {
-            val succeeded = mutableListOf<ArchivedApp>()
-            val failed = mutableMapOf<ArchivedApp, Exception>()
             try {
-                tasks.forEachIndexed { index, task ->
-                    if (isCancelled.get()) return@forEachIndexed
-                    updateProgress(dialog, index, task)
+                var index = 0
+                while (index < tasks.size && !isCancelled.get()) {
+                    val task = GroupBatchRestorePlanner.resolveTaskAt(
+                        tasks[index],
+                        snapshotViewModel.groupList.value.orEmpty()
+                    ) ?: run {
+                        failed[tasks[index].app] = IllegalStateException(
+                            context.getString(R.string.timeline_entry_stale)
+                        )
+                        index++
+                        continue
+                    }
+                    updateProgress(loadingDialog, index, task)
                     try {
-                        // 建议：从最新 groupList 重查 ArchivedApp
                         ArchiveRestorer.restoreArchiveSuspend(context, task.app, task.archive)
-                        RestoreRecordStore.put(group, ..., RestoreRecord(...))
+                        // RestoreRecord 由 ArchiveRestorer 成功路径写入
                         succeeded.add(task.app)
                     } catch (e: Exception) {
                         failed[task.app] = e
                     }
+                    index++
                 }
             } finally {
-                launcherViewModel.isBatchRunning.value = false
-                withContext(Main) { onRefresh(group); showSummary(...) }
+                withContext(Dispatchers.Main) {
+                    snapshotViewModel.endBatchOperation()
+                    snapshotViewModel.loadGroups()
+                    updateDialogFinishState(loadingDialog, ...)
+                }
             }
         }
-        dialog.show()
+        loadingDialog.show()
     }
 }
 ```
 
-### 运行时重查（防 stale）
-
-批量执行每项前，从 `SnapshotViewModel.groupList` 按 `groupId + packageName + userId` 重新获取 `ArchivedApp` 与 `ArchiveItem`（按 name 匹配），避免执行过程中 `loadGroups()` 导致引用失效。模式与时间线 `resolveEntry` 一致。
+结构 **逐项对照** `TimelineBatchOperator.batchRestore`（详见 [附录 §A.1](../07-appendix.md#a1-与-timelinebatchoperator-的对照)）。
 
 ---
 
@@ -275,19 +303,8 @@ class GroupBatchRestorer(
 
 ## 4.8 单应用恢复集成
 
-在 `ArchiveRestorer` 恢复成功路径末尾（或调用方 `finally` 成功分支）写入 `RestoreRecord`：
+通过 `RestoreRecordWriter.onRestoreSuccess(archivedApp, archiveItem)` 在 `ArchiveRestorer` 成功路径统一写入（见 [附录 §A.2](../07-appendix.md#a2-restorerecord-写入点)）。
 
-```kotlin
-RestoreRecordStore.put(
-    group = archivedApp.group,
-    packageName = archiveItem.appInfo.packageName,
-    userId = archiveItem.appInfo.userId,
-    record = RestoreRecord(
-        restoredAt = System.currentTimeMillis(),
-        archiveName = archiveItem.name,
-        archiveMakeTime = archiveItem.metaInfo.makeTime
-    )
-)
-```
+`ArchivedApp` 已持有 `group: SnapGroup`，无需额外传 groupId。
 
-需传入 `archivedApp.group`（`ArchivedApp` 已持有 `group: SnapGroup`）。
+**注意：** 首版上线前必须覆盖 `restoreLatest`，否则「自上次恢复以来」在仅使用点击恢复的用户上无 record 基线（会视为从未恢复，符合 §4.3 语义）。

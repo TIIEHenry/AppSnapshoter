@@ -116,5 +116,5 @@ sequenceDiagram
 
 ## 相关文档
 
-- [Group 批量恢复设计](GROUP_BATCH_RESTORE.md) — 存档 Tab 分组级批量恢复（范围 + 快照策略 + 组头 UI 重构）· 待实施
+- [Group 批量恢复设计](GROUP_BATCH_RESTORE.md) — 存档 Tab 分组级批量恢复（v1.1 设计 · 待实施）
 - [多用户适配分析](multi-user-adaptation.md) — Android 多用户场景下的适配现状、压缩/恢复链路与已知问题

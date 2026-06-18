@@ -14,21 +14,27 @@
     <dimen name="fluent_corner_radius_overlay">8dp</dimen>
 
     <!-- Floating bottom navigation — Fluent acrylic bar -->
-    <dimen name="floating_nav_corner_radius">10dp</dimen>
-    <dimen name="floating_nav_bottom_margin">36dp</dimen>
-    <dimen name="floating_nav_horizontal_padding">8dp</dimen>
-    <dimen name="floating_nav_height">52dp</dimen>
+    <dimen name="floating_nav_corner_radius">12dp</dimen>
+    <dimen name="floating_nav_bottom_margin">44dp</dimen>
+    <dimen name="floating_nav_horizontal_padding">10dp</dimen>
+    <dimen name="floating_nav_height">58dp</dimen>
     <dimen name="floating_nav_content_gap">12dp</dimen>
     <dimen name="floating_nav_blur_radius">24dp</dimen>
+    <!-- 3 × item_max_width + 2 × horizontal_padding = 176dp -->
+    <dimen name="floating_nav_total_width">176dp</dimen>
+    <dimen name="floating_nav_icon_size">26dp</dimen>
+    <!-- (item_width - icon_size) / 2, (nav_height - icon_size) / 2 -->
+    <dimen name="floating_nav_icon_padding_horizontal">13dp</dimen>
+    <dimen name="floating_nav_icon_padding_vertical">16dp</dimen>
 
-    <!-- BottomNavigationView item sizing -->
-    <dimen name="design_bottom_navigation_item_min_width">44dp</dimen>
-    <dimen name="design_bottom_navigation_item_max_width">48dp</dimen>
-    <dimen name="design_bottom_navigation_active_item_min_width">44dp</dimen>
-    <dimen name="design_bottom_navigation_active_item_max_width">48dp</dimen>
-    <dimen name="m3_bottom_nav_item_active_indicator_width">48dp</dimen>
-    <dimen name="m3_bottom_nav_item_active_indicator_height">32dp</dimen>
+    <!-- BottomNavigationView item sizing — min/max 相同，避免选中态改变宽度 -->
+    <dimen name="design_bottom_navigation_item_min_width">52dp</dimen>
+    <dimen name="design_bottom_navigation_item_max_width">52dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_min_width">52dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_max_width">52dp</dimen>
+    <dimen name="m3_bottom_nav_item_active_indicator_width">52dp</dimen>
+    <dimen name="m3_bottom_nav_item_active_indicator_height">36dp</dimen>
     <dimen name="m3_bottom_nav_item_active_indicator_margin_horizontal">2dp</dimen>
-    <dimen name="m3_bottom_nav_item_padding_top">14dp</dimen>
-    <dimen name="m3_bottom_nav_item_padding_bottom">14dp</dimen>
+    <dimen name="m3_bottom_nav_item_padding_top">16dp</dimen>
+    <dimen name="m3_bottom_nav_item_padding_bottom">16dp</dimen>
 </resources>

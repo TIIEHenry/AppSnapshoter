@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">AppSnapshot</string>
     <string name="apps">应用</string>
+    <string name="nav_archive">存档</string>
 
     <!-- 搜索 -->
     <string name="search_apps_hint">搜索应用…</string>
@@ -78,6 +79,27 @@
     <string name="timeline_restore_oldest">旧快照优先 — 每个应用恢复时间最旧的那个快照</string>
     <string name="timeline_snapshot_count_single">1 个快照  %1$s</string>
     <string name="timeline_snapshot_count_multi">%1$d 个快照  %2$s ~ %3$s</string>
+
+    <!-- Group 批量操作 -->
+    <string name="batch_operation_in_progress">已有批量任务进行中</string>
+    <string name="group_batch_menu_title">批量操作</string>
+    <string name="group_batch_menu_archive">全部归档</string>
+    <string name="group_batch_menu_restore">批量恢复…</string>
+    <string name="group_batch_restore_title">批量恢复</string>
+    <string name="group_batch_restore_scope_label">恢复范围</string>
+    <string name="group_batch_restore_scope_not_installed">未安装的应用 (%d)</string>
+    <string name="group_batch_restore_scope_all">全部有快照的应用 (%d)</string>
+    <string name="group_batch_restore_scope_since_last">自上次恢复以来 (%d)</string>
+    <string name="group_batch_restore_strategy_label">快照选择</string>
+    <string name="group_batch_restore_strategy_newest">最新快照</string>
+    <string name="group_batch_restore_strategy_oldest">最旧快照</string>
+    <string name="group_batch_restore_strategy_last_restored">与上次恢复相同</string>
+    <string name="group_batch_restore_preview">预览：将恢复 %d 个应用</string>
+    <string name="group_batch_restore_preview_empty">没有符合范围的应用</string>
+    <string name="group_batch_restore_preview_fallback">%d 个应用将回退为最新快照</string>
+    <string name="group_batch_restore_warning">已安装的应用将被清除数据并覆盖为存档状态</string>
+    <string name="group_batch_restore_confirm">开始恢复</string>
+    <string name="group_batch_restore_no_archives">没有可恢复的存档</string>
 
     <!-- 额外项目 -->
     <string name="extra_item_excludes_count">%d 个排除模式</string>

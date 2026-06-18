@@ -20,6 +20,7 @@ import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.IItemProgressDialog
 import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.ItemProgressDialog
+import tiiehenry.android.app.snapshot.main.launch.batch.RestoreRecordWriter
 import tiiehenry.android.app.snapshot.utils.ApksUtil
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
@@ -278,6 +279,7 @@ object ArchiveRestorer {
         ) return
 
         PermissionRestorer.restorePermissions(loadingDialog, archiveItem, fs, appManager, packageName, userId)
+        RestoreRecordWriter.onRestoreSuccess(archivedApp, archiveItem)
         withContext(Dispatchers.Main) {
             loadingDialog.dismissItem()
             Toast.makeText(context, "存档恢复成功", Toast.LENGTH_SHORT).show()
@@ -400,6 +402,7 @@ object ArchiveRestorer {
             PermissionRestorer.restorePermissions(loadingDialog, archiveItem, fs, appManager, packageName, userId)
         }
 
+        RestoreRecordWriter.onRestoreSuccess(archivedApp, archiveItem)
         withContext(Dispatchers.Main) {
             loadingDialog.dismissItem()
             Toast.makeText(context, "高级恢复成功", Toast.LENGTH_SHORT).show()

@@ -4,10 +4,8 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
-import android.view.ViewTreeObserver
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import eightbitlab.com.blurview.BlurAlgorithm
 import eightbitlab.com.blurview.BlurView
 import eightbitlab.com.blurview.RenderEffectBlur
@@ -16,47 +14,23 @@ import tiiehenry.android.app.snapshot.R
 
 object FloatingBottomNav {
 
-    fun setup(
-        activity: FragmentActivity,
-        container: BlurView,
-        bottomNavigation: BottomNavigationView,
-    ) {
+    fun setup(activity: FragmentActivity, container: BlurView) {
+        if (container.getTag(R.id.tag_floating_nav_setup_done) == true) return
+
         val contentRoot = activity.findViewById<ViewGroup>(R.id.coordinator)
-        val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                if (container.width <= 0 || container.height <= 0) return
-                container.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                apply(activity, container, bottomNavigation, contentRoot)
-            }
-        }
-        container.viewTreeObserver.addOnGlobalLayoutListener(listener)
+
         container.post {
-            if (container.width > 0 && container.height > 0) {
-                container.viewTreeObserver.removeOnGlobalLayoutListener(listener)
-                apply(activity, container, bottomNavigation, contentRoot)
-            }
+            if (container.width <= 0 || container.height <= 0) return@post
+            if (container.getTag(R.id.tag_floating_nav_setup_done) == true) return@post
+
+            applyBlur(activity, container, contentRoot)
+            container.setTag(R.id.tag_floating_nav_setup_done, true)
         }
     }
 
-    fun applyCompactWidth(container: BlurView, bottomNavigation: BottomNavigationView) {
-        val menuSize = bottomNavigation.menu.size().coerceAtLeast(1)
-        val res = container.resources
-        val itemWidth = res.getDimensionPixelSize(R.dimen.design_bottom_navigation_item_max_width)
-        val horizontalPadding = res.getDimensionPixelSize(R.dimen.floating_nav_horizontal_padding) * 2
-        val targetWidth = itemWidth * menuSize + horizontalPadding
-
-        bottomNavigation.layoutParams = bottomNavigation.layoutParams.apply {
-            width = targetWidth
-        }
-        container.layoutParams = container.layoutParams.apply {
-            width = targetWidth
-        }
-    }
-
-    private fun apply(
+    private fun applyBlur(
         activity: FragmentActivity,
         container: BlurView,
-        bottomNavigation: BottomNavigationView,
         contentRoot: ViewGroup,
     ) {
         val blurRadius = activity.resources.getDimension(R.dimen.floating_nav_blur_radius)
@@ -72,8 +46,6 @@ object FloatingBottomNav {
             .setBlurRadius(blurRadius)
             .setBlurAutoUpdate(true)
             .setOverlayColor(ContextCompat.getColor(activity, R.color.floating_nav_glass_fill))
-
-        applyCompactWidth(container, bottomNavigation)
     }
 
     private fun createBlurAlgorithm(activity: FragmentActivity): BlurAlgorithm {

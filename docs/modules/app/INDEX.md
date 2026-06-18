@@ -123,7 +123,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 | `TagsFilterLayout` | 标签筛选 ChipGroup 自定义 LinearLayout |
 | `SearchFieldExt` | 搜索框扩展函数 |
 | `CollapsibleSearchController` | Chip 行搜索图标 ↔ `layout_search_field` 展开/收起（时间线、应用 Tab、选应用、忽略应用） |
-| `FloatingBottomNav` | 悬浮底栏 `BlurView` 毛玻璃初始化 |
+| `FloatingBottomNav` | 悬浮底栏 `BlurView` 毛玻璃（采样根 `coordinator`） |
 
 ## 主界面布局（`activity_main.xml`）
 
@@ -131,10 +131,11 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ConstraintLayout (@id/coordinator)
 ├── LinearLayout toolbar_header — MaterialToolbar (48dp) + 分隔线
 ├── FragmentContainerView — NavHost，贴顶栏下方
-└── BlurView — 悬浮胶囊底栏
+└── BlurView — 悬浮胶囊底栏（176dp 固定宽）
+    └── LinearLayout — 3× ImageButton Tab（26dp 图标）
 ```
 
-顶栏固定不随列表滚动；列表通过 `floatingNavContentPaddingBottom()` 避让底栏。
+顶栏固定不随列表滚动；列表通过 `floatingNavContentPaddingBottom()` 避让底栏。Tab 导航由 `MainActivity.setupBottomNavigation()` 绑定 `NavController`。
 
 ### `utils` — 工具类
 | 类 | 职责 |

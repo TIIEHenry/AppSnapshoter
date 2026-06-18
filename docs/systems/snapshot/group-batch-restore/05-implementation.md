@@ -21,10 +21,12 @@ app/src/main/java/tiiehenry/android/app/snapshot/main/launch/batch/
 ├── GroupRestoreScope.kt           // enum GroupRestoreScope
 ├── ArchivePickStrategy.kt         // enum ArchivePickStrategy
 ├── RestoreRecord.kt               // data class + AppRestoreKey
-├── RestoreRecordStore.kt          // MMKV 读写
-├── GroupBatchRestorePlanner.kt    // preview / buildPlan
+├── RestoreRecordStore.kt          // SnapGroup.mmkv 读写
+├── RestoreRecordWriter.kt         // ArchiveRestorer 成功路径调用
+├── ArchiveResolver.kt             // 时间线 + Group 共享快照选取
+├── GroupBatchRestorePlanner.kt    // preview / resolveTaskAt
 ├── GroupBatchRestoreDialog.kt     // 配置对话框
-└── GroupBatchRestorer.kt          // 串行执行
+└── GroupBatchRestorer.kt          // 串行执行（对照 TimelineBatchOperator）
 ```
 
 也可平铺在 `main/launch/` 下与 `GroupBatchArchiver` 并列；以上子包仅为建议。
@@ -37,15 +39,17 @@ app/src/main/java/tiiehenry/android/app/snapshot/main/launch/batch/
 |------|------|------|
 | `res/layout/item_group.xml` | **修改** | 双行布局；32dp 按钮；`btn_batch` 替代 `btn_archive_all` |
 | `res/layout/dialog_group_batch_restore.xml` | **新增** | 范围 + 策略 + 预览 |
-| `res/values/strings.xml` | **修改** | 对话框与菜单文案 |
-| `res/menu/menu_group_batch.xml` | **新增**（可选） | 批量 PopupMenu 定义 |
-| `GroupActionsController.kt` | **修改** | 绑定 `btn_batch`；创建 `GroupBatchRestorer` |
-| `GroupBatchArchiver.kt` | **修改**（可选） | 提取与 Restorer 共用的 finish / error dialog |
-| `LauncherViewModel.kt` | **修改** | `isBatchRunning: MutableLiveData<Boolean>` |
+| `res/values/strings.xml` | **修改** | 对话框、菜单、批量互斥 Toast |
+| `res/values/ids.xml` | **新增**（若无） | `menu_batch_archive` / `menu_batch_restore` |
+| `GroupActionsController.kt` | **修改** | 绑定 `btn_batch` PopupMenu；创建 `GroupBatchRestorer` |
+| `GroupBatchArchiver.kt` | **修改**（可选） | 接入 `tryBeginBatchOperation`；提取共用 finish / error dialog |
+| `SnapshotViewModel.kt` | **修改** | `isBatchRunning` + `tryBeginBatchOperation` / `endBatchOperation` |
+| `TimelineBatchOperator.kt` | **修改** | 改用 `snapshotViewModel.isBatchRunning` |
+| `TimelineFragment.kt` | **修改** | 观察 `snapshotViewModel.isBatchRunning` |
 | `LauncherFragment` / `GroupsAdapter` | **修改** | 观察 `isBatchRunning`，禁用交互 |
-| `ArchiveRestorer.kt` | **修改** | 成功路径写入 `RestoreRecord` |
-| `TimelineRepository.kt` | **修改**（可选） | 抽取 `resolveArchive` 到共享 `ArchivePickHelper` |
-| `docs/systems/snapshot/INDEX.md` | **修改** | 增加本方案链接 |
+| `ArchiveRestorer.kt` | **修改** | 成功路径调用 `RestoreRecordWriter` |
+| `TimelineRepository.kt` | **修改** | `resolveArchive` 委托 `ArchiveResolver` |
+| `docs/systems/snapshot/INDEX.md` | **修改** | 更新本方案状态 |
 
 ---
 
@@ -53,12 +57,13 @@ app/src/main/java/tiiehenry/android/app/snapshot/main/launch/batch/
 
 | 类 | 职责 |
 |----|------|
-| `RestoreRecordStore` | group MMKV 读写；JSON 序列化 |
-| `GroupBatchRestorePlanner` | 纯函数：范围过滤 + 快照选取 + 预览统计 |
-| `GroupBatchRestoreDialog` | 展示配置 UI；监听 Radio 变化刷新 preview；回调 `(scope, strategy, tasks)` |
-| `GroupBatchRestorer` | 串行调用 `restoreArchiveSuspend`；进度 UI；成功/失败汇总；写 record |
+| `RestoreRecordStore` | `SnapGroup.mmkv` 读写；JSON 序列化 |
+| `RestoreRecordWriter` | 恢复成功时写 record；供 `ArchiveRestorer` 调用 |
+| `ArchiveResolver` | 时间线 / Group 共享的快照选取 |
+| `GroupBatchRestorePlanner` | 纯函数：范围过滤 + 预览 + `resolveTaskAt` |
+| `GroupBatchRestoreDialog` | 配置 UI；Radio 变化刷新 preview；回调 `(scope, strategy, tasks)` |
+| `GroupBatchRestorer` | 对照 `TimelineBatchOperator` 串行恢复 |
 | `GroupActionsController` | 组头 `btn_batch` PopupMenu；调度 Archiver / Restorer |
-| `LauncherViewModel` | 批量运行状态；可选：记住上次对话框选项（v2） |
 
 ---
 
@@ -85,22 +90,38 @@ graph TD
     GBR --> RRS
     GBR --> GIPD
     GBR --> SVM
-    AR --> RRS
+    GBA --> SVM
+    TBO[TimelineBatchOperator] --> SVM
+    AR --> RRW[RestoreRecordWriter]
+    RRW --> RRS
 ```
 
 ---
 
-## 5.5 ViewModel 状态
+## 5.5 全局批量互斥（SnapshotViewModel）
 
 ```kotlin
-// LauncherViewModel
+// SnapshotViewModel.kt
 val isBatchRunning = MutableLiveData(false)
+
+fun tryBeginBatchOperation(): Boolean {
+    if (isBatchRunning.value == true) return false
+    isBatchRunning.value = true
+    return true
+}
+
+fun endBatchOperation() {
+    isBatchRunning.value = false
+}
 ```
 
-互斥规则：
+互斥范围：
 
-- `isBatchRunning == true` 时拒绝新的批量归档 / 批量恢复
-- 与时间线共用全局锁（可选）：`SnapshotViewModel` 层 `batchOperationRunning`，由 Archiver / Restorer / TimelineBatchOperator 统一读写
+- `GroupBatchArchiver` / `GroupBatchRestorer` / `TimelineBatchOperator` 开始前均调用 `tryBeginBatchOperation()`
+- `LauncherFragment` 与 `TimelineFragment` 观察同一 `LiveData`，禁用各自 Tab 内批量相关入口
+- 失败时 `finally` 中必须 `endBatchOperation()`，避免 UI 永久锁死
+
+详见 [附录 §A.5](../07-appendix.md#a5-全局批量互斥snapshotviewmodel)。
 
 ---
 
@@ -137,8 +158,8 @@ val isBatchRunning = MutableLiveData(false)
 
 | 重构项 | 说明 |
 |--------|------|
-| `BatchProgressDialogs` | 提取 `GroupBatchArchiver` 与 `GroupBatchRestorer` 共用的 error/success/finish 对话框 |
-| `ArchivePickHelper` | 合并 `TimelineRepository.resolveArchive` 与 Group 的 `LAST_RESTORED` 逻辑 |
-| `BatchOperationGuard` | 统一 Archiver / Restorer / Timeline 的 `isBatchRunning` 互斥 |
+| `BatchProgressDialogs` | 提取 `GroupBatchArchiver`、`GroupBatchRestorer`、`TimelineBatchOperator` 共用的 error/success/finish |
+| `ArchiveResolver` | **Phase 1 纳入**；合并 Timeline / Group 快照选取 |
+| `GroupBatchArchiver` 文案 | 硬编码中文迁移至 `strings.xml`（非阻塞） |
 
-首版可接受适度重复，与 `TimelineBatchOperator` 初期做法一致。
+首版允许 Restorer 与 Timeline 在 progress 汇总上适度重复；**互斥锁与 ArchiveResolver 不建议推迟**。

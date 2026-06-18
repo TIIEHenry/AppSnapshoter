@@ -2,7 +2,7 @@
 title: "构建指南"
 type: guide
 status: active
-updated: 2026-06-17
+updated: 2026-06-18
 summary: "编译、调试和安装 AppSnapshoter 开发版本"
 ---
 
@@ -35,6 +35,10 @@ summary: "编译、调试和安装 AppSnapshoter 开发版本"
 app/           → api, hiddenapi, provider
 provider/      → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 ```
+
+## 发布
+
+正式版本发布（CHANGELOG、打 tag、GitHub Actions）见 [发布指南](release.md)。
 
 ## 调试
 

@@ -7,11 +7,14 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.SortConfig
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.main.launch.batch.GroupBatchRestoreDialog
+import tiiehenry.android.app.snapshot.main.launch.batch.GroupBatchRestorer
 import tiiehenry.android.app.snapshot.main.launch.group.GroupConfigFragment
 import tiiehenry.android.app.snapshot.main.launch.group.GroupSettingFragment
 import tiiehenry.android.app.snapshot.main.selectapp.SelectAppFragment
@@ -29,20 +32,26 @@ class GroupActionsController(
 ) {
 
     private var archiver: GroupBatchArchiver? = null
+    private var restorer: GroupBatchRestorer? = null
 
     fun setupActions(group: SnapGroup, groupsAdapter: GroupsAdapter, groupViewHolder: GroupsAdapter.GroupViewHolder) {
-        archiver = GroupBatchArchiver(binding.root.context, viewModel.viewModelScope) { g ->
+        archiver = GroupBatchArchiver(binding.root.context, viewModel.viewModelScope, snapshotViewModel) { g ->
+            onRefresh(g)
+        }
+        restorer = GroupBatchRestorer(binding.root.context, viewModel.viewModelScope, snapshotViewModel) { g ->
             onRefresh(g)
         }
 
         // 标题点击 - 折叠/展开
         binding.groupTitle.setOnClickListener {
+            if (groupsAdapter.isBatchRunning) return@setOnClickListener
             group.isCollapsed = !group.isCollapsed
             groupViewHolder.updateCollapseState(group.isCollapsed)
         }
 
         // 标题长按 - 打开分组设置
         binding.groupTitle.setOnLongClickListener {
+            if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
             GroupSettingFragment.newInstance(group) {
                 onRefresh(group)
             }.show(fragmentManager, "GroupConfigFragment")
@@ -51,12 +60,14 @@ class GroupActionsController(
 
         // 展开按钮
         binding.expandGroup.setOnClickListener {
+            if (groupsAdapter.isBatchRunning) return@setOnClickListener
             group.isCollapsed = false
             groupViewHolder.updateCollapseState(group.isCollapsed)
         }
 
         // 刷新按钮
         binding.btnRefresh.setOnClickListener {
+            if (groupsAdapter.isBatchRunning) return@setOnClickListener
             viewModel.viewModelScope.launch {
                 val app = SnapshotApp.getInstance()
                 group.loadApps(
@@ -69,12 +80,14 @@ class GroupActionsController(
             }
         }
         binding.btnRefresh.setOnLongClickListener {
+            if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
             archiver?.showGroupStatistics(group)
             true
         }
 
         // 添加应用按钮
         binding.btnAdd.setOnClickListener {
+            if (groupsAdapter.isBatchRunning) return@setOnClickListener
             SelectAppFragment.newInstance(group.id) { appInfos ->
                 snapshotViewModel.addAppsToGroup(group.id, appInfos) {
                     val updatedGroup = snapshotViewModel.groupList.value?.find { it.id == group.id }
@@ -84,9 +97,13 @@ class GroupActionsController(
         }
 
         // 排序按钮
-        binding.btnMove.setOnClickListener { v -> showSortTypePopupMenu(v, group, groupViewHolder) }
+        binding.btnMove.setOnClickListener { v ->
+            if (groupsAdapter.isBatchRunning) return@setOnClickListener
+            showSortTypePopupMenu(v, group, groupViewHolder)
+        }
         if (group.config.sortConfig.sortType == SortConfig.SORT_TYPE_CUSTOM) {
             binding.btnMove.setOnLongClickListener {
+                if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
                 groupViewHolder.toggleSortMode(group, binding.groupRecyclerView.adapter as GroupItemAdapter)
                 true
             }
@@ -94,14 +111,32 @@ class GroupActionsController(
 
         // 配置按钮
         binding.btnTune.setOnClickListener {
+            if (groupsAdapter.isBatchRunning) return@setOnClickListener
             GroupConfigFragment.newInstance(group) {
                 onRefresh(group)
             }.show(fragmentManager, "GroupShotConfigFragment")
         }
 
-        // 一键存档按钮
-        binding.btnArchiveAll.setOnClickListener {
-            archiver?.archiveAllApps(group)
+        // 批量操作菜单
+        binding.btnBatch.setOnClickListener { anchor ->
+            if (groupsAdapter.isBatchRunning) {
+                Toast.makeText(anchor.context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            PopupMenu(anchor.context, anchor).apply {
+                menu.add(0, R.id.menu_batch_archive, 0, R.string.group_batch_menu_archive)
+                menu.add(0, R.id.menu_batch_restore, 1, R.string.group_batch_menu_restore)
+                setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.menu_batch_archive -> archiver?.archiveAllApps(group)
+                        R.id.menu_batch_restore -> GroupBatchRestoreDialog.show(anchor.context, group) { tasks ->
+                            restorer?.execute(group, tasks)
+                        }
+                    }
+                    true
+                }
+                show()
+            }
         }
     }
 
@@ -154,7 +189,16 @@ class GroupActionsController(
         binding.btnAdd.visibility = if (show) View.VISIBLE else View.GONE
         binding.btnTune.visibility = if (show) View.VISIBLE else View.GONE
         binding.btnRefresh.visibility = if (show) View.VISIBLE else View.GONE
-        binding.btnArchiveAll.visibility = if (show) View.VISIBLE else View.GONE
+        binding.btnBatch.visibility = if (show) View.VISIBLE else View.GONE
         binding.btnConfirm.visibility = if (show) View.GONE else View.VISIBLE
+    }
+
+    fun setBatchRunning(running: Boolean) {
+        binding.btnBatch.isEnabled = !running
+        binding.btnRefresh.isEnabled = !running
+        binding.btnAdd.isEnabled = !running
+        binding.btnMove.isEnabled = !running
+        binding.btnTune.isEnabled = !running
+        binding.root.alpha = if (running) 0.7f else 1f
     }
 }

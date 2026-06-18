@@ -16,7 +16,6 @@ class TimelineViewModel : ViewModel() {
     val selectedIds = MutableLiveData<Set<String>>(emptySet())
     val isMultiSelectMode = MutableLiveData(false)
     val isQuerying = MutableLiveData(false)
-    val isBatchRunning = MutableLiveData(false)
     val searchQuery = MutableLiveData("")
 
     val filteredEntries: LiveData<List<TimelineEntry>> = object : MutableLiveData<List<TimelineEntry>>() {

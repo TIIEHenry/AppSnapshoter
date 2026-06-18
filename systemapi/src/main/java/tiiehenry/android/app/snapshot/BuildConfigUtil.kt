@@ -18,6 +18,7 @@ object BuildConfigUtil {
     val FLAVOR_feature =
         runCatching { fromBuildConfig("FLAVOR_feature") as String }.getOrDefault("")
     val FLAVOR_abi = runCatching { fromBuildConfig("FLAVOR_abi") as String }.getOrDefault("")
+    @Suppress("UNCHECKED_CAST")
     val SUPPORTED_LOCALES =
         runCatching { fromBuildConfig("SUPPORTED_LOCALES") as Array<String> }.getOrDefault(arrayOf())
 }

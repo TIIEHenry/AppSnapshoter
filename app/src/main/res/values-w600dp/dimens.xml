@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="design_bottom_navigation_item_min_width">44dp</dimen>
-    <dimen name="design_bottom_navigation_item_max_width">48dp</dimen>
-    <dimen name="design_bottom_navigation_active_item_min_width">44dp</dimen>
-    <dimen name="design_bottom_navigation_active_item_max_width">48dp</dimen>
-    <dimen name="floating_nav_horizontal_padding">8dp</dimen>
+    <dimen name="design_bottom_navigation_item_min_width">52dp</dimen>
+    <dimen name="design_bottom_navigation_item_max_width">52dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_min_width">52dp</dimen>
+    <dimen name="design_bottom_navigation_active_item_max_width">52dp</dimen>
+    <dimen name="floating_nav_horizontal_padding">10dp</dimen>
+    <dimen name="floating_nav_total_width">176dp</dimen>
 </resources>

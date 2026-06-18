@@ -51,7 +51,7 @@ provider → api, hiddenapi, systemapi, io-nativefs, io-tar, io-zstd
 
 **Timeline tab**: Bottom nav order is `存档 | 时间线 | 应用`. Implementation lives under `app/.../main/timeline/` — see `docs/systems/timeline/INDEX.md`.
 
-**Main shell UI**: `MainActivity` uses a `ConstraintLayout` host (`@id/coordinator`) with a fixed compact `MaterialToolbar` (`toolbar_height` 48dp, title via Navigation), fragment content below `toolbar_header`, and a floating `BlurView` bottom nav (`FloatingBottomNav`). No collapsing/large-title app bar — list scroll does not affect the toolbar. See `docs/guides/getting-started/ui-shell.md`.
+**Main shell UI**: `MainActivity` uses a `ConstraintLayout` host (`@id/coordinator`) with a fixed compact `MaterialToolbar` (`toolbar_height` 48dp, title via Navigation), fragment content below `toolbar_header`, and a floating `BlurView` bottom nav (`FloatingBottomNav`) built from a fixed-width `LinearLayout` + three equal `ImageButton` tabs (not `BottomNavigationView` — avoids landscape re-layout gaps). Navigation is wired in `setupBottomNavigation()`; cross-tab jumps use `selectBottomNavTab()`. No collapsing/large-title app bar — list scroll does not affect the toolbar. See `docs/guides/getting-started/ui-shell.md`.
 
 **Collapsible search**: List filter screens share `layout_search_field` + `CollapsibleSearchController` — a 44dp icon button on the Chip row toggles the search field (timeline, apps tab, select-app and ignore-apps sheets). Spacing uses `filter_horizontal_padding` (12dp). Styles: `Widget.AppSnapshot.SearchField`, `Widget.AppSnapshot.IconButton`.
 

@@ -117,6 +117,7 @@ class GroupConfigFragment : BottomSheetDialogFragment() {
             binding.includeExcludePatterns,
             requireContext(),
             "", // 分组配置不需要包名作为根路径
+            groupConfig.groupConfigData.userId,
             groupConfig.excludeConfig,
             childFragmentManager
         )

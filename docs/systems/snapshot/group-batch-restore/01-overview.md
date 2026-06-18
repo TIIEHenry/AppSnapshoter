@@ -64,5 +64,6 @@ summary: "需求背景、目标、非目标与已定设计决策"
 | 组头入口 | **批量操作菜单**（归档 + 恢复），不新增独立恢复按钮 | 避免 6 个 40dp 按钮导致标题区不可用 |
 | 执行 API | `ArchiveRestorer.restoreArchiveSuspend` | 已有无 UI 挂起版本，适合批量 |
 | 进度 UI | `GroupItemsProgressDialog`，不逐条弹 `ItemProgressDialog` | 与 `GroupBatchArchiver` / `TimelineBatchOperator` 一致 |
+| 批量互斥 | `SnapshotViewModel.isBatchRunning`，存档 / 时间线 Tab 共用 | 避免跨 Tab 并行 root IO；见 [附录 §A.5](../07-appendix.md#a5-全局批量互斥snapshotviewmodel) |
 | 失败策略 | 单项失败 **继续下一项**，结束后汇总 | 与现有批量操作一致 |
 | 锁定快照 | **不阻止** 恢复 | 锁定仅影响删除，现有行为不变 |

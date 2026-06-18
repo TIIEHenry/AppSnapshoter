@@ -40,14 +40,21 @@ class GroupItemAdapter(
     private val viewModel: LauncherViewModel,
     private val snapshotViewModel: SnapshotViewModel,
     private val group: SnapGroup,
+    private var batchRunning: Boolean = false,
     private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit = { _, _ -> }
 ) : ListAdapter<ArchivedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
 
     var itemTouchHelper: ItemTouchHelper? = null
 
+    fun setBatchRunning(running: Boolean) {
+        if (batchRunning == running) return
+        batchRunning = running
+        notifyDataSetChanged()
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding, groupsHolder, viewModel, snapshotViewModel, group, onItemUpdated, this)
+        return ViewHolder(binding, groupsHolder, viewModel, snapshotViewModel, group, onItemUpdated, this) { batchRunning }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -66,7 +73,8 @@ class GroupItemAdapter(
         private val snapshotViewModel: SnapshotViewModel,
         private val group: SnapGroup,
         private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit,
-        private val adapter: GroupItemAdapter
+        private val adapter: GroupItemAdapter,
+        private val isBatchRunning: () -> Boolean
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: ArchivedApp) {
@@ -75,6 +83,9 @@ class GroupItemAdapter(
             loadAppIcon(appInfo)
             updateCurrent(item)
             setupClickListeners(item)
+            val running = isBatchRunning()
+            binding.root.alpha = if (running) 0.5f else 1f
+            binding.root.isEnabled = !running
         }
 
         private fun updateCurrent(item: ArchivedApp) {
@@ -104,7 +115,7 @@ class GroupItemAdapter(
          * 处理点击事件
          */
         private fun handleItemClick(item: ArchivedApp) {
-            if (groupsHolder.isSortMode) return
+            if (groupsHolder.isSortMode || isBatchRunning()) return
 
             if (AppStatusHelper.isAppInstalled(item)) {
                 launchApp(item.appInfo.packageName, item.appInfo.userId)
@@ -124,6 +135,7 @@ class GroupItemAdapter(
          * 处理长按事件
          */
         private fun handleItemLongClick(item: ArchivedApp): Boolean {
+            if (isBatchRunning()) return false
             if (!groupsHolder.isSortMode) {
                 showPopupMenu(item)
             }

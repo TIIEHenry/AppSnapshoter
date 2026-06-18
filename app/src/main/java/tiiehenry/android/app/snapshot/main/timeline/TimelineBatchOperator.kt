@@ -28,7 +28,6 @@ class TimelineBatchOperator(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
     private val snapshotViewModel: SnapshotViewModel,
-    private val timelineViewModel: TimelineViewModel
 ) {
 
     data class BatchResult(
@@ -43,7 +42,10 @@ class TimelineBatchOperator(
         timeRange: TimeRange,
         strategy: RestoreStrategy
     ) {
-        timelineViewModel.isBatchRunning.value = true
+        if (!snapshotViewModel.tryBeginBatchOperation()) {
+            Toast.makeText(context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT).show()
+            return
+        }
         val loadingDialog = GroupItemsProgressDialog(context)
         loadingDialog.setTotalProgress(entries.size)
         val result = BatchResult()
@@ -95,7 +97,7 @@ class TimelineBatchOperator(
                 }
             } finally {
                 withContext(Dispatchers.Main) {
-                    timelineViewModel.isBatchRunning.value = false
+                    snapshotViewModel.endBatchOperation()
                     snapshotViewModel.loadGroups()
                     updateDialogFinishState(
                         loadingDialog,
@@ -148,7 +150,10 @@ class TimelineBatchOperator(
     }
 
     private fun executeBatchDelete(deletePlan: List<Triple<TimelineEntry, ArchivedApp, List<ArchiveItem>>>) {
-        timelineViewModel.isBatchRunning.value = true
+        if (!snapshotViewModel.tryBeginBatchOperation()) {
+            Toast.makeText(context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT).show()
+            return
+        }
         val loadingDialog = GroupItemsProgressDialog(context)
         loadingDialog.setTotalProgress(deletePlan.size)
         val result = BatchResult()
@@ -197,7 +202,7 @@ class TimelineBatchOperator(
                 }
             } finally {
                 withContext(Dispatchers.Main) {
-                    timelineViewModel.isBatchRunning.value = false
+                    snapshotViewModel.endBatchOperation()
                     snapshotViewModel.loadGroups()
                     val skippedMsg = if (result.skippedLocked > 0) context.getString(R.string.timeline_batch_skipped_locked, result.skippedLocked) else ""
                     Toast.makeText(
@@ -271,7 +276,10 @@ class TimelineBatchOperator(
         timeRange: TimeRange,
         destinationPath: String
     ) {
-        timelineViewModel.isBatchRunning.value = true
+        if (!snapshotViewModel.tryBeginBatchOperation()) {
+            Toast.makeText(context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT).show()
+            return
+        }
         val loadingDialog = GroupItemsProgressDialog(context)
         loadingDialog.setTotalProgress(entries.size)
         val result = BatchResult()
@@ -321,7 +329,7 @@ class TimelineBatchOperator(
                 }
             } finally {
                 withContext(Dispatchers.Main) {
-                    timelineViewModel.isBatchRunning.value = false
+                    snapshotViewModel.endBatchOperation()
                     Toast.makeText(
                         context,
                         context.getString(R.string.timeline_export_done, result.succeeded.size, result.failed.size),

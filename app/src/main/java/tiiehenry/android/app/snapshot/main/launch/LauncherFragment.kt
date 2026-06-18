@@ -67,6 +67,10 @@ class LauncherFragment : Fragment() {
             groupsAdapter.submitList(groups)
         }
 
+        snapshotViewModel.isBatchRunning.observe(viewLifecycleOwner) { running ->
+            groupsAdapter.isBatchRunning = running == true
+        }
+
         // 从时间线跳转到指定分组
         snapshotViewModel.navigateToGroup.observe(viewLifecycleOwner) { groupId ->
             if (groupId == null) return@observe

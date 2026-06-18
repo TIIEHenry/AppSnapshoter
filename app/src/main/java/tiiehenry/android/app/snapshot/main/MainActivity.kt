@@ -13,9 +13,11 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.annotation.IdRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -26,7 +28,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.navOptions
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.topjohnwu.superuser.Shell
@@ -73,6 +77,13 @@ class MainActivity : AppCompatActivity() {
 
     private var navigationBarInsetBottom = 0
 
+    private data class BottomNavTab(
+        val button: ImageButton,
+        @IdRes val destinationId: Int,
+    )
+
+    private lateinit var bottomNavTabs: List<BottomNavTab>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -98,13 +109,9 @@ class MainActivity : AppCompatActivity() {
             )
         )
         binding.toolbar.setupWithNavController(navController, appBarConfiguration)
-        binding.bottomNavigation.setupWithNavController(navController)
-        FloatingBottomNav.setup(this, binding.bottomNavigationContainer, binding.bottomNavigation)
+        setupBottomNavigation()
+        FloatingBottomNav.setup(this, binding.bottomNavigationContainer)
         applyToolbarStyle()
-        navController.addOnDestinationChangedListener { _, _, _ ->
-            applyToolbarStyle()
-            binding.navHostFragment.post { applyFloatingNavContentPadding() }
-        }
 
         // 先检查权限，检查通过后再加载数据
         if (savedInstanceState == null) {
@@ -130,6 +137,51 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, this, Lifecycle.State.CREATED)
+    }
+
+    private fun setupBottomNavigation() {
+        bottomNavTabs = listOf(
+            BottomNavTab(binding.bottomNavArchive, R.id.launcherFragment),
+            BottomNavTab(binding.bottomNavTimeline, R.id.timelineFragment),
+            BottomNavTab(binding.bottomNavApps, R.id.appsFragment),
+        )
+        val navOptions = bottomNavNavOptions()
+        bottomNavTabs.forEach { tab ->
+            tab.button.setOnClickListener {
+                navigateToBottomNavTab(tab.destinationId, navOptions)
+            }
+        }
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            updateBottomNavSelection(destination.id)
+            applyToolbarStyle()
+            binding.navHostFragment.post { applyFloatingNavContentPadding() }
+        }
+        updateBottomNavSelection(navController.currentDestination?.id)
+    }
+
+    fun selectBottomNavTab(@IdRes destinationId: Int) {
+        navigateToBottomNavTab(destinationId, bottomNavNavOptions())
+    }
+
+    private fun navigateToBottomNavTab(@IdRes destinationId: Int, navOptions: NavOptions) {
+        if (navController.currentDestination?.id == destinationId) return
+        navController.navigate(destinationId, null, navOptions)
+    }
+
+    private fun bottomNavNavOptions(): NavOptions {
+        return navOptions {
+            launchSingleTop = true
+            restoreState = true
+            popUpTo(navController.graph.startDestinationId) {
+                saveState = true
+            }
+        }
+    }
+
+    private fun updateBottomNavSelection(@IdRes currentDestinationId: Int?) {
+        bottomNavTabs.forEach { tab ->
+            tab.button.isSelected = tab.destinationId == currentDestinationId
+        }
     }
 
     private fun applyToolbarStyle() {
@@ -160,10 +212,9 @@ class MainActivity : AppCompatActivity() {
             val lp = binding.bottomNavigationContainer.layoutParams as
                 androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
             lp.bottomMargin = baseMargin + navInsets.bottom
-            lp.marginStart = navInsets.left
-            lp.marginEnd = navInsets.right
+            lp.marginStart = 0
+            lp.marginEnd = 0
             binding.bottomNavigationContainer.layoutParams = lp
-            FloatingBottomNav.applyCompactWidth(binding.bottomNavigationContainer, binding.bottomNavigation)
             applyFloatingNavContentPadding()
             windowInsets
         }

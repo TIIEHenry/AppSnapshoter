@@ -22,6 +22,25 @@ class GroupsAdapter(
     private val fragmentManager: FragmentManager
 ) : ListAdapter<SnapGroup, GroupsAdapter.GroupViewHolder>(GroupDiffCallback()) {
 
+    var isBatchRunning: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            notifyItemRangeChanged(0, itemCount, BATCH_RUNNING_PAYLOAD)
+        }
+
+    companion object {
+        private const val BATCH_RUNNING_PAYLOAD = "batch_running"
+    }
+
+    override fun onBindViewHolder(holder: GroupViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(BATCH_RUNNING_PAYLOAD)) {
+            holder.applyBatchRunningState(isBatchRunning)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
         val binding = ItemGroupBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return GroupViewHolder(binding, viewModel, snapshotViewModel, fragmentManager)
@@ -50,10 +69,14 @@ class GroupsAdapter(
                 binding, viewModel, snapshotViewModel, fragmentManager
             ) { g -> refresh(g, binding.groupRecyclerView) }
             actionsController.setupActions(group, groupsAdapter, this)
+            actionsController.setBatchRunning(groupsAdapter.isBatchRunning)
 
             binding.groupRecyclerView.layoutManager = GridLayoutManager(binding.root.context, 4)
 
-            val adapter = GroupItemAdapter(this, groupsAdapter, viewModel, snapshotViewModel, group) { adapter, item ->
+            val adapter = GroupItemAdapter(
+                this, groupsAdapter, viewModel, snapshotViewModel, group,
+                groupsAdapter.isBatchRunning,
+            ) { adapter, item ->
                 val currentList = ArrayList(group.apps)
                 val index = currentList.indexOfFirst { it.appInfo.packageName == item.appInfo.packageName }
                 if (index != -1) {
@@ -70,6 +93,11 @@ class GroupsAdapter(
             }
 
             actionsController.updateButtonVisibility(!isSortMode)
+        }
+
+        fun applyBatchRunningState(running: Boolean) {
+            actionsController.setBatchRunning(running)
+            (binding.groupRecyclerView.adapter as? GroupItemAdapter)?.setBatchRunning(running)
         }
 
         fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {

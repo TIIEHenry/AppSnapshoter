@@ -7,4 +7,7 @@
     <item name="menu_compress_user_de" type="id"/>
     <item name="menu_compress_obb" type="id"/>
     <item name="menu_compress_media" type="id"/>
+    <item name="tag_floating_nav_setup_done" type="id"/>
+    <item name="menu_batch_archive" type="id"/>
+    <item name="menu_batch_restore" type="id"/>
 </resources>

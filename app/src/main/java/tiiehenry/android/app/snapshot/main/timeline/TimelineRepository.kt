@@ -3,6 +3,7 @@ package tiiehenry.android.app.snapshot.main.timeline
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.main.launch.batch.ArchiveResolver
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -69,10 +70,7 @@ object TimelineRepository {
     fun resolveArchive(
         archives: List<ArchiveItem>,
         strategy: RestoreStrategy
-    ): ArchiveItem = when (strategy) {
-        RestoreStrategy.NEWEST_FIRST -> archives.maxBy { it.metaInfo.makeTime }
-        RestoreStrategy.OLDEST_FIRST -> archives.minBy { it.metaInfo.makeTime }
-    }
+    ): ArchiveItem = ArchiveResolver.pick(archives, strategy)
 
     fun resolveEntry(
         key: TimelineEntryKey,

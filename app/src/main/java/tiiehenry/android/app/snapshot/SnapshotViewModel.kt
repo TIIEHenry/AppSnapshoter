@@ -31,6 +31,19 @@ class SnapshotViewModel : ViewModel() {
     /** Event: timeline requests scrolling to a specific group in the archive tab */
     val navigateToGroup = MutableLiveData<String?>(null)
 
+    /** Global mutex for batch archive/restore across archive and timeline tabs */
+    val isBatchRunning = MutableLiveData(false)
+
+    fun tryBeginBatchOperation(): Boolean {
+        if (isBatchRunning.value == true) return false
+        isBatchRunning.value = true
+        return true
+    }
+
+    fun endBatchOperation() {
+        isBatchRunning.value = false
+    }
+
     fun loadData() {
         viewModelScope.launch(Dispatchers.IO) {
             val app = SnapshotApp.getInstance()
