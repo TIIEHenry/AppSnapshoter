@@ -4,23 +4,28 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-18
+
+### Added
+
+- 全面中英双语：界面文案支持简体中文与英文（跟随系统语言）
+
 ### Changed
 
-- 应用 Tab 筛选行改为用户 Tab + 系统/用户图标切换 + 搜索图标（`layout_apps_filter_row`），与选应用/忽略应用页共用；`apps_filter_header` 统一水平边距（左 12dp / 右 8dp）
-- 筛选图标改用 `FilterRowIcon`（`AppCompatImageButton` + `fitCenter`），修复系统/用户/搜索/展开按钮未居中
-- 标签筛选支持单行横向滚动与展开/收起（`TagsFilterLayout`）；Tag Chip 缩小为 22dp / 11sp
-- `app` 模块全面国际化：用户可见文案统一抽取至字符串资源（约 320 条），支持简体中文（`values/`、`values-zh-rCN`）与英文（`values-en`）；覆盖存档/恢复、分组、配置、时间线、应用筛选、设置及布局无障碍文案
+- 应用 Tab 筛选行改为用户 Tab + 系统/用户图标切换 + 搜索图标，与选应用/忽略应用页共用
+- 筛选图标触控区与居中显示优化
+- 标签筛选支持单行横向滚动与展开/收起；Tag Chip 尺寸缩小
 
 ### Fixed
 
-- 应用 Tab 标签筛选展开/收起时 `ClassCastException`（`HorizontalScrollView` 子 View 须使用 `MarginLayoutParams`）
-- 应用 Tab 标签列表因 `SnapGroup.name` 未初始化导致的 `NullPointerException`（`AppTagHelper` 改为从已加载 `groupList` 取名称）
-- JNI `GetStringUTFChars` 未释放导致的 native 内存泄漏（`io-nativefs`）
-- Root 服务未连接时 `FileSystemImpl` / `AppManagerImpl` 强制解包 `client` 崩溃
-- `FileSystemProviderImpl.provide()` 无限阻塞（`fsmFuture.get()` 增加 10s 超时）
-- `TimelineViewModel` 重复 `observeForever` 导致观察者泄漏
-- `ArchivedApp.isRunning` 在 `appInfo` 未初始化时访问 `lateinit` 崩溃
-- 时间线列表项内容区/展开按钮长按进入多选
+- 应用 Tab 标签无法选中；标签展开/收起时崩溃
+- 应用 Tab 标签列表因分组名称未加载导致的崩溃
+- 时间线列表项长按无法进入多选
+- Root 服务未连接时应用崩溃
+- 文件系统服务初始化可能无限等待（现增加超时）
+- 时间线页观察者重复注册导致的内存泄漏
+- 归档应用在信息未加载完成时查询运行状态崩溃
+- 原生文件操作中的内存泄漏
 
 ## [1.1.0] - 2026-06-18
 
