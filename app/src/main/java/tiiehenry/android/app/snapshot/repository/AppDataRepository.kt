@@ -7,6 +7,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.config.GlobalConfig
@@ -40,6 +42,7 @@ class AppDataRepository private constructor() {
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val loadGroupsMutex = Mutex()
 
     val groupList = MutableLiveData<List<SnapGroup>>()
     val appsList = MutableLiveData<Map<UserInfoHide, List<AppInfo>>>(emptyMap())
@@ -52,18 +55,24 @@ class AppDataRepository private constructor() {
         }
     }
 
+    fun scheduleLoadGroups(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
+        scope.launch {
+            loadGroups(context, fileSystem, appManager)
+        }
+    }
+
     suspend fun loadGroups(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
-        Log.i(TAG, "loadGroups")
-        val groupIds = GlobalConfig.groups
-        val groups = withContext(Dispatchers.IO) {
-            groupIds.map { groupId ->
+        loadGroupsMutex.withLock {
+            Log.i(TAG, "loadGroups")
+            val groupIds = GlobalConfig.groups
+            val groups = groupIds.map { groupId ->
                 Log.i(TAG, "loadGroup: $groupId")
                 SnapGroup(groupId).apply {
                     loadApps(context, fileSystem, appManager, true)
                 }
             }
+            groupList.postValue(groups)
         }
-        groupList.postValue(groups)
     }
 
     suspend fun loadApps(fileSystem: IFileSystem, appManager: IAppManager) {
@@ -112,24 +121,33 @@ class AppDataRepository private constructor() {
     }
 
     fun addGroup(
+        context: Context,
+        fileSystem: IFileSystem,
+        appManager: IAppManager,
         name: String,
         path: String,
         userId: Int = 0,
-        onComplete: (() -> Unit)? = null
     ) {
         scope.launch {
-            val groupId = UUID.randomUUID().toString().substring(0, 7)
-            val group = SnapGroup(groupId)
-            group.path = path
-            group.name = name
-            group.config.groupConfigData.userId = userId
-            group.config.save()
+            try {
+                val groupId = UUID.randomUUID().toString().substring(0, 7)
+                if (!fileSystem.exists(path)) {
+                    fileSystem.mkdirs(path)
+                }
+                val group = SnapGroup(groupId)
+                group.path = path
+                group.name = name
+                group.config.groupConfigData.userId = userId
+                group.config.save()
 
-            val currentGroups = GlobalConfig.groups.toMutableList()
-            currentGroups.add(groupId)
-            GlobalConfig.groups = currentGroups
+                val currentGroups = GlobalConfig.groups.toMutableList()
+                currentGroups.add(groupId)
+                GlobalConfig.groups = currentGroups
 
-            onComplete?.invoke()
+                loadGroups(context, fileSystem, appManager)
+            } catch (e: Exception) {
+                Log.e(TAG, "addGroup failed", e)
+            }
         }
     }
 
@@ -177,11 +195,13 @@ class AppDataRepository private constructor() {
     }
 
     fun deleteGroup(
+        context: Context,
         fileSystem: IFileSystem,
+        appManager: IAppManager,
         groupId: String,
         currentGroups: List<SnapGroup>,
         deleteFiles: Boolean = false,
-        onComplete: (() -> Unit)? = null
+        onComplete: (() -> Unit)? = null,
     ) {
         scope.launch {
             try {
@@ -195,7 +215,10 @@ class AppDataRepository private constructor() {
                         fileSystem.delete(it.path)
                     }
                 }
-                onComplete?.invoke()
+                loadGroups(context, fileSystem, appManager)
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -2,9 +2,6 @@ package tiiehenry.android.app.snapshot
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.group.SnapGroup
@@ -14,7 +11,7 @@ import tiiehenry.android.snapshot.app.UserInfoHide
 /**
  * SnapshotViewModel - 保留以兼容现有代码
  * 所有业务逻辑已迁移至 [AppDataRepository]
- * TODO: 后续改为通过 ViewModelProvider 标准创建，使用 viewModelScope
+ * 异步任务使用 repository 进程级协程作用域，避免 Application 单例 ViewModel 的 viewModelScope 失效。
  */
 class SnapshotViewModel : ViewModel() {
 
@@ -44,61 +41,47 @@ class SnapshotViewModel : ViewModel() {
         isBatchRunning.value = false
     }
 
+    private fun appDeps() = SnapshotApp.getInstance().let {
+        Triple(SnapshotApp.getContext(), it.fileSystem, it.appManager)
+    }
+
     fun loadData() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val app = SnapshotApp.getInstance()
-            repository.loadData(
-                SnapshotApp.getContext(),
-                app.fileSystem,
-                app.appManager
-            )
-        }
+        val (context, fileSystem, appManager) = appDeps()
+        repository.loadData(context, fileSystem, appManager)
     }
 
     fun loadGroups() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val app = SnapshotApp.getInstance()
-            repository.loadGroups(
-                SnapshotApp.getContext(),
-                app.fileSystem,
-                app.appManager
-            )
-        }
+        val (context, fileSystem, appManager) = appDeps()
+        repository.scheduleLoadGroups(context, fileSystem, appManager)
     }
 
     fun addGroup(name: String, path: String, userId: Int = 0) {
-        repository.addGroup(name, path, userId) {
-            loadGroups()
-        }
+        val (context, fileSystem, appManager) = appDeps()
+        repository.addGroup(context, fileSystem, appManager, name, path, userId)
     }
 
     fun addAppsToGroup(groupId: String, appInfos: List<AppInfo>, callback: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val app = SnapshotApp.getInstance()
-            repository.addAppsToGroup(
-                context = SnapshotApp.getContext(),
-                fileSystem = app.fileSystem,
-                appManager = app.appManager,
-                groupId = groupId,
-                currentGroups = groupList.value ?: emptyList(),
-                appInfos = appInfos,
-                onComplete = callback
-            )
-        }
+        val (context, fileSystem, appManager) = appDeps()
+        repository.addAppsToGroup(
+            context = context,
+            fileSystem = fileSystem,
+            appManager = appManager,
+            groupId = groupId,
+            currentGroups = groupList.value ?: emptyList(),
+            appInfos = appInfos,
+            onComplete = callback,
+        )
     }
 
     fun deleteGroup(groupId: String, deleteFiles: Boolean = false) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val app = SnapshotApp.getInstance()
-            repository.deleteGroup(
-                fileSystem = app.fileSystem,
-                groupId = groupId,
-                currentGroups = groupList.value ?: emptyList(),
-                deleteFiles = deleteFiles,
-                onComplete = {
-                    loadGroups()
-                }
-            )
-        }
+        val (context, fileSystem, appManager) = appDeps()
+        repository.deleteGroup(
+            context = context,
+            fileSystem = fileSystem,
+            appManager = appManager,
+            groupId = groupId,
+            currentGroups = groupList.value ?: emptyList(),
+            deleteFiles = deleteFiles,
+        )
     }
 }
