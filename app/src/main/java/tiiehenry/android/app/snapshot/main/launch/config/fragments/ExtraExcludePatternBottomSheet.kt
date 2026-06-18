@@ -23,6 +23,8 @@ class ExtraExcludePatternBottomSheet : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
 
     private var rootPath: String = ""
+    private var packageName: String = ""
+    private var userId: Int = 0
     // 当前排除模式列表
     private val currentPatterns = mutableListOf<String>()
 
@@ -31,19 +33,27 @@ class ExtraExcludePatternBottomSheet : BottomSheetDialogFragment() {
     companion object {
         private const val ARG_EXCLUDE_PATTERNS = "exclude_patterns"
         private const val ARG_ROOT_PATH = "root_path"
+        private const val ARG_PACKAGE_NAME = "package_name"
+        private const val ARG_USER_ID = "user_id"
 
         /**
          * 创建排除模式输入器实例 (用于额外项目)
          * @param excludePatterns 已存在的排除模式列表
          * @param rootPath 直接指定的根路径（用于文件选择器）
+         * @param packageName 应用包名（rootPath 为空时用于构建 AppInfo 风格根路径）
+         * @param userId 用户 ID（rootPath 为空时用于构建 AppInfo 风格根路径）
          */
         fun newInstance(
             excludePatterns: List<String> = emptyList(),
-            rootPath: String = ""
+            rootPath: String = "",
+            packageName: String = "",
+            userId: Int = 0
         ): ExtraExcludePatternBottomSheet {
             return ExtraExcludePatternBottomSheet().apply {
                 arguments = Bundle().apply {
                     putString(ARG_ROOT_PATH, rootPath)
+                    putString(ARG_PACKAGE_NAME, packageName)
+                    putInt(ARG_USER_ID, userId)
                     // 传递 List<String>
                     putStringArrayList(ARG_EXCLUDE_PATTERNS, ArrayList(excludePatterns))
                 }
@@ -55,6 +65,8 @@ class ExtraExcludePatternBottomSheet : BottomSheetDialogFragment() {
         super.onCreate(savedInstanceState)
         arguments?.let {
             rootPath = it.getString(ARG_ROOT_PATH, "")
+            packageName = it.getString(ARG_PACKAGE_NAME, "")
+            userId = it.getInt(ARG_USER_ID, 0)
             // 读取排除模式列表
             currentPatterns.clear()
             currentPatterns.addAll(it.getStringArrayList(ARG_EXCLUDE_PATTERNS) ?: mutableListOf())
@@ -119,7 +131,7 @@ class ExtraExcludePatternBottomSheet : BottomSheetDialogFragment() {
     private fun showFilePicker() {
         val activity = requireActivity()
         val actualRootPath = rootPath.ifEmpty {
-            "/data/data"
+            "/data/user/$userId/$packageName"
         }
         val filePicker = FilePickerBottomSheet.newInstance(
             rootPath = actualRootPath

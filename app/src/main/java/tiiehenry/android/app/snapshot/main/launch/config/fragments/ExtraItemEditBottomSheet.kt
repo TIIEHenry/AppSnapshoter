@@ -27,7 +27,9 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
     private var itemName: String = ""
     private var itemPath: String = ""
     private var excludePatterns: MutableList<String> = mutableListOf()
-    private var rootPath: String = "/data/data"
+    private var packageName: String = ""
+    private var userId: Int = 0
+    private var rootPath: String = ""
     private var isEditMode: Boolean = false
 
     private var onItemConfirmedListener: ((ExtraCompressItem) -> Unit)? = null
@@ -36,16 +38,22 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_NAME = "name"
         private const val ARG_PATH = "path"
         private const val ARG_EXCLUDES = "excludes"
+        private const val ARG_PACKAGE_NAME = "package_name"
+        private const val ARG_USER_ID = "user_id"
         private const val ARG_ROOT_PATH = "root_path"
         private const val ARG_EDIT_MODE = "edit_mode"
 
         /**
          * 创建编辑额外项目实例
          * @param item 要编辑的额外项目（新建时传 null）
+         * @param packageName 应用包名（用于文件选择器的 AppInfo 风格根路径）
+         * @param userId 用户 ID（用于文件选择器的 AppInfo 风格根路径）
          * @param rootPath 根路径，用于文件选择器
          */
         fun newInstance(
             item: ExtraCompressItem? = null,
+            packageName: String = "",
+            userId: Int = 0,
             rootPath: String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath
         ): ExtraItemEditBottomSheet {
             return ExtraItemEditBottomSheet().apply {
@@ -58,6 +66,8 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
                         )
                         putBoolean(ARG_EDIT_MODE, true)
                     }
+                    putString(ARG_PACKAGE_NAME, packageName)
+                    putInt(ARG_USER_ID, userId)
                     putString(ARG_ROOT_PATH, rootPath)
                 }
             }
@@ -70,7 +80,9 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
             itemName = it.getString(ARG_NAME, "")
             itemPath = it.getString(ARG_PATH, "")
             excludePatterns = it.getStringArrayList(ARG_EXCLUDES)?.toMutableList() ?: mutableListOf()
-            rootPath = it.getString(ARG_ROOT_PATH, "/data/data")
+            packageName = it.getString(ARG_PACKAGE_NAME, "")
+            userId = it.getInt(ARG_USER_ID, 0)
+            rootPath = it.getString(ARG_ROOT_PATH, "")
             isEditMode = it.getBoolean(ARG_EDIT_MODE, false)
         }
     }
@@ -127,14 +139,17 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
      * 显示文件选择器
      */
     private fun showFilePicker() {
+        val browseRootPath = rootPath.ifEmpty {
+            "/data/user/$userId/$packageName"
+        }
         val filePicker = FilePickerBottomSheet.newInstance(
-            rootPath = rootPath
+            rootPath = browseRootPath
         )
 
         filePicker.setOnFilesSelectedListener { selectedFiles ->
             if (selectedFiles.isNotEmpty()) {
                 // 取第一个选中的文件/目录的完整路径
-                val selectedPath = "$rootPath/${selectedFiles.first()}"
+                val selectedPath = "$browseRootPath/${selectedFiles.first()}"
                 binding.etPath.setText(selectedPath)
 
                 // 如果名称为空，则自动填入文件名
@@ -155,7 +170,9 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
     private fun showAddExcludeDialog() {
         val bottomSheet = ExtraExcludePatternBottomSheet.newInstance(
             excludePatterns = excludePatterns,
-            rootPath = binding.etPath.text.toString()
+            rootPath = binding.etPath.text.toString(),
+            packageName = packageName,
+            userId = userId
         )
 
         bottomSheet.setOnPatternsConfirmedListener { patterns ->

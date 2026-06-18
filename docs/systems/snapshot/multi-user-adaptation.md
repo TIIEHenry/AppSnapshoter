@@ -2,7 +2,7 @@
 title: "多用户适配分析"
 type: system
 status: active
-updated: 2026-06-17
+updated: 2026-06-18
 summary: "Android 多用户场景下的适配现状、压缩/恢复链路、已知问题与改进建议（图标不按用户区分，见 §1.1）"
 ---
 
@@ -46,6 +46,7 @@ summary: "Android 多用户场景下的适配现状、压缩/恢复链路、已�
 | `getInstalledPackages` | 按 `userId` 过滤缓存列表 |
 | `getPackageInfo` | 移除非 `AsUser` 的 `PackageManager` 回退 |
 | `ExcludePatternBottomSheet` | 传入 `userId`，文件选择根路径与 `AppInfo` 一致（`/data/media/{userId}/...` 等） |
+| `ExtraExcludePatternBottomSheet` | 传入 `userId` / `packageName`，空路径时回退至 `/data/user/{userId}/{packageName}` |
 | `AppConfig` / `AppConfigManager` | `(packageName, userId)` 复合键；user 0 兼容旧版仅包名目录 |
 | `AppConfigFragment` | `newInstance(packageName, userId)` |
 | `IgnoreAppsConfig` | `packageName@userId` 持久化；旧数据仅包名视为 user 0 |
@@ -145,6 +146,7 @@ Root 服务通过 `UserManagerHidden.getUsers()` 获取系统全部用户，并�
 - `AppConfigManager.getConfig(packageName, userId)` 使用 `packageName@userId` 缓存键
 - `AppConfigFragment.newInstance(packageName, userId)` 从应用列表打开时传入正确用户
 - `ExcludePatternBottomSheet` 文件浏览器根路径按 `userId` 构建
+- `ExtraExcludePatternBottomSheet` / `ExtraItemEditBottomSheet` 同样传入 `userId`，排除模式文件选择器根路径与 `AppInfo` 一致
 - `IgnoreAppsConfig` 以复合键持久化，旧版仅包名条目迁移为 user 0
 
 ---
@@ -326,6 +328,7 @@ CompressItems.COMPRESS_ITEM_DATA -> "/data/media/$userId/Android/data/$packageNa
 | 用户 Tab UI | `app/.../main/apps/AppsListComponent.kt` |
 | 应用配置 UI | `app/.../main/launch/app/AppConfigFragment.kt` |
 | 排除规则 UI | `app/.../main/launch/config/fragments/ExcludePatternBottomSheet.kt` |
+| 额外项目排除规则 UI | `app/.../main/launch/config/fragments/ExtraExcludePatternBottomSheet.kt` |
 | 忽略应用配置 | `app/.../main/settings/IgnoreAppsConfig.kt` |
 | 压缩入口 | `app/.../main/launch/makearchive/SnapshotCreator.kt` |
 | 压缩实现 | `app/.../archive/make/ArchiveMaker.kt` |

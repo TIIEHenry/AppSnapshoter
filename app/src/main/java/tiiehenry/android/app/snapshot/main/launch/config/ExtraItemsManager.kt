@@ -17,6 +17,8 @@ class ExtraItemsManager(
     private val binding: IncludeExtraItemsBinding,
     private val context: Context,
     private val appConfig: AppConfig,
+    private val packageName: String,
+    private val userId: Int,
     private val fragmentManager: FragmentManager
 ) {
     private var extraItems = mutableListOf<ExtraCompressItem>()
@@ -80,6 +82,8 @@ class ExtraItemsManager(
         
         val bottomSheet = ExtraItemEditBottomSheet.newInstance(
             item = item,
+            packageName = packageName,
+            userId = userId,
             rootPath = rootPath
         )
         

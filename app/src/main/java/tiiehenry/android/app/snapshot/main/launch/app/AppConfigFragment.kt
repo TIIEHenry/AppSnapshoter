@@ -131,6 +131,8 @@ class AppConfigFragment : BottomSheetDialogFragment() {
             binding.includeExtraItems,
             requireContext(),
             appConfig,
+            packageName,
+            userId,
             childFragmentManager
         )
 
