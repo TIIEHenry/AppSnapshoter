@@ -24,6 +24,7 @@ snapshotViewModel.groupList.observe(viewLifecycleOwner) { groups ->
 
 // 多选 UI 参考
 // SelectAppFragment + SelectAppAdapter + layout_multi_select_toolbar.xml
+// TimelineAdapter：单击与长按均绑 item_content（勿仅绑 root Card，否则长按无响应）
 
 // 批量进度参考（TimelineBatchOperator 应结构对齐）
 // GroupBatchArchiver.archiveAllApps() + GroupItemsProgressDialog

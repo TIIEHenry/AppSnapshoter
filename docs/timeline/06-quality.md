@@ -13,6 +13,7 @@
 | 应用正在运行 | 沿用现有恢复前检查/提示 |
 | 锁定快照 | 删除跳过并计入汇总；恢复允许 |
 | 筛选变更时有选中项 | 清空选中并退出多选 |
+| 长按列表项无响应 | 长按须绑在 `item_content`（与单击同 View），不可仅绑外层 Card |
 | 恢复/删除进行中 | `isBatchRunning` 禁用操作栏，防重复提交 |
 | 跨用户同包名 | `TimelineEntryKey` 含 `userId` |
 | 操作后数据一致性 | `loadGroups()` → `groupList` 观察触发 requery |

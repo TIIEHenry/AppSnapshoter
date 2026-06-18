@@ -155,20 +155,25 @@ class TimelineAdapter(
                 toggleExpand(item.entry, pos)
             }
 
-            binding.root.setOnLongClickListener {
+            val enterMultiSelectOnLongPress = View.OnLongClickListener {
                 val pos = bindingAdapterPosition
-                if (pos == RecyclerView.NO_POSITION) return@setOnLongClickListener true
-                val item = getItem(pos) as? TimelineListItem.Entry ?: return@setOnLongClickListener true
-                if (!isMultiSelectMode) {
-                    isMultiSelectMode = true
-                    onMultiSelectModeChanged(true)
-                    selectedIds = setOf(item.entry.key.id)
-                    onSelectionChanged(selectedIds)
-                    if (itemCount > 0) {
-                        notifyItemRangeChanged(0, itemCount, PAYLOAD_SELECTION)
-                    }
-                }
+                if (pos == RecyclerView.NO_POSITION) return@OnLongClickListener true
+                val item = getItem(pos) as? TimelineListItem.Entry ?: return@OnLongClickListener true
+                enterMultiSelectWithItem(item.entry)
                 true
+            }
+            binding.itemContent.setOnLongClickListener(enterMultiSelectOnLongPress)
+            binding.expandButton.setOnLongClickListener(enterMultiSelectOnLongPress)
+        }
+
+        private fun enterMultiSelectWithItem(entry: TimelineEntry) {
+            if (isMultiSelectMode) return
+            isMultiSelectMode = true
+            onMultiSelectModeChanged(true)
+            selectedIds = setOf(entry.key.id)
+            onSelectionChanged(selectedIds)
+            if (itemCount > 0) {
+                notifyItemRangeChanged(0, itemCount, PAYLOAD_SELECTION)
             }
         }
 

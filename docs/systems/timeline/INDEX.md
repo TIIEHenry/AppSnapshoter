@@ -2,7 +2,7 @@
 title: "时间线系统"
 type: system
 status: active
-updated: 2026-06-17
+updated: 2026-06-18
 summary: "按时间区域跨分组浏览快照，热力图、搜索、多选批量操作"
 ---
 
@@ -19,7 +19,7 @@ summary: "按时间区域跨分组浏览快照，热力图、搜索、多选批�
 | 文件 | 职责 |
 |------|------|
 | `TimelineFragment.kt` | 主 Fragment，日期 Chip、可折叠搜索、热力图、多选 |
-| `TimelineAdapter.kt` | RecyclerView 适配器，搜索高亮 |
+| `TimelineAdapter.kt` | RecyclerView 适配器，多选、搜索高亮；长按与单击同绑 `item_content` |
 | `TimelineViewModel.kt` | ViewModel，多选状态、时间范围、批量操作 |
 | `TimelineRepository.kt` | 数据查询，从 `SnapshotViewModel.groupList` 内存过滤 |
 | `TimelineModels.kt` | 数据模型：`TimelineEntry`、`TimelineEntryKey`、`TimeRange`、`TimePreset` |
@@ -39,7 +39,7 @@ summary: "按时间区域跨分组浏览快照，热力图、搜索、多选批�
 - **热力图**：`TimelineHeatmapView` 颜色深浅表示快照密度
 - **搜索**：`CollapsibleSearchController` + `layout_search_field`；Chip 行右侧图标展开，`TimelineTextHighlight` 高亮匹配文本
 - **粘性头部**：`TimelineStickyHeaderDecoration` 日期分组标题固定顶部
-- **批量操作**：多选后 `TimelineBatchOperator` 执行恢复/删除/导出
+- **批量操作**：长按进入多选后，`TimelineBatchOperator` 执行恢复/删除/导出
 - **恢复策略**：`RestoreStrategyDialog` 选择 NEWEST_FIRST 或 OLDEST_FIRST
 
 ## 数据流

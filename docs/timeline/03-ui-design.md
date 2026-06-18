@@ -32,7 +32,7 @@
 |------|------|------|
 | 时间 Chip | `ChipGroup` + `HorizontalScrollView` | 与搜索按钮同一行；Chip 可横滑 |
 | 搜索入口 | `btn_search_toggle`（44dp IconButton） | 默认仅图标；有过滤词且收起时图标变主题色 |
-| 搜索输入 | `layout_search_field` + `CollapsibleSearchController` | 展开后显示 Dense Outlined 输入框（14sp）；`endIcon` 清除文字；行内 ✕ 关闭面板 |
+| 搜索输入 | `layout_search_field` + `CollapsibleSearchController` | 展开后显示 Dense Outlined 输入框（14sp）；`endIcon` 清除文字；行内 ✕ 关闭面板；触发为 `FilterToolbarIcon`（44dp，`fitCenter`） |
 | 热力图 | `TimelineHeatmapView` | 点击某天 → 切到自定义单日范围 |
 | 底部分隔 | 1dp `outline_variant` | 与列表区视觉分离 |
 
@@ -89,7 +89,7 @@ startTime <= archive.metaInfo.makeTime < endTimeExclusive
 
 | 项 | 说明 |
 |----|------|
-| 入口 | 筛选 Chip 行右侧 `Widget.AppSnapshot.IconButton`（`filter_icon_button_size` 44dp，图标 24dp） |
+| 入口 | 筛选 Chip 行右侧 `Widget.AppSnapshot.FilterToolbarIcon`（`filter_icon_button_size` 44dp，图标 24dp，`filter_toolbar_icon_inset` 居中） |
 | 输入框 | 共享布局 `layout_search_field.xml`，样式 `Widget.AppSnapshot.SearchField` |
 | 过滤逻辑 | `TimelineViewModel.searchQuery` → `TimelineAdapter` + `TimelineTextHighlight` |
 | 持久化 | 搜索词不持久化；收起后过滤条件保留，图标高亮提示 |
@@ -100,12 +100,15 @@ startTime <= archive.metaInfo.makeTime < endTimeExclusive
 
 | 操作 | 行为 |
 |------|------|
-| 进入多选 | 长按列表项，或顶部菜单「多选」 |
-| 勾选 / 取消 | 点击列表项或 checkbox |
+| 进入多选 | **长按**列表项内容区（`item_content`）或展开按钮 |
+| 单击（非多选） | 跳转到存档 Tab 并定位对应分组 |
+| 勾选 / 取消 | 多选模式下点击列表项内容区 |
 | 全选 | 选中当前筛选结果全部条目 |
 | 取消 | 退出多选，清空选中 |
 | 恢复 | 触发批量恢复流程 |
 | 删除 | 触发批量删除确认 |
+
+> **实现注意**：长按与单击须绑定在同一可点击 View（`item_content`），与 `SelectAppAdapter` 一致。若长按仅挂在外层 `MaterialCardView`（`root`），子 View 会消费触摸事件，导致内容区长按无响应。
 
 **操作栏布局：**
 
