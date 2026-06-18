@@ -6,6 +6,7 @@ import tiiehenry.android.app.snapshot.group.ArchivedApp
 object RestoreRecordWriter {
 
     fun onRestoreSuccess(archivedApp: ArchivedApp, archiveItem: ArchiveItem) {
+        if (archiveItem.name.isBlank()) return
         RestoreRecordStore.put(
             group = archivedApp.group,
             packageName = archiveItem.appInfo.packageName,
