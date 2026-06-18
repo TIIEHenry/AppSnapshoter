@@ -3,7 +3,7 @@ title: "主界面壳层"
 type: guide
 status: active
 updated: 2026-06-18
-summary: "MainActivity / SettingsActivity 顶栏、底栏、可折叠搜索与内容区布局说明"
+summary: "MainActivity / SettingsActivity 顶栏、底栏、竖屏锁定、可折叠搜索与内容区布局说明"
 ---
 
 # 主界面壳层
@@ -25,6 +25,14 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
         ├── ImageButton bottom_nav_timeline
         └── ImageButton bottom_nav_apps
 ```
+
+## 屏幕方向
+
+| 项 | 说明 |
+|----|------|
+| 策略 | **仅竖屏** — `MainActivity`、`SettingsActivity` 在 `AndroidManifest.xml` 中声明 `android:screenOrientation="portrait"` |
+| 原因 | 主界面为手机竖屏布局；横竖屏切换会触发 Activity 重建，导致普通 `AlertDialog`、进度框等 UI 状态丢失 |
+| 扩展 | 若未来支持平板横屏，应改为 `DialogFragment` + ViewModel 保存状态，而非仅依赖 `configChanges` |
 
 ## 顶栏
 
@@ -105,6 +113,7 @@ LinearLayout (@id/settings_root)
 | `layout/layout_search_field.xml` | 共享搜索输入布局 |
 | `layout/activity_settings.xml` | 设置页顶栏 + 列表 |
 | `main/settings/SettingsActivity.kt` | 设置页 Activity |
+| `AndroidManifest.xml` | Activity `screenOrientation="portrait"` |
 | `ui/widget/FloatingBottomNav.kt` | 底栏毛玻璃 |
 | `ui/widget/CollapsibleSearchController.kt` | 可折叠搜索 |
 | `ui/widget/SearchFieldExt.kt` | 搜索框文本监听 |

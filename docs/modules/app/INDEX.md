@@ -2,7 +2,7 @@
 title: "app 模块"
 type: module
 status: active
-updated: 2026-06-17
+updated: 2026-06-18
 summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragments、ViewModels、配置管理；Fluent 2 主界面壳层"
 ---
 
@@ -59,7 +59,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `main` — 主界面
 | 包 | 关键类 | 职责 |
 |---|--------|------|
-| `main` | `MainActivity` | 主 Activity：紧凑顶栏、悬浮底栏、权限检查、`floatingNavContentPaddingBottom()` |
+| `main` | `MainActivity` | 主 Activity：竖屏锁定、紧凑顶栏、悬浮底栏、权限检查、`floatingNavContentPaddingBottom()` |
 | `main.launch` | `LauncherFragment`, `LauncherViewModel`, `GroupsAdapter`, `GroupItemAdapter`, `GroupActionsController`, `GroupBatchArchiver` | 存档 Tab：分组列表、快照/恢复操作 |
 | `main.launch.addgroup` | `AddGroupBottomSheet` | 创建分组 BottomSheet |
 | `main.launch.app` | `AppConfigFragment` | 应用配置 BottomSheet |
@@ -102,7 +102,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `main.settings` — 设置
 | 类 | 职责 |
 |---|------|
-| `SettingsActivity`, `SettingsAdapter` | 设置界面（独立 Activity，顶栏 + RecyclerView） |
+| `SettingsActivity`, `SettingsAdapter` | 设置界面（独立 Activity，竖屏锁定，顶栏 + RecyclerView） |
 | `IgnoreAppsFragment`, `IgnoreAppsConfig` | 忽略应用管理 |
 | `AboutFragment` | 关于页面 |
 

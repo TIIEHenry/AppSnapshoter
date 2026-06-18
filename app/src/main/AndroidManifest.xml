@@ -29,6 +29,7 @@
         <activity
             android:name=".main.MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppSnapshot">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -40,6 +41,7 @@
             android:name=".main.settings.SettingsActivity"
             android:exported="false"
             android:parentActivityName=".main.MainActivity"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppSnapshot" />
     </application>
 
