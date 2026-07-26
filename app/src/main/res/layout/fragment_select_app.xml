@@ -66,10 +66,24 @@
         android:id="@+id/multi_select_toolbar"
         layout="@layout/layout_multi_select_toolbar" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/apps_recycler_view"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="400dp"
-        android:padding="@dimen/filter_row_padding_vertical" />
+        android:layout_height="400dp">
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="visible" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/apps_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="@dimen/filter_row_padding_vertical"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </LinearLayout>

@@ -169,7 +169,13 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
     }
 
     override fun onAppsLoadingStateChanged(isLoading: Boolean) {
-        // SelectAppFragment 不需要显示加载状态
+        if (isLoading) {
+            binding.progressBar.visibility = View.VISIBLE
+            binding.appsRecyclerView.visibility = View.GONE
+        } else {
+            binding.progressBar.visibility = View.GONE
+            binding.appsRecyclerView.visibility = View.VISIBLE
+        }
     }
 
     override fun onFilteredAppsChanged(apps: List<AppInfo>) {

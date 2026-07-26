@@ -46,10 +46,17 @@ class AppDataRepository private constructor() {
 
     val groupList = MutableLiveData<List<SnapGroup>>()
     val appsList = MutableLiveData<Map<UserInfoHide, List<AppInfo>>>(emptyMap())
+
+    /**
+     * 已安装应用 catalog 的加载态 SSOT。
+     * `loadData` 在 `loadGroups` 之前即置 true，覆盖 bootstrap 全流程（含分组加载窗口），
+     * 由 `loadApps` 的 finally 置 false。UI 禁止用 [appsList] 排放驱动 loading。
+     */
     val isAppsLoading = MutableLiveData<Boolean>(false)
 
     fun loadData(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
         scope.launch {
+            isAppsLoading.postValue(true)
             loadGroups(context, fileSystem, appManager)
             loadApps(fileSystem, appManager)
         }

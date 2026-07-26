@@ -23,6 +23,7 @@ class SnapshotViewModel : ViewModel() {
 
     val groupList: MutableLiveData<List<SnapGroup>> get() = repository.groupList
     val appsList: MutableLiveData<Map<UserInfoHide, List<AppInfo>>> get() = repository.appsList
+    /** 应用 catalog 加载态；见 [AppDataRepository.isAppsLoading]。 */
     val isAppsLoading: MutableLiveData<Boolean> get() = repository.isAppsLoading
 
     /** Event: timeline requests scrolling to a specific group in the archive tab */

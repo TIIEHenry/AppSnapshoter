@@ -29,9 +29,13 @@ import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.app.UserInfoHide
 
 /**
- * 应用列表 UI 组件的封装类
- * 封装了用户Tab切换、应用过滤、标签过滤、搜索等公共逻辑
- * 可被 Fragment 或 BottomSheetDialogFragment 复用
+ * 应用列表 UI 组件。
+ *
+ * 封装用户 Tab、过滤、标签、搜索等公共逻辑，可被 Fragment / BottomSheet 复用。
+ *
+ * Loading 不变量：`showLoading = isAppsLoading || isLocalProcessing`。
+ * [SnapshotViewModel.isAppsLoading] 为 catalog 拉取 SSOT；[appsList] 观察者只做数据绑定，
+ * 禁止用其排放直接开关 loading（与 Timeline 的 `isQuerying` 模式一致）。
  */
 class AppsListComponent<VB : ViewBinding>(
     private val fragment: Fragment,
@@ -44,6 +48,7 @@ class AppsListComponent<VB : ViewBinding>(
 
     private var userList: List<UserInfoHide> = emptyList()
     private var searchController: CollapsibleSearchController? = null
+    private var isLocalProcessing = false
 
     interface Callbacks<VB : ViewBinding> {
         fun getRecyclerView(binding: VB): RecyclerView
@@ -84,9 +89,14 @@ class AppsListComponent<VB : ViewBinding>(
         userList = appManager.users
         setupUserTabs()
 
-        // 观察全局ViewModel的appList
+        snapshotViewModel.isAppsLoading.observe(viewLifecycleOwner) {
+            updateLoadingUi()
+        }
+
+        // 观察全局ViewModel的appList（只做数据绑定，不驱动 loading）
         snapshotViewModel.appsList.observe(viewLifecycleOwner) { apps ->
-            callbacks.onAppsLoadingStateChanged(true)
+            isLocalProcessing = true
+            updateLoadingUi()
             fragment.lifecycleScope.launch(Dispatchers.Default) {
                 // 过滤已忽略的应用并排序
                 val filteredAppsMap = apps.mapValues {
@@ -102,7 +112,8 @@ class AppsListComponent<VB : ViewBinding>(
                 withContext(Dispatchers.Main) {
                     // 更新标签过滤器
                     updateTagsFilter()
-                    callbacks.onAppsLoadingStateChanged(false)
+                    isLocalProcessing = false
+                    updateLoadingUi()
                 }
             }
         }
@@ -119,6 +130,12 @@ class AppsListComponent<VB : ViewBinding>(
             transitionHost = callbacks.getSearchTransitionHost(binding),
             onQueryChanged = { query -> viewModel.filterApps(query) },
             hint = fragment.getString(R.string.search_apps_hint)
+        )
+    }
+
+    private fun updateLoadingUi() {
+        callbacks.onAppsLoadingStateChanged(
+            snapshotViewModel.isAppsLoading.value == true || isLocalProcessing
         )
     }
 
