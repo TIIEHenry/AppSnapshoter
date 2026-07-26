@@ -115,7 +115,8 @@
                 android:id="@+id/expand_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/pressed_background">
+                android:background="@drawable/pressed_background"
+                android:visibility="gone">
 
                 <ImageView
                     android:layout_width="40dp"

@@ -2,13 +2,13 @@
 title: "当前开发状态"
 type: progress
 status: active
-updated: 2026-06-18
+updated: 2026-07-26
 summary: "项目当前迭代状态、进行中功能和已知问题"
 ---
 
 # 当前开发状态
 
-> 最后更新：2026-06-18
+> 最后更新：2026-07-26
 
 ## 当前阶段
 
@@ -29,6 +29,8 @@ summary: "项目当前迭代状态、进行中功能和已知问题"
 - [x] 主界面 UI 焕新（Fluent 2 主题、紧凑顶栏、悬浮毛玻璃底栏、可折叠搜索）
 - [x] 应用 Tab 筛选行图标化（系统/用户切换 + 标签展开/收起）
 - [x] 崩溃修复批次（标签 LayoutParams、AppTag NPE、JNI 泄漏、Root 服务空指针、Timeline 观察者泄漏等）
+- [x] 应用 catalog loading SSOT（`isAppsLoading`；应用 Tab / 选择应用 BottomSheet）
+- [x] 分组 body 三态可见性（expand/empty/content 互斥；空组折叠不再双图标）
 
 ## 进行中
 

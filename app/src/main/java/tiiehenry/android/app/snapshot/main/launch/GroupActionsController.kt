@@ -190,9 +190,10 @@ class GroupActionsController(
         popup.show()
     }
 
-    fun updateButtonVisibility(show: Boolean) {
+    fun updateButtonVisibility(show: Boolean, isEmpty: Boolean = false) {
         binding.btnMove.visibility = if (show) View.VISIBLE else View.GONE
-        binding.btnAdd.visibility = if (show) View.VISIBLE else View.GONE
+        // 空组加号入口在 empty_layout，toolbar btnAdd 必须 GONE，避免双加号
+        binding.btnAdd.visibility = if (show && !isEmpty) View.VISIBLE else View.GONE
         binding.btnTune.visibility = if (show) View.VISIBLE else View.GONE
         binding.btnRefresh.visibility = if (show) View.VISIBLE else View.GONE
         binding.btnBatch.visibility = if (show) View.VISIBLE else View.GONE

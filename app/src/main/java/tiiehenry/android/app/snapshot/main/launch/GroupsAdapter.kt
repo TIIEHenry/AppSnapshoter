@@ -61,10 +61,12 @@ class GroupsAdapter(
         var isSortMode = false
         private var itemTouchHelper: ItemTouchHelper? = null
         private lateinit var actionsController: GroupActionsController
+        /** 当前绑定的分组；折叠点击等半更新路径经此取完整模型再投影。 */
+        private var boundGroup: SnapGroup? = null
 
         fun bind(groupsAdapter: GroupsAdapter, group: SnapGroup) {
+            boundGroup = group
             binding.groupTitle.text = group.name
-            updateCollapseState(group.isCollapsed)
 
             actionsController = GroupActionsController(
                 binding, viewModel, snapshotViewModel, fragmentManager
@@ -93,7 +95,7 @@ class GroupsAdapter(
                 binding.btnAdd.performClick()
             }
 
-            actionsController.updateButtonVisibility(!isSortMode)
+            syncChromeVisibility()
         }
 
         fun applyBatchRunningState(running: Boolean) {
@@ -103,15 +105,15 @@ class GroupsAdapter(
 
         fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {
             isSortMode = !isSortMode
+            boundGroup = group
             if (isSortMode) {
                 startDragSortMode(adapter, group)
                 binding.groupTitle.text = binding.root.context.getString(R.string.group_sort_mode_title, group.name)
-                actionsController.updateButtonVisibility(false)
             } else {
                 binding.groupTitle.text = group.name
                 stopDragSortMode(adapter)
-                actionsController.updateButtonVisibility(true)
             }
+            syncChromeVisibility()
         }
 
         private fun startDragSortMode(adapter: GroupItemAdapter, group: SnapGroup) {
@@ -155,18 +157,8 @@ class GroupsAdapter(
         }
 
         fun refresh(group: SnapGroup, recyclerView: RecyclerView) {
+            boundGroup = group
             binding.groupTitle.text = group.name
-            if (group.apps.isEmpty()) {
-                binding.progressBar.visibility = View.GONE
-                binding.groupRecyclerView.visibility = View.GONE
-                binding.emptyLayout.visibility = View.VISIBLE
-                binding.btnAdd.visibility = View.GONE
-            } else {
-                binding.progressBar.visibility = View.GONE
-                binding.groupRecyclerView.visibility = View.VISIBLE
-                binding.emptyLayout.visibility = View.GONE
-                binding.btnAdd.visibility = View.VISIBLE
-            }
             val sortedApps = synchronized(group.apps) {
                 applySorting(group.apps, group.config.sortConfig, group)
             }
@@ -176,12 +168,54 @@ class GroupsAdapter(
             adapter.notifyDataSetChanged()
             recyclerView.invalidate()
             recyclerView.requestLayout()
-            updateCollapseState(group.isCollapsed)
+            renderBody(group)
+            syncChromeVisibility()
         }
 
-        fun updateCollapseState(isCollapsed: Boolean) {
-            binding.appLayout.visibility = if (isCollapsed) View.GONE else View.VISIBLE
-            binding.expandGroup.visibility = if (isCollapsed) View.VISIBLE else View.GONE
+        /**
+         * 折叠点击后由 Controller 调用：已写入 [SnapGroup.isCollapsed]，再按完整模型投影 body。
+         * 禁止在此只改 expand/app 而不管 empty。
+         */
+        fun updateCollapseState(@Suppress("UNUSED_PARAMETER") isCollapsed: Boolean) {
+            val group = boundGroup ?: return
+            renderBody(group)
+            syncChromeVisibility()
+        }
+
+        /**
+         * Body 三 sibling 不变量：`expand_group` / `empty_layout` / `app_layout` 至多一个 VISIBLE。
+         * 折叠优先于空组。新触点禁止直接改这三个 visibility。
+         */
+        private fun renderBody(group: SnapGroup) {
+            binding.progressBar.visibility = View.GONE
+            when {
+                group.isCollapsed -> {
+                    binding.expandGroup.visibility = View.VISIBLE
+                    binding.emptyLayout.visibility = View.GONE
+                    binding.appLayout.visibility = View.GONE
+                }
+                group.apps.isEmpty() -> {
+                    binding.expandGroup.visibility = View.GONE
+                    binding.emptyLayout.visibility = View.VISIBLE
+                    binding.appLayout.visibility = View.GONE
+                    binding.groupRecyclerView.visibility = View.GONE
+                }
+                else -> {
+                    binding.expandGroup.visibility = View.GONE
+                    binding.emptyLayout.visibility = View.GONE
+                    binding.appLayout.visibility = View.VISIBLE
+                    binding.groupRecyclerView.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        /**
+         * 工具栏与排序模式；空组时 toolbar [ItemGroupBinding.btnAdd] 恒 GONE（加号入口在 empty_layout）。
+         */
+        private fun syncChromeVisibility() {
+            val showActions = !isSortMode
+            val isEmpty = boundGroup?.apps?.isEmpty() == true
+            actionsController.updateButtonVisibility(showActions, isEmpty = isEmpty)
         }
 
         private fun applySorting(apps: List<ArchivedApp>, sortConfig: SortConfig, group: SnapGroup): List<ArchivedApp> {
