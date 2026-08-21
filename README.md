@@ -34,9 +34,9 @@
 |:---:|:---:|:---:|
 | ![主页](docs/screenshots/home.png) | ![快照中](docs/screenshots/snapshotting.png) | ![存档列表](docs/screenshots/archives.png) |
 
-| 应用配置 | 分组设置 |
-|:---:|:---:|
-| ![应用配置](docs/screenshots/app-config.png) | ![分组设置](docs/screenshots/group-config.png) |
+| 应用配置 | 时间线 | 应用 |
+|:---:|:---:|:---:|
+| ![应用配置](docs/screenshots/app-config.png) | ![时间线](docs/screenshots/timeline.png) | ![应用](docs/screenshots/apps.png) |
 
 ## 使用说明
 

@@ -34,9 +34,9 @@ A root-required Android app snapshot tool that quickly packages an app's APK, da
 |:---:|:---:|:---:|
 | ![Home](docs/screenshots/home.png) | ![Snapshotting](docs/screenshots/snapshotting.png) | ![Archive List](docs/screenshots/archives.png) |
 
-| App Config | Group Settings |
-|:---:|:---:|
-| ![App Config](docs/screenshots/app-config.png) | ![Group Settings](docs/screenshots/group-config.png) |
+| App Config | Timeline | Apps |
+|:---:|:---:|:---:|
+| ![App Config](docs/screenshots/app-config.png) | ![Timeline](docs/screenshots/timeline.png) | ![Apps](docs/screenshots/apps.png) |
 
 ## Usage Guide
 
