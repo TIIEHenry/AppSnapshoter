@@ -197,5 +197,6 @@ Insets 与主界面一致：`toolbar_header` 顶栏避让状态栏，`settings_r
 |------|------|
 | [快照系统](../../systems/snapshot/INDEX.md) | UI 入口、快照创建/恢复编排 |
 | [分组集](../../systems/snapshot/GROUP_SET.md) | 存档 Tab 组织层：`SnapGroupSet` / `ArchiveListItem` / `archiveList` |
+| [分组集折展性能](../../systems/snapshot/group-set-expand-perf.md) | Header 折展只内存再投影，禁止 `reloadGroupsLocked` |
 | [时间线系统](../../systems/timeline/INDEX.md) | TimelineFragment 及全套时间线组件 |
 | [配置系统](../../systems/config/INDEX.md) | GlobalConfig、AppConfig、ExcludePatternsManager |

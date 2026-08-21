@@ -3,7 +3,7 @@ title: "当前开发状态"
 type: progress
 status: active
 updated: 2026-08-21
-summary: "存档列表 Header 吸顶与组内网格封顶已落地；架构加固计划仍为下一步"
+summary: "分组集折展性能 Phase A 已落地；架构加固计划仍在下一步"
 ---
 
 # 当前开发状态
@@ -37,6 +37,8 @@ summary: "存档列表 Header 吸顶与组内网格封顶已落地；架构加�
 - [x] 统一添加分组/集 BottomSheet；集内色条与一键折叠
 - [x] 存档列表打磨：SetHeader 吸顶 overlay、整行按压无 ripple、组内网格超过 3 行自滚
 
+- [x] 分组集折展性能 Phase A（`loadedGroups`/`loadedSets` 工作集；折展/一键折叠只再投影，不扫盘）
+
 ## 进行中
 
 _无活跃开发任务_
@@ -48,4 +50,5 @@ _无_
 ## 下一步
 
 - [架构加固计划](../plans/2026-08-arch-hardening.md)（planning）：落实[架构审查报告 2026-08](../../docs/architecture/review-2026-08.md) 的 P1 项——任务契约重写、FIFO 看门狗、root 边界收口
-- （可选）时间线条目显示「集名 / 分组名」；底栏快跳升级为拖选 hover
+- （可选）时间线条目显示「集名 / 分组名」；折展 Phase B（展开绑定）若真机仍掉帧再开
+- 真机验：时间线跳转折叠集内分组（`requestNavigateToGroup`）

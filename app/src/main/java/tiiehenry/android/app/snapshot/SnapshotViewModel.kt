@@ -113,13 +113,11 @@ class SnapshotViewModel : ViewModel() {
     }
 
     fun setGroupSetCollapsed(setId: String, collapsed: Boolean) {
-        val (context, fileSystem, appManager) = appDeps()
-        repository.setGroupSetCollapsed(context, fileSystem, appManager, setId, collapsed)
+        repository.setGroupSetCollapsed(setId, collapsed)
     }
 
     fun collapseAllArchive() {
-        val (context, fileSystem, appManager) = appDeps()
-        repository.collapseAllArchive(context, fileSystem, appManager)
+        repository.collapseAllArchive()
     }
 
     fun saveArchiveRootsOrder(roots: List<ArchiveRoot>, onComplete: (() -> Unit)? = null) {

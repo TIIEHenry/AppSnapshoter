@@ -2,7 +2,7 @@
 title: "添加应用后刷新不及时 — 根因与修复"
 type: system
 status: implemented
-updated: 2026-06-18
+updated: 2026-08-21
 summary: "SnapGroup 实例分裂、DiffUtil 与数据层刷新缺失导致添加应用后 UI/全部归档不同步；已于 6f21f95 完成四阶段修复"
 ---
 
@@ -10,7 +10,8 @@ summary: "SnapGroup 实例分裂、DiffUtil 与数据层刷新缺失导致添加
 
 [← 返回快照系统索引](INDEX.md)
 
-> **实施状态**：已于 `6f21f95` / `0ce6cdb` 落地 Phase 1–4（数据层 mutex + `reloadGroupsLocked`、DiffUtil、`resolveGroup`、实例复用）。下文 §6 保留设计说明；验收见 §7。
+> **实施状态**：已于 `6f21f95` / `0ce6cdb` 落地 Phase 1–4（数据层 mutex + `reloadGroupsLocked`、DiffUtil、`resolveGroup`、实例复用）。下文 §6 保留设计说明；验收见 §7。  
+> **修订（2026-08-21）**：mutex 内最新列表改为 `loadedGroups` / `loadedSets`，不再读 `groupList.value`。见 [分组集折展性能](group-set-expand-perf.md)。§6.2 / §6.5 中「mutex 内 `*.value` 即最新」在该方案落地后作废。`resolveGroup`（主线程）仍读 `groupList.value`。
 
 ---
 
@@ -196,7 +197,7 @@ onRefresh(group)
 
 ### 6.1 设计原则
 
-1. **单一数据源**：`groupList` LiveData 为权威；UI 操作前按 `groupId` 解析，不长期持有 bind 快照。
+1. **单一数据源**：主线程以 `groupList` LiveData 为权威，UI 操作前按 `groupId` 解析，不长期持有 bind 快照。**mutex 内**以 `loadedGroups` / `loadedSets` 为权威，禁止读 `*.value`（见 [折展性能](group-set-expand-perf.md)）。
 2. **写后统一刷新**：`addAppsToGroup` 与 `deleteGroup` / `addGroup` 对齐，完成后走 `loadGroups()`。
 3. **互斥磁盘扫描**：所有修改分组磁盘内容的路径与 `loadGroups` 共用 `loadGroupsMutex`。
 4. **Diff 感知 `apps`**：`submitList` 后 apps 变化必须能触发 rebind。
@@ -228,7 +229,7 @@ fun addAppsToGroup(...) {
 
 - 写盘与重载在 **同一 mutex** 内；通过 `reloadGroupsLocked` 复用加载逻辑，而非嵌套 `loadGroups()`。
 - 回调在 mutex **外** 切到 Main，避免阻塞其他读操作。
-- 组查找优先 `groupList.value`（mutex 内最新）。
+- 组查找：落地时优先 `groupList.value`（当时把 LiveData 当 mutex 内最新）。**已作废**：mutex 内改为 `loadedGroups`（见 [折展性能](group-set-expand-perf.md)）；`postValue` 未落地时 `.value` 仍是旧列表。
 
 ### 6.3 Phase 2 — DiffUtil ✅
 
@@ -292,16 +293,18 @@ val groups = groupIds.map { groupId ->
 }
 ```
 
-**实施**（`reloadGroupsLocked` 内）：
+**修订后（mutex 内）：**
 
 ```kotlin
-val existing = groupList.value.orEmpty().associateBy { it.id }
+val existing = loadedGroups.associateBy { it.id }
 val groups = groupIds.map { groupId ->
     (existing[groupId] ?: SnapGroup(groupId)).apply {
         loadApps(context, fileSystem, appManager, true)
     }
 }
 ```
+
+落地时从 `groupList.value` 取 `existing` 的代码已作废。禁止 mutex 内再读 `*.value`（`postValue` 后 `.value` 未更新）。主线程 `resolveGroup` 仍观察 `groupList`。
 
 ### 6.6 改动文件清单（已合并）
 
@@ -363,3 +366,4 @@ flowchart LR
 - [快照系统索引](INDEX.md)
 - [Group 批量恢复 — 边界与 stale 处理](group-batch-restore/06-quality-roadmap.md)（`resolveTaskAt` 与执行中 `loadGroups()`）
 - [多用户适配分析](multi-user-adaptation.md)（`addAppsToGroup` 图标 `userId`）
+- [分组集折展性能](group-set-expand-perf.md) — mutex 内最新源改为 `loadedGroups` / `loadedSets`

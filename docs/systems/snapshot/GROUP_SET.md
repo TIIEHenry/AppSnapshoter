@@ -168,7 +168,7 @@ ArchiveListItem
 
 高度约 32dp。滚动时 **吸顶**：真实 overlay（`fragment_launcher` 内 `sticky_set_header`），不是 ItemDecoration 绘制，以便折展/刷新/设置仍可点。下一块（下一集 Header 或独立分组）顶上来时把当前条推走。独立分组在顶部时不吸顶。整行按压用圆角 `StateListDrawable` 叠 `fluent_reveal_pressed`，不用 ripple。
 
-点标题折展：调用 repository（如 `setGroupSetCollapsed(setId, collapsed)`），在 mutex 内改集 MMKV `isCollapsed` → `projectArchiveList` → `postValue(archiveList)`。**禁止**在 Adapter/ViewHolder 里本地 insert/remove `GroupCard`，也禁止用 Header 内 visibility 藏子卡片。`navigateToGroup` 为露出卡片而展开时走同一条路径。
+点标题折展：调用 repository（如 `setGroupSetCollapsed(setId, collapsed)`），在 mutex 内改集 MMKV `isCollapsed` → **内存再投影** `reprojectArchiveListLocked` → `postValue(archiveList)`。**禁止**为此调用 `reloadGroupsLocked` / `loadApps`（见 [折展性能](group-set-expand-perf.md)）。**禁止**在 Adapter/ViewHolder 里本地 insert/remove `GroupCard`，也禁止用 Header 内 visibility 藏子卡片。`navigateToGroup` 为露出卡片而展开时走同一条路径。
 
 分组卡片折叠仍走现有 `GroupActionsController` + `renderBody`（不改 adapter 项数）。两条实现不得混用。
 
@@ -432,17 +432,20 @@ sealed class ArchiveListItem {
     data class SetHeader(
         val set: SnapGroupSet,
         val groupCount: Int,
-        val expanded: Boolean,
+        val expanded: Boolean,  // 投影快照
     ) : ArchiveListItem()
 
     data class GroupCard(
         val group: SnapGroup,
         val setId: String?,  // null = 独立分组
+        val collapsed: Boolean,  // 投影快照，对齐 SetHeader.expanded；禁止 DiffUtil 读 group.isCollapsed
     ) : ArchiveListItem()
 }
 ```
 
-`AppDataRepository` 增加 `archiveList: LiveData<List<ArchiveListItem>>`。在 `reloadGroupsLocked` **末尾**调用纯函数 `projectArchiveList(archiveRoots, sets, groups)` 后 `postValue`。`groupList` 保持扁平，供时间线 / `resolveGroup` / 标签。
+示意不完整。完整字段见 `ArchiveListItem.kt`（`SetHeader.name` / `accentColor`、`GroupCard.accentColor`、`EmptySetHint`）。`collapsed` / `expanded` 必须在投影时快照，见 [折展性能](group-set-expand-perf.md)。
+
+`AppDataRepository` 的 `archiveList: LiveData<List<ArchiveListItem>>` 是存档 Tab SSOT。全量路径：`reloadGroupsLocked` 覆盖锁内工作集 `loadedGroups` / `loadedSets` → `postValue(groupList, groupSetList)` → `reprojectArchiveListLocked()` 只 `archiveList.postValue`。mutex 内禁止读 `*.value`。`groupList` 保持扁平，供时间线 / 主线程 `resolveGroup` / 标签。详见 [折展性能](group-set-expand-perf.md)。
 
 **禁止**：UI 自己 join 两份列表；`LauncherFragment` 排序回调 `submitList(groupList)`；「`groupSetList` 或 `ArchiveUiState`」二选一的含糊出口。
 
@@ -503,7 +506,7 @@ sequenceDiagram
 
 必须在 `AppDataRepository.scope` 内写完即投影，禁止 `SnapshotViewModel.viewModelScope`。
 
-下列写路径**全部**在 `loadGroupsMutex` 内执行同一流水线：改登记 → 按 path 派生（从 `archiveRoots` 去掉已入集的 `g:`，独立分组补 `g:`）→ `projectArchiveList` → 一次 `postValue`：
+下列写路径**全部**在 `loadGroupsMutex` 内执行同一流水线：改登记 → 按 path 派生（从 `archiveRoots` 去掉已入集的 `g:`，独立分组补 `g:`）→ 覆盖工作集 → `postValue(groupList, groupSetList)` → `reprojectArchiveListLocked()`（只 `archiveList.postValue`）：
 
 | 写路径 | 对 `groups` | 对 `archiveRoots` |
 |--------|-------------|-------------------|
@@ -514,7 +517,7 @@ sequenceDiagram
 | `deleteGroupSet` 取消子登记 / 删目录 | 移除子分组 ID | 去掉 `s:` |
 | `discoverGroups`（刷新） | 增删与目录一致 | 迁入的旧独立分组去掉 `g:` |
 | 改分组 `path` / 改集 `path` | 不变（除非变成非法空登记） | 按新 path 重算成员与 `g:`/`s:`；若分组仍在同一集内仅 basename 变：改写该集 `groupOrder` 旧名→新名 |
-| 集 `isCollapsed` 折展 | 不变 | 不变；重新 `projectArchiveList` |
+| 集 `isCollapsed` 折展 | 不变 | 不变；**只** `reprojectArchiveListLocked`（禁止 `reloadGroupsLocked` / `loadApps`） |
 | 两级排序保存 | **ID 集合不变** | 顶层只写 `archiveRoots`；集内只写 basename `groupOrder` |
 
 `addGroup` 今天写 `GlobalConfig.groups` 在 mutex 外，只靠随后 `loadGroups`。落地后上述步骤必须进锁，避免 `archiveRoots` 漏写变成「靠下次纠偏」。
@@ -544,10 +547,12 @@ for root in archiveRoots:
     items += SetHeader(set, count, expanded = !set.isCollapsed)
     if !set.isCollapsed:
       for group in orderGroups(set):  # groupOrder basename ∩ 当前成员，其余追加
-        items += GroupCard(group, setId)
+        items += GroupCard(group, setId, collapsed = group.isCollapsed)
   if Group(groupId) and group 不属于任何集:
-    items += GroupCard(group, setId = null)
+    items += GroupCard(group, setId = null, collapsed = group.isCollapsed)
 ```
+
+`collapsed` 在 `materializeArchiveList` 写入当时值。DiffUtil 只比该快照，禁止读 `group.isCollapsed`。
 
 `orderGroups`：按 `groupset.json.groupOrder` 的 basename 排当前成员；未出现的 basename 追加在末尾。
 
@@ -637,6 +642,7 @@ DiffUtil：`SetHeader` 以 `set.id` 为 identity；`GroupCard` 以 `group.id` �
 - 添加/刷新只 `listDir` 集的 **一层**，再对每个新分组走现有 `loadApps`（与现在加载全部分组同量级）。
 - 折叠用 DiffUtil 增删 `GroupCard`。组内网格嵌套 RV：4 列、超过 3 行（12 个）后 `MaxHeightRecyclerView` 封顶自滚，避免把外层列表撑开。
 - 投影在 `loadGroupsMutex` 内、IO 线程完成，主线程只 `postValue`。
+- **折展不得扫盘**：只写 `isCollapsed` 后内存再投影（见 [分组集折展性能](group-set-expand-perf.md)）。
 
 ### 测试范围
 
@@ -705,6 +711,7 @@ UI：添加集、折叠成块、在集内添加分组、排序两级、时间线
 - [配置系统](../config/INDEX.md) — 同步上条；去掉「`groupOrder` = 分组 ID 排序」
 - [添加分组后列表不刷新](add-group-refresh.md) — 落地后数据流改为 `archiveList` → `submitList`，不再观察 `groupList` 驱动存档页
 - [分组 body 三态可见性](group-body-visibility.md) — GroupCard 内部仍走 `renderBody`；集折叠不得用该三态藏子卡片
+- [分组集折展性能](group-set-expand-perf.md) — 折展只内存再投影，禁止 `reloadGroupsLocked`
 - [主界面壳层](../../guides/getting-started/ui-shell.md) — 存档 Tab 为 `LauncherFragment`；底栏长按快跳挂在 `bottom_nav_archive`
 - 拖选协议参考（另一仓库）：`/home/clarence/Projects/Agents/Singular/android/ui/shared/.../popup/PopupPickerTouchSession.kt`、`AnchoredActionListPopup.kt`；规范 `docs/architecture/ui-interaction/popup/README.md` §6.1
 - [术语表](../../glossary.md)

@@ -58,6 +58,12 @@ class AppDataRepository private constructor() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val loadGroupsMutex = Mutex()
 
+    /**
+     * [loadGroupsMutex] 内分组/集列表的唯一读源。LiveData 只 [MutableLiveData.postValue]，禁止锁内读 `*.value`。
+     */
+    private var loadedGroups: List<SnapGroup> = emptyList()
+    private var loadedSets: List<SnapGroupSet> = emptyList()
+
     /** 进程级占用 SSOT；ViewModel 批门闩仅为 facade。 */
     val packageOpGuard = PackageOpGuard()
 
@@ -101,38 +107,58 @@ class AppDataRepository private constructor() {
         GlobalConfig.ensureArchiveRootsMigrated()
 
         val groupIds = GlobalConfig.groups
-        val existingGroups = groupList.value.orEmpty().associateBy { it.id }
+        val existingGroups = loadedGroups.associateBy { it.id }
         val groups = groupIds.map { groupId ->
             Log.i(TAG, "loadGroup: $groupId")
             (existingGroups[groupId] ?: SnapGroup(groupId)).apply {
                 loadApps(context, fileSystem, appManager, true)
             }
         }
-        val groupsById = groups.associateBy { it.id }
 
         val setIds = GlobalConfig.groupSetIds
-        val existingSets = groupSetList.value.orEmpty().associateBy { it.id }
+        val existingSets = loadedSets.associateBy { it.id }
         val sets = setIds.map { setId ->
             existingSets[setId] ?: SnapGroupSet(setId)
         }
-        val setsById = sets.associateBy { it.id }
 
         val membersBySetId = deriveLiveMembers(sets, groups)
         val memberGroupIds = membersBySetId.values.flatten().map { it.id }.toSet()
 
         val reconciled = ArchiveListProjector.reconcileRoots(
             roots = GlobalConfig.archiveRoots,
-            allGroupIds = groupsById.keys,
+            allGroupIds = groups.map { it.id }.toSet(),
             memberGroupIds = memberGroupIds,
-            setIds = setsById.keys,
+            setIds = sets.map { it.id }.toSet(),
         )
         if (reconciled != GlobalConfig.archiveRoots) {
             GlobalConfig.archiveRoots = reconciled
         }
 
+        loadedGroups = groups
+        loadedSets = sets
+        groupList.postValue(groups)
+        groupSetList.postValue(sets)
+        reprojectArchiveListLocked()
+
+        val corrupt = GroupMembershipResolver.corruptKeys(groups)
+        if (corrupt.isNotEmpty()) {
+            Log.w(TAG, "exclusive multi-owner corruption: $corrupt")
+        }
+    }
+
+    /**
+     * 只读 [loadedGroups]/[loadedSets] 投影存档列表形状。**只** [archiveList.postValue]。
+     * 必须在 [loadGroupsMutex] 内调用。
+     */
+    private fun reprojectArchiveListLocked() {
+        val groups = loadedGroups
+        val sets = loadedSets
+        val groupsById = groups.associateBy { it.id }
+        val setsById = sets.associateBy { it.id }
+        val membersBySetId = deriveLiveMembers(sets, groups)
         val draft = ArchiveListProjector.project(
             ArchiveListProjector.Input(
-                roots = reconciled,
+                roots = GlobalConfig.archiveRoots,
                 setsById = setsById.mapValues { (_, s) ->
                     ArchiveListProjector.SetSnap(s.id, s.isCollapsed, s.groupOrder)
                 },
@@ -144,16 +170,7 @@ class AppDataRepository private constructor() {
                 },
             )
         )
-        val archiveItems = materializeArchiveList(draft, setsById, groupsById, membersBySetId)
-
-        groupList.postValue(groups)
-        groupSetList.postValue(sets)
-        archiveList.postValue(archiveItems)
-
-        val corrupt = GroupMembershipResolver.corruptKeys(groups)
-        if (corrupt.isNotEmpty()) {
-            Log.w(TAG, "exclusive multi-owner corruption: $corrupt")
-        }
+        archiveList.postValue(materializeArchiveList(draft, setsById, groupsById, membersBySetId))
     }
 
     private fun deriveLiveMembers(
@@ -200,7 +217,12 @@ class AppDataRepository private constructor() {
                 is ArchiveListProjector.DraftItem.GroupCard -> {
                     val group = groupsById[item.groupId] ?: return@mapNotNull null
                     val accent = item.setId?.let { setsById[it]?.accentColor }
-                    ArchiveListItem.GroupCard(group, item.setId, accent)
+                    ArchiveListItem.GroupCard(
+                        group = group,
+                        setId = item.setId,
+                        accentColor = accent,
+                        collapsed = group.isCollapsed,
+                    )
                 }
                 is ArchiveListProjector.DraftItem.EmptySetHint -> {
                     val set = setsById[item.setId] ?: return@mapNotNull null
@@ -291,7 +313,7 @@ class AppDataRepository private constructor() {
                             GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply { add(groupId) }
 
                             val parent = GroupSetMembership.parentPath(normalizedPath)
-                            val belongingSet = groupSetList.value.orEmpty()
+                            val belongingSet = loadedSets
                                 .firstOrNull { GroupSetMembership.normalizePath(it.path) == parent }
                             if (belongingSet == null) {
                                 GlobalConfig.archiveRoots = GlobalConfig.archiveRoots + ArchiveRoot.Group(groupId)
@@ -373,7 +395,7 @@ class AppDataRepository private constructor() {
 
         val pathToGroup = mutableMapOf<String, SnapGroup>()
         for (id in GlobalConfig.groups) {
-            val g = groupList.value.orEmpty().find { it.id == id } ?: SnapGroup(id)
+            val g = loadedGroups.find { it.id == id } ?: SnapGroup(id)
             pathToGroup[GroupSetMembership.normalizePath(g.path)] = g
         }
 
@@ -465,7 +487,7 @@ class AppDataRepository private constructor() {
             var count = 0
             try {
                 loadGroupsMutex.withLock {
-                    val set = (groupSetList.value.orEmpty().find { it.id == setId }
+                    val set = (loadedSets.find { it.id == setId }
                         ?: SnapGroupSet(setId))
                     count = discoverGroupsLocked(fileSystem, set)
                     reloadGroupsLocked(context, fileSystem, appManager)
@@ -498,7 +520,7 @@ class AppDataRepository private constructor() {
         scope.launch {
             try {
                 loadGroupsMutex.withLock {
-                    val set = groupSetList.value.orEmpty().find { it.id == setId }
+                    val set = loadedSets.find { it.id == setId }
                         ?: SnapGroupSet(setId)
                     val setPath = GroupSetMembership.normalizePath(set.path)
                     val memberIds = GlobalConfig.groups.filter { id ->
@@ -535,20 +557,14 @@ class AppDataRepository private constructor() {
         }
     }
 
-    fun setGroupSetCollapsed(
-        context: Context,
-        fileSystem: IFileSystem,
-        appManager: IAppManager,
-        setId: String,
-        collapsed: Boolean,
-    ) {
+    /** 形状-only：写集 [SnapGroupSet.isCollapsed] 后内存再投影，不扫盘。未知 [setId] no-op。 */
+    fun setGroupSetCollapsed(setId: String, collapsed: Boolean) {
         scope.launch {
             try {
                 loadGroupsMutex.withLock {
-                    val set = groupSetList.value.orEmpty().find { it.id == setId }
-                        ?: SnapGroupSet(setId)
+                    val set = loadedSets.find { it.id == setId } ?: return@withLock
                     set.isCollapsed = collapsed
-                    reloadGroupsLocked(context, fileSystem, appManager)
+                    reprojectArchiveListLocked()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "setGroupSetCollapsed failed", e)
@@ -556,22 +572,18 @@ class AppDataRepository private constructor() {
         }
     }
 
-    /** 一键折叠：所有分组集 Header + 所有分组卡片 body。 */
-    fun collapseAllArchive(
-        context: Context,
-        fileSystem: IFileSystem,
-        appManager: IAppManager,
-    ) {
+    /** 一键折叠：所有分组集 Header + 所有分组卡片 body。形状-only，不扫盘。 */
+    fun collapseAllArchive() {
         scope.launch {
             try {
                 loadGroupsMutex.withLock {
-                    for (set in groupSetList.value.orEmpty()) {
+                    for (set in loadedSets) {
                         set.isCollapsed = true
                     }
-                    for (group in groupList.value.orEmpty()) {
+                    for (group in loadedGroups) {
                         group.isCollapsed = true
                     }
-                    reloadGroupsLocked(context, fileSystem, appManager)
+                    reprojectArchiveListLocked()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "collapseAllArchive failed", e)
@@ -616,7 +628,7 @@ class AppDataRepository private constructor() {
         scope.launch {
             try {
                 loadGroupsMutex.withLock {
-                    val set = groupSetList.value.orEmpty().find { it.id == setId }
+                    val set = loadedSets.find { it.id == setId }
                         ?: SnapGroupSet(setId)
                     set.groupOrder = basenames
                     set.save()
@@ -643,7 +655,7 @@ class AppDataRepository private constructor() {
         scope.launch {
             val result = try {
                 loadGroupsMutex.withLock {
-                    val group = groupList.value.orEmpty().find { it.id == groupId }
+                    val group = loadedGroups.find { it.id == groupId }
                         ?: SnapGroup(groupId)
                     val oldPath = GroupSetMembership.normalizePath(group.path)
                     val oldBase = GroupSetMembership.basename(oldPath)
@@ -670,7 +682,7 @@ class AppDataRepository private constructor() {
 
                     // Same set, basename changed → rewrite groupOrder
                     if (oldBase != newBase) {
-                        for (set in groupSetList.value.orEmpty()) {
+                        for (set in loadedSets) {
                             val setPath = GroupSetMembership.normalizePath(set.path)
                             val wasMember = GroupSetMembership.isMemberOf(oldPath, setPath)
                             val isMember = GroupSetMembership.isMemberOf(normalized, setPath)
@@ -711,7 +723,7 @@ class AppDataRepository private constructor() {
         scope.launch {
             val result = try {
                 loadGroupsMutex.withLock {
-                    val set = groupSetList.value.orEmpty().find { it.id == setId }
+                    val set = loadedSets.find { it.id == setId }
                         ?: SnapGroupSet(setId)
                     val oldPath = GroupSetMembership.normalizePath(set.path)
                     val normalized = GroupSetMembership.normalizePath(newPath)
@@ -758,7 +770,7 @@ class AppDataRepository private constructor() {
             var discovered = 0
             try {
                 loadGroupsMutex.withLock {
-                    val group = groupList.value.orEmpty().find { it.id == groupId }
+                    val group = loadedGroups.find { it.id == groupId }
                         ?: SnapGroup(groupId)
                     val path = GroupSetMembership.normalizePath(group.path)
                     GlobalConfig.groups = GlobalConfig.groups.filterNot { it == groupId }
@@ -798,7 +810,7 @@ class AppDataRepository private constructor() {
             val resultItems = linkedMapOf<String, AddAppItemResult>()
             try {
                 loadGroupsMutex.withLock {
-                    val groups = groupList.value ?: currentGroups
+                    val groups = loadedGroups.ifEmpty { currentGroups }
                     val group = groups.find { it.id == groupId }
                     if (group == null) {
                         for (info in appInfos) {
@@ -889,7 +901,7 @@ class AppDataRepository private constructor() {
         scope.launch {
             val outcome = try {
                 loadGroupsMutex.withLock {
-                    val groups = groupList.value.orEmpty()
+                    val groups = loadedGroups
                     val group = groups.find { it.id == groupId }
                         ?: return@withLock SetMembershipModeResult.Error("group not found")
                     if (group.membershipMode == mode) {
@@ -959,7 +971,7 @@ class AppDataRepository private constructor() {
         var beganTarget = false
         try {
             val precheck = loadGroupsMutex.withLock {
-                val groups = groupList.value.orEmpty()
+                val groups = loadedGroups
                 val source = groups.find { it.id == fromGroupId }
                     ?: return@withLock MoveAppResult.Error("source group not found")
                 val target = groups.find { it.id == toGroupId }
@@ -1178,7 +1190,7 @@ class AppDataRepository private constructor() {
         scope.launch {
             try {
                 loadGroupsMutex.withLock {
-                    val group = (groupList.value ?: currentGroups).find { it.id == groupId }
+                    val group = (loadedGroups.ifEmpty { currentGroups }).find { it.id == groupId }
                     GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply {
                         remove(groupId)
                     }
@@ -1206,7 +1218,7 @@ class AppDataRepository private constructor() {
         return GlobalConfig.groupSetIds.any { id ->
             id != excludeSetId &&
                 GroupSetMembership.normalizePath(SnapGroupSet(id).path) == path
-        } || groupSetList.value.orEmpty().any { set ->
+        } || loadedSets.any { set ->
             set.id != excludeSetId &&
                 GroupSetMembership.normalizePath(set.path) == path
         }
@@ -1216,7 +1228,7 @@ class AppDataRepository private constructor() {
         return GlobalConfig.groups.any { id ->
             id != excludeGroupId &&
                 GroupSetMembership.normalizePath(SnapGroup(id).path) == path
-        } || groupList.value.orEmpty().any { group ->
+        } || loadedGroups.any { group ->
             group.id != excludeGroupId &&
                 GroupSetMembership.normalizePath(group.path) == path
         }
