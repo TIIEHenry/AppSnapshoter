@@ -76,6 +76,15 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             setTextColor(ContextCompat.getColor(requireContext(), R.color.on_primary))
         }
 
+        arguments?.getString(ARG_SUGGESTED_PATH)?.takeIf { it.isNotBlank() }?.let {
+            binding.etGroupPath.setText(it)
+        }
+        arguments?.getString(ARG_SUGGESTED_NAME)?.takeIf { it.isNotBlank() }?.let {
+            if (binding.etGroupName.text.isNullOrBlank()) {
+                binding.etGroupName.setText(it)
+            }
+        }
+
         userIdSpinner = binding.spinnerUserId
         lifecycleScope.launch {
             val users = withContext(Dispatchers.IO) {
@@ -133,9 +142,19 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
 
     companion object {
         const val TAG = "AddGroupBottomSheet"
+        private const val ARG_SUGGESTED_PATH = "suggested_path"
+        private const val ARG_SUGGESTED_NAME = "suggested_name"
 
-        fun newInstance(): AddGroupBottomSheet {
-            return AddGroupBottomSheet()
+        fun newInstance(
+            suggestedPath: String? = null,
+            suggestedName: String? = null,
+        ): AddGroupBottomSheet {
+            return AddGroupBottomSheet().apply {
+                arguments = Bundle().apply {
+                    if (suggestedPath != null) putString(ARG_SUGGESTED_PATH, suggestedPath)
+                    if (suggestedName != null) putString(ARG_SUGGESTED_NAME, suggestedName)
+                }
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
@@ -13,15 +14,20 @@ import androidx.recyclerview.widget.RecyclerView
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.SortConfig
+import tiiehenry.android.app.snapshot.databinding.ItemEmptySetHintBinding
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
+import tiiehenry.android.app.snapshot.databinding.ItemGroupSetBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
+import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetSettingFragment
+import java.nio.file.Paths
 
 class GroupsAdapter(
     private val viewModel: LauncherViewModel,
     private val snapshotViewModel: SnapshotViewModel,
     private val fragmentManager: FragmentManager
-) : ListAdapter<SnapGroup, GroupsAdapter.GroupViewHolder>(GroupDiffCallback()) {
+) : ListAdapter<ArchiveListItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
 
     var isBatchRunning: Boolean = false
         set(value) {
@@ -32,23 +38,124 @@ class GroupsAdapter(
 
     companion object {
         private const val BATCH_RUNNING_PAYLOAD = "batch_running"
+        private const val VIEW_TYPE_SET = 1
+        private const val VIEW_TYPE_GROUP = 2
+        private const val VIEW_TYPE_EMPTY_HINT = 3
     }
 
-    override fun onBindViewHolder(holder: GroupViewHolder, position: Int, payloads: MutableList<Any>) {
-        if (payloads.contains(BATCH_RUNNING_PAYLOAD)) {
+    override fun getItemViewType(position: Int): Int = when (getItem(position)) {
+        is ArchiveListItem.SetHeader -> VIEW_TYPE_SET
+        is ArchiveListItem.GroupCard -> VIEW_TYPE_GROUP
+        is ArchiveListItem.EmptySetHint -> VIEW_TYPE_EMPTY_HINT
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return when (viewType) {
+            VIEW_TYPE_SET -> {
+                val binding = ItemGroupSetBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                SetHeaderViewHolder(binding, snapshotViewModel, fragmentManager)
+            }
+            VIEW_TYPE_EMPTY_HINT -> {
+                val binding = ItemEmptySetHintBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                EmptySetHintViewHolder(binding, fragmentManager)
+            }
+            else -> {
+                val binding = ItemGroupBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                GroupViewHolder(binding, viewModel, snapshotViewModel, fragmentManager)
+            }
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(BATCH_RUNNING_PAYLOAD) && holder is GroupViewHolder) {
             holder.applyBatchRunningState(isBatchRunning)
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
-        val binding = ItemGroupBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return GroupViewHolder(binding, viewModel, snapshotViewModel, fragmentManager)
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val item = getItem(position)) {
+            is ArchiveListItem.SetHeader -> (holder as SetHeaderViewHolder).bind(item)
+            is ArchiveListItem.EmptySetHint -> (holder as EmptySetHintViewHolder).bind(item)
+            is ArchiveListItem.GroupCard -> {
+                val card = item
+                val indent = if (card.setId != null) {
+                    (12 * holder.itemView.resources.displayMetrics.density).toInt()
+                } else {
+                    0
+                }
+                holder.itemView.setPadding(
+                    indent,
+                    holder.itemView.paddingTop,
+                    holder.itemView.paddingRight,
+                    holder.itemView.paddingBottom,
+                )
+                (holder as GroupViewHolder).bind(this, card.group)
+            }
+        }
     }
 
-    override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
-        holder.bind(this, getItem(position))
+    class EmptySetHintViewHolder(
+        private val binding: ItemEmptySetHintBinding,
+        private val fragmentManager: FragmentManager,
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(item: ArchiveListItem.EmptySetHint) {
+            val density = binding.root.resources.displayMetrics.density
+            val indent = (12 * density).toInt()
+            val vPad = (14 * density).toInt()
+            val hPad = (20 * density).toInt()
+            binding.root.setPadding(indent + hPad, vPad, hPad, vPad)
+            binding.root.setOnClickListener {
+                val suggested = Paths.get(item.set.path, "group").toString()
+                AddGroupBottomSheet.newInstance(
+                    suggestedPath = suggested,
+                    suggestedName = "group",
+                ).show(fragmentManager, AddGroupBottomSheet.TAG)
+            }
+        }
+    }
+
+    class SetHeaderViewHolder(
+        private val binding: ItemGroupSetBinding,
+        private val snapshotViewModel: SnapshotViewModel,
+        private val fragmentManager: FragmentManager,
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(item: ArchiveListItem.SetHeader) {
+            val set = item.set
+            binding.setTitle.text = set.name
+            binding.setCount.text = binding.root.context.getString(
+                R.string.group_set_count_format,
+                item.groupCount,
+            )
+            binding.setTitle.setOnClickListener {
+                snapshotViewModel.setGroupSetCollapsed(set.id, collapsed = item.expanded)
+            }
+            binding.setTitle.setOnLongClickListener {
+                GroupSetSettingFragment.newInstance(set.id).show(fragmentManager, GroupSetSettingFragment.TAG)
+                true
+            }
+            binding.btnTune.setOnClickListener {
+                GroupSetSettingFragment.newInstance(set.id).show(fragmentManager, GroupSetSettingFragment.TAG)
+            }
+            binding.btnRefresh.setOnClickListener {
+                snapshotViewModel.refreshGroupSet(set.id) { count ->
+                    Toast.makeText(
+                        binding.root.context,
+                        binding.root.context.getString(R.string.group_set_refresh_result, count),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+        }
     }
 
     class GroupViewHolder(
@@ -61,7 +168,6 @@ class GroupsAdapter(
         var isSortMode = false
         private var itemTouchHelper: ItemTouchHelper? = null
         private lateinit var actionsController: GroupActionsController
-        /** 当前绑定的分组；折叠点击等半更新路径经此取完整模型再投影。 */
         private var boundGroup: SnapGroup? = null
 
         fun bind(groupsAdapter: GroupsAdapter, group: SnapGroup) {
@@ -99,6 +205,7 @@ class GroupsAdapter(
         }
 
         fun applyBatchRunningState(running: Boolean) {
+            if (!::actionsController.isInitialized) return
             actionsController.setBatchRunning(running)
             (binding.groupRecyclerView.adapter as? GroupItemAdapter)?.setBatchRunning(running)
         }
@@ -172,20 +279,12 @@ class GroupsAdapter(
             syncChromeVisibility()
         }
 
-        /**
-         * 折叠点击后由 Controller 调用：已写入 [SnapGroup.isCollapsed]，再按完整模型投影 body。
-         * 禁止在此只改 expand/app 而不管 empty。
-         */
         fun updateCollapseState(@Suppress("UNUSED_PARAMETER") isCollapsed: Boolean) {
             val group = boundGroup ?: return
             renderBody(group)
             syncChromeVisibility()
         }
 
-        /**
-         * Body 三 sibling 不变量：`expand_group` / `empty_layout` / `app_layout` 至多一个 VISIBLE。
-         * 折叠优先于空组。新触点禁止直接改这三个 visibility。
-         */
         private fun renderBody(group: SnapGroup) {
             binding.progressBar.visibility = View.GONE
             when {
@@ -209,10 +308,8 @@ class GroupsAdapter(
             }
         }
 
-        /**
-         * 工具栏与排序模式；空组时 toolbar [ItemGroupBinding.btnAdd] 恒 GONE（加号入口在 empty_layout）。
-         */
         private fun syncChromeVisibility() {
+            if (!::actionsController.isInitialized) return
             val showActions = !isSortMode
             val isEmpty = boundGroup?.apps?.isEmpty() == true
             actionsController.updateButtonVisibility(showActions, isEmpty = isEmpty)
@@ -241,15 +338,39 @@ class GroupsAdapter(
         }
     }
 
-    private class GroupDiffCallback : DiffUtil.ItemCallback<SnapGroup>() {
-        override fun areItemsTheSame(oldItem: SnapGroup, newItem: SnapGroup) = oldItem.id == newItem.id
+    private class ArchiveDiffCallback : DiffUtil.ItemCallback<ArchiveListItem>() {
+        override fun areItemsTheSame(oldItem: ArchiveListItem, newItem: ArchiveListItem): Boolean {
+            return when {
+                oldItem is ArchiveListItem.SetHeader && newItem is ArchiveListItem.SetHeader ->
+                    oldItem.set.id == newItem.set.id
+                oldItem is ArchiveListItem.GroupCard && newItem is ArchiveListItem.GroupCard ->
+                    oldItem.group.id == newItem.group.id
+                oldItem is ArchiveListItem.EmptySetHint && newItem is ArchiveListItem.EmptySetHint ->
+                    oldItem.set.id == newItem.set.id
+                else -> false
+            }
+        }
 
-        override fun areContentsTheSame(oldItem: SnapGroup, newItem: SnapGroup): Boolean {
-            if (oldItem.name != newItem.name) return false
-            if (oldItem.isCollapsed != newItem.isCollapsed) return false
-            val oldPkgs = oldItem.apps.map { it.appInfo.packageName }
-            val newPkgs = newItem.apps.map { it.appInfo.packageName }
-            return oldPkgs == newPkgs
+        override fun areContentsTheSame(oldItem: ArchiveListItem, newItem: ArchiveListItem): Boolean {
+            return when {
+                oldItem is ArchiveListItem.SetHeader && newItem is ArchiveListItem.SetHeader ->
+                    oldItem.set.name == newItem.set.name &&
+                        oldItem.groupCount == newItem.groupCount &&
+                        oldItem.expanded == newItem.expanded
+                oldItem is ArchiveListItem.EmptySetHint && newItem is ArchiveListItem.EmptySetHint ->
+                    oldItem.set.path == newItem.set.path
+                oldItem is ArchiveListItem.GroupCard && newItem is ArchiveListItem.GroupCard -> {
+                    val o = oldItem.group
+                    val n = newItem.group
+                    if (o.name != n.name) return false
+                    if (o.isCollapsed != n.isCollapsed) return false
+                    if (oldItem.setId != newItem.setId) return false
+                    val oldPkgs = o.apps.map { it.appInfo.packageName }
+                    val newPkgs = n.apps.map { it.appInfo.packageName }
+                    oldPkgs == newPkgs
+                }
+                else -> false
+            }
         }
     }
 }

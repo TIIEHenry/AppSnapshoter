@@ -4,7 +4,10 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
 import tiiehenry.android.app.snapshot.app.AppInfo
+import tiiehenry.android.app.snapshot.group.ArchiveRoot
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.group.SnapGroupSet
+import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
 import tiiehenry.android.app.snapshot.repository.AppDataRepository
 import tiiehenry.android.snapshot.app.UserInfoHide
 
@@ -22,12 +25,18 @@ class SnapshotViewModel : ViewModel() {
     private val repository = AppDataRepository.getInstance()
 
     val groupList: MutableLiveData<List<SnapGroup>> get() = repository.groupList
+    val groupSetList: MutableLiveData<List<SnapGroupSet>> get() = repository.groupSetList
+    /** 存档 Tab SSOT；见 [AppDataRepository.archiveList]。 */
+    val archiveList: MutableLiveData<List<ArchiveListItem>> get() = repository.archiveList
     val appsList: MutableLiveData<Map<UserInfoHide, List<AppInfo>>> get() = repository.appsList
     /** 应用 catalog 加载态；见 [AppDataRepository.isAppsLoading]。 */
     val isAppsLoading: MutableLiveData<Boolean> get() = repository.isAppsLoading
 
     /** Event: timeline requests scrolling to a specific group in the archive tab */
     val navigateToGroup = MutableLiveData<String?>(null)
+
+    /** Event: scroll to SetHeader；不强制展开 */
+    val navigateToGroupSet = MutableLiveData<String?>(null)
 
     /** Global mutex for batch archive/restore across archive and timeline tabs */
     val isBatchRunning = MutableLiveData(false)
@@ -46,6 +55,9 @@ class SnapshotViewModel : ViewModel() {
     fun resolveGroup(groupId: String, fallback: SnapGroup? = null): SnapGroup? =
         groupList.value?.find { it.id == groupId } ?: fallback
 
+    fun resolveGroupSet(setId: String, fallback: SnapGroupSet? = null): SnapGroupSet? =
+        groupSetList.value?.find { it.id == setId } ?: fallback
+
     private fun appDeps() = SnapshotApp.getInstance().let {
         Triple(SnapshotApp.getContext(), it.fileSystem, it.appManager)
     }
@@ -63,6 +75,70 @@ class SnapshotViewModel : ViewModel() {
     fun addGroup(name: String, path: String, userId: Int = 0) {
         val (context, fileSystem, appManager) = appDeps()
         repository.addGroup(context, fileSystem, appManager, name, path, userId)
+    }
+
+    fun addGroupSet(name: String, path: String, onComplete: ((Int) -> Unit)? = null) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.addGroupSet(context, fileSystem, appManager, name, path, onComplete)
+    }
+
+    fun refreshGroupSet(setId: String, onComplete: ((Int) -> Unit)? = null) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.refreshGroupSet(context, fileSystem, appManager, setId, onComplete)
+    }
+
+    fun deleteGroupSet(
+        setId: String,
+        mode: AppDataRepository.DeleteGroupSetMode = AppDataRepository.DeleteGroupSetMode.SET_ONLY,
+        onComplete: (() -> Unit)? = null,
+    ) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.deleteGroupSet(context, fileSystem, appManager, setId, mode, onComplete)
+    }
+
+    fun setGroupSetCollapsed(setId: String, collapsed: Boolean) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.setGroupSetCollapsed(context, fileSystem, appManager, setId, collapsed)
+    }
+
+    fun saveArchiveRootsOrder(roots: List<ArchiveRoot>, onComplete: (() -> Unit)? = null) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.saveArchiveRootsOrder(context, fileSystem, appManager, roots, onComplete)
+    }
+
+    fun saveGroupSetOrder(setId: String, basenames: List<String>, onComplete: (() -> Unit)? = null) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.saveGroupSetOrder(context, fileSystem, appManager, setId, basenames, onComplete)
+    }
+
+    fun updateGroupPath(
+        groupId: String,
+        newPath: String,
+        newName: String? = null,
+        userId: Int? = null,
+        onComplete: (() -> Unit)? = null,
+    ) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.updateGroupPath(
+            context, fileSystem, appManager, groupId, newPath, newName, userId, onComplete
+        )
+    }
+
+    fun updateGroupSetPath(
+        setId: String,
+        newPath: String,
+        newName: String? = null,
+        onComplete: (() -> Unit)? = null,
+    ) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.updateGroupSetPath(
+            context, fileSystem, appManager, setId, newPath, newName, onComplete
+        )
+    }
+
+    fun upgradeEmptyGroupToSet(groupId: String, setName: String, onComplete: ((Int) -> Unit)? = null) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.upgradeEmptyGroupToSet(context, fileSystem, appManager, groupId, setName, onComplete)
     }
 
     fun addAppsToGroup(groupId: String, appInfos: List<AppInfo>, callback: () -> Unit) {
@@ -88,5 +164,20 @@ class SnapshotViewModel : ViewModel() {
             currentGroups = groupList.value ?: emptyList(),
             deleteFiles = deleteFiles,
         )
+    }
+
+    /** 时间线跳转：若所属集折叠则先展开再 pending 滚到 GroupCard */
+    fun requestNavigateToGroup(groupId: String) {
+        val group = resolveGroup(groupId) ?: run {
+            navigateToGroup.value = groupId
+            return
+        }
+        val set = groupSetList.value.orEmpty().firstOrNull { set ->
+            tiiehenry.android.app.snapshot.repository.GroupSetMembership.isMemberOf(group.path, set.path)
+        }
+        if (set != null && set.isCollapsed) {
+            setGroupSetCollapsed(set.id, collapsed = false)
+        }
+        navigateToGroup.value = groupId
     }
 }

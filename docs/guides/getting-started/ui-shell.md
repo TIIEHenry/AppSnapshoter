@@ -2,7 +2,7 @@
 title: "主界面壳层"
 type: guide
 status: active
-updated: 2026-06-18
+updated: 2026-08-21
 summary: "MainActivity / SettingsActivity 顶栏、底栏、竖屏锁定、可折叠搜索与内容区布局说明"
 ---
 
@@ -55,6 +55,7 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 | 图标 | `@dimen/floating_nav_icon_size`（26dp），由 `floating_nav_icon_padding_*` 居中 |
 | 导航 | `MainActivity.setupBottomNavigation()` 手动绑定 `NavController`（`launchSingleTop` + `restoreState`） |
 | 跨 Tab 跳转 | `MainActivity.selectBottomNavTab(destinationId)`（如时间线 → 存档） |
+| 存档 Tab 长按 | 弹出分组集列表并跳到对应 Header（[分组集](../../systems/snapshot/GROUP_SET.md#底栏长按快跳)；实现为超时后 PopupMenu） |
 | 毛玻璃 | `FloatingBottomNav.setup(activity, container)`，采样根为 `@id/coordinator` |
 | Tab 顺序 | `存档 \| 时间线 \| 应用` |
 | 避让 | 列表调用 `MainActivity.floatingNavContentPaddingBottom()` 增加 `paddingBottom` |

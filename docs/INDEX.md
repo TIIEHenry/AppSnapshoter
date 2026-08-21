@@ -2,7 +2,7 @@
 title: "AppSnapshoter 文档索引"
 type: index
 status: active
-updated: 2026-06-17
+updated: 2026-08-21
 summary: "全局文档导航索引，按角色和主题组织所有文档入口"
 ---
 
@@ -33,6 +33,7 @@ summary: "全局文档导航索引，按角色和主题组织所有文档入口"
 | [Root 服务架构](architecture/root-service.md) | AIDL + libsu IPC 设计 |
 | [安全策略](architecture/cross-cutting/security.md) | Root 权限、数据安全、IPC 安全 |
 | [存储策略](architecture/cross-cutting/storage.md) | MMKV、文件布局、Syncthing 同步 |
+| [架构审查报告 2026-08](architecture/review-2026-08.md) | 评估性审查：契约、边界、错误处理、可测试性发现与建议 |
 
 ---
 
@@ -41,6 +42,7 @@ summary: "全局文档导航索引，按角色和主题组织所有文档入口"
 | 系统 | 说明 | 关键模块 |
 |------|------|----------|
 | [快照系统](systems/snapshot/INDEX.md) | 备份/恢复核心流程 | provider, io-* |
+| [分组集](systems/snapshot/GROUP_SET.md) | 父目录组织多个分组；`archiveList` 连续成块 | app/launch/ |
 | [Group 批量恢复](systems/snapshot/GROUP_BATCH_RESTORE.md) | 分组批量恢复方案（待实施） | app/launch/ |
 | [多用户适配](systems/snapshot/multi-user-adaptation.md) | 多用户场景适配现状与已知问题 | app, provider |
 | [压缩系统](systems/compression/INDEX.md) | TAR 打包 + ZSTD 压缩管线 | io-tar, io-zstd, io-nativefs |

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="6dp">
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginEnd="8dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_folder_open"
+        app:tint="@color/icon_secondary" />
+
+    <TextView
+        android:id="@+id/set_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        tools:text="工作" />
+
+    <TextView
+        android:id="@+id/set_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:textColor="@color/icon_secondary"
+        android:textSize="13sp"
+        tools:text="3" />
+
+    <ImageButton
+        android:id="@+id/btn_refresh"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_margin="3dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/desc_refresh"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/refresh"
+        app:tint="@color/icon_primary" />
+
+    <ImageButton
+        android:id="@+id/btn_tune"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_margin="3dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/settings"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/tune"
+        app:tint="@color/icon_primary" />
+</LinearLayout>

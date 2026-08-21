@@ -44,6 +44,7 @@ import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.databinding.ActivityMainBinding
 import tiiehenry.android.app.snapshot.databinding.DialogProviderCheckBinding
+import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetJumpTouchSession
 import tiiehenry.android.app.snapshot.main.settings.SettingsActivity
 import tiiehenry.android.app.snapshot.main.timeline.TimelineFragment
 import tiiehenry.android.app.snapshot.ui.widget.FloatingBottomNav
@@ -148,8 +149,22 @@ class MainActivity : AppCompatActivity() {
         )
         val navOptions = bottomNavNavOptions()
         bottomNavTabs.forEach { tab ->
-            tab.button.setOnClickListener {
-                navigateToBottomNavTab(tab.destinationId, navOptions)
+            if (tab.destinationId == R.id.launcherFragment) {
+                GroupSetJumpTouchSession.attach(
+                    tab = tab.button,
+                    snapshotViewModel = SnapshotApp.getViewModel(),
+                    onSelectSet = { set ->
+                        navigateToBottomNavTab(R.id.launcherFragment, navOptions)
+                        SnapshotApp.getViewModel().navigateToGroupSet.value = set.id
+                    },
+                    onShortClick = {
+                        navigateToBottomNavTab(tab.destinationId, navOptions)
+                    },
+                )
+            } else {
+                tab.button.setOnClickListener {
+                    navigateToBottomNavTab(tab.destinationId, navOptions)
+                }
             }
         }
         navController.addOnDestinationChangedListener { _, destination, _ ->

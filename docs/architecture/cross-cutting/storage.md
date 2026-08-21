@@ -2,7 +2,7 @@
 title: "存储策略"
 type: architecture
 status: active
-updated: 2026-06-17
+updated: 2026-08-21
 summary: "MMKV 配置存储、快照文件布局、group.json 格式和 Syncthing 同步设计"
 ---
 
@@ -26,6 +26,19 @@ summary: "MMKV 配置存储、快照文件布局、group.json 格式和 Syncthin
 ```
 
 每个分组的 `rootPath` 可在分组设置中自定义（通过 SAF 路径选择器）。
+
+### 分组集
+
+父目录组织多个分组，见 [分组集功能设计](../../systems/snapshot/GROUP_SET.md)。集目录含 `groupset.json`（`name` + basename `groupOrder`）；直接子目录仍是现有分组（各有 `group.json`）。
+
+```
+{setPath}/
+├── groupset.json
+├── work/
+│   └── group.json
+└── play/
+    └── group.json
+```
 
 ### .nomedia
 
@@ -70,10 +83,13 @@ summary: "MMKV 配置存储、快照文件布局、group.json 格式和 Syncthin
 
 | 键 | 类型 | 说明 |
 |---|------|------|
-| `groupOrder` | `List<String>` | 分组 ID 排序列表 |
+| `groups` / `groups_order` | `List<String>` | 本机全部 SnapGroup ID **登记表**（顺序无 UI 语义） |
+| `archive_roots` | `String`（`s:{setId}` / `g:{groupId}` 逗号串） | 存档 Tab 顶层块顺序；本机集登记 == 其中的 `s:` |
 | `timelinePreset` | `String` | 时间线筛选预设：`today`/`yesterday`/`7d`/`30d`/`custom` |
 | `timelineCustomStart` | `Long` | 自定义起始时间戳（毫秒） |
 | `timelineCustomEnd` | `Long` | 自定义结束时间戳（毫秒） |
+
+`archive_roots` **仅键不存在**时由 `groups` 迁成全 `g:`；已写出的空串不得再 flatten。
 
 **文件**：`app/.../config/GlobalConfig.kt`
 
@@ -120,11 +136,12 @@ summary: "MMKV 配置存储、快照文件布局、group.json 格式和 Syncthin
 |------|------|--------|
 | 快照文件 | `{rootPath}/{pkg}/*.tar.zst` | 是 |
 | 分组配置 | `{rootPath}/group.json` | 是 |
+| 分组集配置 | `{setPath}/groupset.json` | 是 |
 | MMKV 数据 | `{filesDir}/mmkv/` | **否**（应用私有目录） |
 
 ### 同步注意事项
 
-- MMKV 数据不在同步范围内，新设备首次需手动重建分组
+- MMKV 数据不在同步范围内，新设备首次需重建本机登记（添加一次分组集即可发现子分组，见 [分组集](../../systems/snapshot/GROUP_SET.md)）
 - 分组创建后，后续配置变更通过 `group.json` 同步
 - 快照文件直接同步，另一台设备可直接恢复
 - 详见 [Syncthing 同步指南](../../guides/getting-started/syncthing.md)

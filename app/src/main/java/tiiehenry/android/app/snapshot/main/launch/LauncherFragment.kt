@@ -8,6 +8,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.core.view.MenuProvider
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
@@ -24,6 +25,7 @@ import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentLauncherBinding
 import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
+import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupSetBottomSheet
 import tiiehenry.android.app.snapshot.main.launch.groupsort.GroupSortBottomSheet
 
 class LauncherFragment : Fragment() {
@@ -36,14 +38,10 @@ class LauncherFragment : Fragment() {
     }
     private lateinit var groupsAdapter: GroupsAdapter
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentLauncherBinding.inflate(inflater, container, false)
         return binding.root
@@ -61,27 +59,24 @@ class LauncherFragment : Fragment() {
         groupsAdapter = GroupsAdapter(viewModel, snapshotViewModel, childFragmentManager)
         binding.groupsRecyclerView.adapter = groupsAdapter
 
-        // 观察数据
-        snapshotViewModel.groupList.observe(viewLifecycleOwner) { groups ->
-            Log.d("LauncherFragment", "groupList changed")
-            groupsAdapter.submitList(groups)
+        snapshotViewModel.archiveList.observe(viewLifecycleOwner) { items ->
+            Log.d("LauncherFragment", "archiveList changed size=${items.size}")
+            groupsAdapter.submitList(items) {
+                tryConsumeNavigate()
+            }
         }
 
         snapshotViewModel.isBatchRunning.observe(viewLifecycleOwner) { running ->
             groupsAdapter.isBatchRunning = running == true
         }
 
-        // 从时间线跳转到指定分组
-        snapshotViewModel.navigateToGroup.observe(viewLifecycleOwner) { groupId ->
-            if (groupId == null) return@observe
-            snapshotViewModel.navigateToGroup.value = null // 消费事件
-            val index = groupsAdapter.currentList.indexOfFirst { it.id == groupId }
-            if (index >= 0) {
-                binding.groupsRecyclerView.scrollToPosition(index)
-            }
+        snapshotViewModel.navigateToGroup.observe(viewLifecycleOwner) {
+            tryConsumeNavigate()
+        }
+        snapshotViewModel.navigateToGroupSet.observe(viewLifecycleOwner) {
+            tryConsumeNavigate()
         }
 
-        // 添加菜单
         requireActivity().addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 menuInflater.inflate(R.menu.menu_launcher, menu)
@@ -90,40 +85,74 @@ class LauncherFragment : Fragment() {
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                 return when (menuItem.itemId) {
                     R.id.menu_add_group -> {
-                        showAddGroupDialog()
+                        showAddChooser()
                         true
                     }
-
                     R.id.menu_sort_groups -> {
                         showSortGroupsDialog()
                         true
                     }
-
                     else -> false
                 }
             }
         }, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
-    private fun showAddGroupDialog() {
-        val bottomSheet = AddGroupBottomSheet.newInstance()
-        bottomSheet.show(childFragmentManager, AddGroupBottomSheet.TAG)
+    /**
+     * 仅在 [ListAdapter.submitList] commit 后读 currentList；禁止 observe 里立刻 indexOfFirst。
+     */
+    private fun tryConsumeNavigate() {
+        val setId = snapshotViewModel.navigateToGroupSet.value
+        if (setId != null) {
+            val index = groupsAdapter.currentList.indexOfFirst {
+                it is ArchiveListItem.SetHeader && it.set.id == setId
+            }
+            if (index >= 0) {
+                binding.groupsRecyclerView.scrollToPosition(index)
+                snapshotViewModel.navigateToGroupSet.value = null
+            }
+            return
+        }
+        val groupId = snapshotViewModel.navigateToGroup.value ?: return
+        val index = groupsAdapter.currentList.indexOfFirst {
+            it is ArchiveListItem.GroupCard && it.group.id == groupId
+        }
+        if (index >= 0) {
+            binding.groupsRecyclerView.scrollToPosition(index)
+            snapshotViewModel.navigateToGroup.value = null
+        }
+    }
+
+    private fun showAddChooser() {
+        val toolbar = (requireActivity() as? MainActivity)?.findViewById<View>(R.id.toolbar)
+            ?: binding.root
+        PopupMenu(requireContext(), toolbar).apply {
+            menu.add(0, 1, 0, R.string.menu_add_group_choice)
+            menu.add(0, 2, 1, R.string.menu_add_group_set_choice)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> AddGroupBottomSheet.newInstance()
+                        .show(childFragmentManager, AddGroupBottomSheet.TAG)
+                    2 -> AddGroupSetBottomSheet.newInstance()
+                        .show(childFragmentManager, AddGroupSetBottomSheet.TAG)
+                }
+                true
+            }
+            show()
+        }
     }
 
     private fun showSortGroupsDialog() {
         val bottomSheet = GroupSortBottomSheet.newInstance()
         bottomSheet.setOnSortSavedListener {
-            // 保存后刷新 groupsAdapter
-            snapshotViewModel.groupList.value?.let { groups ->
-                groupsAdapter.submitList(groups)
-            }
+            // 排序应经 repository；旧路径直接 submitList(groupList) 已禁止
+            snapshotViewModel.loadGroups()
         }
         bottomSheet.show(childFragmentManager, GroupSortBottomSheet.TAG)
     }
 
     override fun onResume() {
         super.onResume()
-        // 刷新groupAdapter
         lifecycleScope.launch(Dispatchers.IO) {
             snapshotViewModel.loadGroups()
         }

@@ -98,7 +98,7 @@ class TimelineFragment : Fragment() {
     private fun setupRecyclerView() {
         adapter = TimelineAdapter(
             onItemClick = { entry ->
-                snapshotViewModel.navigateToGroup.value = entry.key.groupId
+                snapshotViewModel.requestNavigateToGroup(entry.key.groupId)
                 (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
             },
             onMultiSelectModeChanged = { _ ->

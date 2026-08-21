@@ -2,7 +2,7 @@
 title: "app 模块"
 type: module
 status: active
-updated: 2026-07-26
+updated: 2026-08-21
 summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragments、ViewModels、配置管理；Fluent 2 主界面壳层；中英双语 i18n"
 ---
 
@@ -196,5 +196,6 @@ Insets 与主界面一致：`toolbar_header` 顶栏避让状态栏，`settings_r
 | 系统 | 关系 |
 |------|------|
 | [快照系统](../../systems/snapshot/INDEX.md) | UI 入口、快照创建/恢复编排 |
+| [分组集](../../systems/snapshot/GROUP_SET.md) | 存档 Tab 组织层：`SnapGroupSet` / `ArchiveListItem` / `archiveList` |
 | [时间线系统](../../systems/timeline/INDEX.md) | TimelineFragment 及全套时间线组件 |
 | [配置系统](../../systems/config/INDEX.md) | GlobalConfig、AppConfig、ExcludePatternsManager |

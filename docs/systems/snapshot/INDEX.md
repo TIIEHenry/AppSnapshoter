@@ -2,7 +2,7 @@
 title: "快照系统"
 type: system
 status: active
-updated: 2026-07-26
+updated: 2026-08-21
 summary: "应用备份/恢复核心流程，包含快照创建、存档管理、APK 安装和恢复"
 ---
 
@@ -116,6 +116,7 @@ sequenceDiagram
 
 ## 相关文档
 
+- [分组集](GROUP_SET.md) — 父目录组织多个分组；存档 Tab `archiveList` 连续成块、默认折叠；底栏长按快跳
 - [Group 批量恢复设计](GROUP_BATCH_RESTORE.md) — 存档 Tab 分组级批量恢复（v1.1 设计 · 待实施）
 - [多用户适配分析](multi-user-adaptation.md) — Android 多用户场景下的适配现状、压缩/恢复链路与已知问题
 - [添加分组后列表不刷新](add-group-refresh.md) — Application 单例 `viewModelScope` 失效导致 `addGroup` 后 UI 不更新；已改走 `AppDataRepository.scope`

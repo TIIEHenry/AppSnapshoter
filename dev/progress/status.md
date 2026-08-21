@@ -2,17 +2,17 @@
 title: "当前开发状态"
 type: progress
 status: active
-updated: 2026-07-26
-summary: "项目当前迭代状态、进行中功能和已知问题"
+updated: 2026-08-21
+summary: "分组集已落地；架构加固计划仍为下一步"
 ---
 
 # 当前开发状态
 
-> 最后更新：2026-07-26
+> 最后更新：2026-08-21
 
 ## 当前阶段
 
-稳定性与 UI 打磨 — v1.1.x 补丁（崩溃修复、应用 Tab 筛选区重构）。
+稳定性与 UI 打磨 — v1.1.x；分组集（组织层）已落地。
 
 ## 已完成功能
 
@@ -31,6 +31,7 @@ summary: "项目当前迭代状态、进行中功能和已知问题"
 - [x] 崩溃修复批次（标签 LayoutParams、AppTag NPE、JNI 泄漏、Root 服务空指针、Timeline 观察者泄漏等）
 - [x] 应用 catalog loading SSOT（`isAppsLoading`；应用 Tab / 选择应用 BottomSheet）
 - [x] 分组 body 三态可见性（expand/empty/content 互斥；空组折叠不再双图标）
+- [x] 分组集（`archiveList` 投影、集折叠块、两级排序、底栏长按快跳 PopupMenu）
 
 ## 进行中
 
@@ -42,4 +43,5 @@ _无_
 
 ## 下一步
 
-_待规划_
+- [架构加固计划](../plans/2026-08-arch-hardening.md)（planning）：落实[架构审查报告 2026-08](../../docs/architecture/review-2026-08.md) 的 P1 项——任务契约重写、FIFO 看门狗、root 边界收口
+- （可选）时间线条目显示「集名 / 分组名」；底栏快跳升级为拖选 hover

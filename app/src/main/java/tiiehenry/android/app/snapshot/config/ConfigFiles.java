@@ -16,4 +16,7 @@ public class ConfigFiles {
 
     // GroupConfig 特有的配置文件名
     public static final String GROUP_CONFIG_FILE = "group.json";
+
+    /** 分组集配置（名称、集内 basename 顺序），位于集目录下 */
+    public static final String GROUP_SET_CONFIG_FILE = "groupset.json";
 }

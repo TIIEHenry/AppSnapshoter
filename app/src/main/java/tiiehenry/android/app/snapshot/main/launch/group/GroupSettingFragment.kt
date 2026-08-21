@@ -111,6 +111,24 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
             showDeleteConfirmDialog()
         }
 
+        val group = snapshotViewModel.resolveGroup(groupId)
+        val isEmptyShell = group != null && group.apps.isEmpty()
+        binding.btnUpgradeToSet.visibility = if (isEmptyShell) View.VISIBLE else View.GONE
+        binding.btnUpgradeToSet.setOnClickListener {
+            val name = binding.etGroupName.text.toString().trim().ifEmpty { group?.name.orEmpty() }
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.group_upgrade_to_set_title)
+                .setMessage(getString(R.string.group_upgrade_to_set_message, name))
+                .setPositiveButton(R.string.confirm) { _, _ ->
+                    snapshotViewModel.upgradeEmptyGroupToSet(groupId, name) {
+                        onConfigSavedListener?.invoke()
+                        dismiss()
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+
         // 设置 userIdSpinner
 
         userIdSpinner = binding.spinnerUserId
@@ -161,18 +179,21 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
     }
 
     private fun saveConfig() {
-        groupName = binding.etGroupName.text.toString()
-        groupConfig.groupConfigData.name = groupName
-        groupConfig.rootPath = binding.etRootPath.text.toString()
-
-        // 保存 userId
+        val name = binding.etGroupName.text.toString().trim()
+        val path = binding.etRootPath.text.toString().trim()
         val selectedUserIndex = userIdSpinner.selectedItemPosition
-        if (selectedUserIndex >= 0 && selectedUserIndex < userInfoList.size) {
-            groupConfig.groupConfigData.userId = userInfoList[selectedUserIndex].id
+        val userId = if (selectedUserIndex >= 0 && selectedUserIndex < userInfoList.size) {
+            userInfoList[selectedUserIndex].id
+        } else {
+            null
         }
-
-        // 保存所有配置到文件
-        groupConfig.save()
+        groupName = name
+        snapshotViewModel.updateGroupPath(
+            groupId = groupId,
+            newPath = path,
+            newName = name,
+            userId = userId,
+        )
     }
 
     private fun showDeleteConfirmDialog() {

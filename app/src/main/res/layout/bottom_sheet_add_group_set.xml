@@ -11,95 +11,63 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:gravity="center"
-        android:text="@string/group_config_title"
-        android:textSize="20sp"
+        android:text="@string/group_set_add_title"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:hint="@string/group_name_hint">
+        android:layout_marginBottom="16dp"
+        android:hint="@string/group_set_name_hint">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_group_name"
+            android:id="@+id/et_set_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="text" />
-
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til_set_path"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:hint="@string/group_root_path_hint"
-        app:endIconContentDescription="选择路径"
+        android:layout_marginBottom="16dp"
+        android:hint="@string/group_set_path_hint"
+        app:endIconContentDescription="@string/group_set_path_hint"
         app:endIconDrawable="@drawable/ic_folder_open"
         app:endIconMode="custom">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_root_path"
+            android:id="@+id/et_set_path"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clickable="true"
             android:focusable="false"
             android:inputType="text" />
-
     </com.google.android.material.textfield.TextInputLayout>
-
-    <!-- 用户选择 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="4dp"
-        android:text="@string/user_label"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <Spinner
-        android:id="@+id/spinner_user_id"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_upgrade_to_set"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/group_upgrade_to_set"
-            android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_delete_group"
-            style="@style/Widget.Material3.Button"
+            android:id="@+id/btn_cancel"
+            style="@style/Widget.AppSnapshot.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:backgroundTint="@color/design_default_color_error"
-            android:text="@string/group_delete_button" />
+            android:text="@string/cancel" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_save"
-            style="@style/Widget.Material3.Button"
+            android:id="@+id/btn_confirm"
+            style="@style/Widget.AppSnapshot.Button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="@string/save"
-            android:textColor="@android:color/white" />
-
+            android:text="@string/confirm" />
     </LinearLayout>
-
 </LinearLayout>

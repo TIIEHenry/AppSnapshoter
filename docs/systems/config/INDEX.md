@@ -2,7 +2,7 @@
 title: "配置系统"
 type: system
 status: active
-updated: 2026-06-17
+updated: 2026-08-21
 summary: "MMKV 持久化、分组配置、排除规则、保留策略和全局设置"
 ---
 
@@ -22,10 +22,13 @@ AppSnapshoter 使用 MMKV 作为唯一的配置持久化机制，辅以文件系
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `groupOrder` | `List<String>` | 分组 ID 排序 |
+| `groups` / `groups_order` | `List<String>` | 本机全部 SnapGroup ID 登记表（顺序无 UI 语义） |
+| `archiveRoots`（键 `archive_roots`） | `List<ArchiveRoot>` | 存档顶层块顺序；`s:` = 集，`g:` = 独立分组 |
 | `timelinePreset` | `String` | 时间线筛选预设（today/yesterday/7d/30d/custom） |
 | `timelineCustomStart` | `Long` | 自定义起始时间戳 |
 | `timelineCustomEnd` | `Long` | 自定义结束时间戳 |
+
+分组集本机配置：`GroupSetConfig`（MMKV `groupset:{id}`）+ 可同步 `{setPath}/groupset.json`（`name`、basename `groupOrder`）。详见 [分组集](../snapshot/GROUP_SET.md)。
 
 ### 分组配置
 
@@ -91,3 +94,4 @@ AppSnapshoter 使用 MMKV 作为唯一的配置持久化机制，辅以文件系
 ## 相关文档
 
 - [存储策略](../../architecture/cross-cutting/storage.md)
+- [分组集功能设计](../snapshot/GROUP_SET.md) — 拟增加 `groupset.json` 与 `GlobalConfig.archiveRoots`（draft）

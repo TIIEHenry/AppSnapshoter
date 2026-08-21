@@ -2,7 +2,7 @@
 title: "术语表"
 type: guide
 status: active
-updated: 2026-06-17
+updated: 2026-08-21
 summary: "项目中使用的专业术语和缩写定义"
 ---
 
@@ -15,6 +15,7 @@ summary: "项目中使用的专业术语和缩写定义"
 | **快照 (Snapshot)** | 应用数据的压缩备份，包含 APK、data、obb、media 等，格式为 `.tar.zst` |
 | **存档 (Archive)** | 快照文件的统称，每个应用可有多个历史存档 |
 | **分组 (Group)** | 应用的逻辑集合（`SnapGroup`），用于批量操作和管理。每个分组有独立的存档目录和配置 |
+| **分组集 (Group Set)** | 同一父目录下多个分组的组织容器（`SnapGroupSet`）。该目录即分组集；添加时扫描直接子目录自动登记为分组。快照/恢复仍以分组为单元。设计见 [分组集](systems/snapshot/GROUP_SET.md) |
 | **排除规则 (Exclude Pattern)** | 配置中指定不纳入快照的文件/目录匹配模式，按压缩类型分类 |
 | **额外压缩项 (Extra Item)** | 除默认目录外，用户自定义添加的额外压缩目录 |
 | **保留策略 (RetentionPolicy)** | 自动清理旧存档的规则，由 `RetentionPolicyExecutor` 执行 |
