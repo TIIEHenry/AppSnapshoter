@@ -3,7 +3,7 @@ title: "当前开发状态"
 type: progress
 status: active
 updated: 2026-08-21
-summary: "分组集 UI 打磨已提交；架构加固计划仍为下一步"
+summary: "存档列表 Header 吸顶与组内网格封顶已落地；架构加固计划仍为下一步"
 ---
 
 # 当前开发状态
@@ -30,11 +30,12 @@ summary: "分组集 UI 打磨已提交；架构加固计划仍为下一步"
 - [x] 应用 Tab 筛选行图标化（系统/用户切换 + 标签展开/收起）
 - [x] 崩溃修复批次（标签 LayoutParams、AppTag NPE、JNI 泄漏、Root 服务空指针、Timeline 观察者泄漏等）
 - [x] 应用 catalog loading SSOT（`isAppsLoading`；应用 Tab / 选择应用 BottomSheet）
-- [x] 分组 body 三态可见性（expand/empty/content 互斥；空组折叠不再双图标）
+- [x] 分组 body 三态可见性（空组优先加号；有应用才折/展）
 - [x] 分组集（`archiveList` 投影、集折叠块、两级排序、底栏长按快跳含拖选）
 - [x] 分组集强调色（预设 + 自定义；投影快照刷新）
 - [x] 选择应用 BottomSheet：打开重置过滤、「未分组」开关
 - [x] 统一添加分组/集 BottomSheet；集内色条与一键折叠
+- [x] 存档列表打磨：SetHeader 吸顶 overlay、整行按压无 ripple、组内网格超过 3 行自滚
 
 ## 进行中
 

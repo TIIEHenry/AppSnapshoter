@@ -2,15 +2,15 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/group_app_item_height"
     android:background="?attr/selectableItemBackgroundBorderless"
-    android:padding="8dp">
+    android:padding="@dimen/group_app_item_padding">
 
     <ImageView
         android:id="@+id/app_icon"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="@dimen/group_app_icon_size"
+        android:layout_height="@dimen/group_app_icon_size"
         android:contentDescription="@string/desc_app_icon"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -42,8 +42,8 @@
     <TextView
         android:id="@+id/app_name"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_height="@dimen/group_app_name_height"
+        android:layout_marginTop="@dimen/group_app_name_margin_top"
         android:ellipsize="end"
         android:gravity="center"
         android:lines="2"
@@ -57,9 +57,9 @@
     <!-- 状态指示器 -->
     <ImageView
         android:id="@+id/app_status_indicator"
-        android:layout_width="16dp"
-        android:layout_height="16dp"
-        android:layout_marginTop="2dp"
+        android:layout_width="@dimen/group_app_status_size"
+        android:layout_height="@dimen/group_app_status_size"
+        android:layout_marginTop="@dimen/group_app_status_margin_top"
         android:contentDescription="@string/desc_app_status"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"

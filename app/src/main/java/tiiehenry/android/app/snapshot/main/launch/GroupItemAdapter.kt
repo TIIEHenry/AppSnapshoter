@@ -39,7 +39,7 @@ class GroupItemAdapter(
     private val groupsAdapter: GroupsAdapter,
     private val viewModel: LauncherViewModel,
     private val snapshotViewModel: SnapshotViewModel,
-    private val group: SnapGroup,
+    var group: SnapGroup,
     private var batchRunning: Boolean = false,
     private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit = { _, _ -> }
 ) : ListAdapter<ArchivedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
@@ -54,7 +54,7 @@ class GroupItemAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding, groupsHolder, viewModel, snapshotViewModel, group, onItemUpdated, this) { batchRunning }
+        return ViewHolder(binding, groupsHolder, viewModel, snapshotViewModel, onItemUpdated, this) { batchRunning }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -71,11 +71,12 @@ class GroupItemAdapter(
         private val groupsHolder: GroupsAdapter.GroupViewHolder,
         private val viewModel: LauncherViewModel,
         private val snapshotViewModel: SnapshotViewModel,
-        private val group: SnapGroup,
         private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit,
         private val adapter: GroupItemAdapter,
         private val isBatchRunning: () -> Boolean
     ) : RecyclerView.ViewHolder(binding.root) {
+
+        private val group get() = adapter.group
 
         fun bind(item: ArchivedApp) {
             val appInfo = item.appInfo

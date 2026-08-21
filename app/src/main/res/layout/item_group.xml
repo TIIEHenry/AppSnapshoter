@@ -173,10 +173,15 @@
                         android:layout_gravity="center"
                         android:layout_margin="8dp" />
 
-                    <androidx.recyclerview.widget.RecyclerView
+                    <tiiehenry.android.app.snapshot.ui.widget.MaxHeightRecyclerView
                         android:id="@+id/group_recycler_view"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:fadeScrollbars="true"
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never"
+                        android:scrollbarStyle="insideOverlay"
+                        android:scrollbars="vertical" />
 
                 </FrameLayout>
             </FrameLayout>

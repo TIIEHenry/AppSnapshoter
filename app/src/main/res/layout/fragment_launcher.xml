@@ -1,14 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:orientation="vertical">
+    android:background="@color/background">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/groups_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp" />
+        android:clipToPadding="false"
+        android:padding="@dimen/archive_list_padding" />
 
-</LinearLayout>
+    <include
+        android:id="@+id/sticky_set_header"
+        layout="@layout/item_group_set"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginStart="@dimen/archive_list_padding"
+        android:layout_marginTop="@dimen/archive_list_padding"
+        android:layout_marginEnd="@dimen/archive_list_padding"
+        android:layout_marginBottom="0dp"
+        android:visibility="gone" />
+</FrameLayout>

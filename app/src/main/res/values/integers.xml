@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="group_app_grid_span">4</integer>
+    <integer name="group_app_grid_max_rows">3</integer>
+</resources>

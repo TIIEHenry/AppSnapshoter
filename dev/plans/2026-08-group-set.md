@@ -3,14 +3,14 @@ title: "分组集实施计划"
 type: plan
 status: implemented
 updated: 2026-08-21
-summary: "Phase 1–3 已落地：模型/投影/UI/两级排序/底栏拖选快跳；可选时间线集名显示未做"
+summary: "Phase 1–4 已落地：模型/投影/UI/两级排序/底栏拖选快跳/Header 吸顶与组内网格封顶；可选时间线集名显示未做"
 ---
 
 # 分组集实施计划
 
-> 阶段：Phase 1–3  
+> 阶段：Phase 1–4  
 > 状态：implemented  
-> 关联：[分组集功能设计 v1.2](../../docs/systems/snapshot/GROUP_SET.md)
+> 关联：[分组集功能设计 v1.4](../../docs/systems/snapshot/GROUP_SET.md)
 
 ## 目标
 
@@ -44,6 +44,14 @@ summary: "Phase 1–3 已落地：模型/投影/UI/两级排序/底栏拖选快�
 - [x] `navigateToGroupSet` 滚 Header 不改折叠
 - [x] `GroupSetJumpTouchSession` + `GroupSetJumpPopup`：长按超时弹出，支持点选与拖选
 - [ ] （可选）时间线条目 `集名 / 分组名`
+
+### Phase 4: 存档列表打磨
+
+- [x] SetHeader 变矮（约 32dp）；整行可点；按压用 `StateListDrawable`，不用 ripple
+- [x] 真实 overlay 吸顶（`GroupSetStickyHeader`）；下一块顶上来时推走；独立分组不吸顶
+- [x] 组内网格 4 列、超过 3 行封顶自滚（`MaxHeightRecyclerView`）；复用内层 Adapter / ViewPool
+- [x] 空组 body 优先加号，标题点击不切换折叠
+- [x] `TimelineRepository` 遍历前快照 `group.apps` / `archives`，避免 IO 线程并发改集合
 
 ## 验收标准
 

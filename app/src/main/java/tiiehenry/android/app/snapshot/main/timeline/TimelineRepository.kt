@@ -15,12 +15,15 @@ object TimelineRepository {
         range: TimeRange
     ): List<TimelineEntry> {
         return groupList.flatMap { group ->
-            group.apps.mapNotNull { app ->
-                val matching = synchronized(app.archives) {
-                    app.archives.values
-                        .filter { it.metaInfo.makeTime in range.startTime until range.endTimeExclusive }
-                        .sortedByDescending { it.metaInfo.makeTime }
+            // loadApps 会在 IO 线程 clear/add；必须先快照再遍历
+            val appsSnapshot = synchronized(group.apps) { group.apps.toList() }
+            appsSnapshot.mapNotNull { app ->
+                val archiveSnapshot = synchronized(app.archives) {
+                    app.archives.values.toList()
                 }
+                val matching = archiveSnapshot
+                    .filter { it.metaInfo.makeTime in range.startTime until range.endTimeExclusive }
+                    .sortedByDescending { it.metaInfo.makeTime }
                 if (matching.isEmpty()) return@mapNotNull null
                 TimelineEntry(
                     key = TimelineEntryKey(group.id, app.appInfo.packageName, app.appInfo.userId),
@@ -78,14 +81,15 @@ object TimelineRepository {
         range: TimeRange
     ): Pair<ArchivedApp, List<ArchiveItem>>? {
         val group = groups.find { it.id == key.groupId } ?: return null
-        val app = group.apps.find {
-            it.appInfo.packageName == key.packageName && it.appInfo.userId == key.userId
+        val app = synchronized(group.apps) {
+            group.apps.find {
+                it.appInfo.packageName == key.packageName && it.appInfo.userId == key.userId
+            }
         } ?: return null
         val matching = synchronized(app.archives) {
-            app.archives.values
-                .filter { it.metaInfo.makeTime in range.startTime until range.endTimeExclusive }
-                .sortedByDescending { it.metaInfo.makeTime }
-        }
+            app.archives.values.toList()
+        }.filter { it.metaInfo.makeTime in range.startTime until range.endTimeExclusive }
+            .sortedByDescending { it.metaInfo.makeTime }
         if (matching.isEmpty()) return null
         return app to matching
     }

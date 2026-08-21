@@ -4,18 +4,22 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="4dp"
+    android:layout_marginBottom="@dimen/group_set_block_spacing"
     android:background="@drawable/bg_group_set_header"
+    android:clickable="true"
+    android:clipToOutline="true"
+    android:focusable="true"
     android:gravity="center_vertical"
+    android:minHeight="@dimen/group_set_header_min_height"
     android:orientation="horizontal"
     android:paddingHorizontal="8dp"
-    android:paddingVertical="6dp">
+    android:paddingVertical="2dp">
 
     <ImageView
         android:id="@+id/set_expand_icon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginEnd="8dp"
+        android:layout_width="@dimen/group_set_header_chevron_size"
+        android:layout_height="@dimen/group_set_header_chevron_size"
+        android:layout_marginEnd="6dp"
         android:contentDescription="@null"
         android:src="@drawable/chevron_down"
         app:tint="@color/fluent_accent" />
@@ -27,7 +31,7 @@
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textSize="17sp"
+        android:textSize="15sp"
         android:textStyle="bold"
         tools:text="工作" />
 
@@ -35,31 +39,29 @@
         android:id="@+id/set_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="4dp"
+        android:layout_marginEnd="2dp"
         android:textColor="@color/icon_secondary"
-        android:textSize="13sp"
+        android:textSize="12sp"
         tools:text="3" />
 
     <ImageButton
         android:id="@+id/btn_refresh"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_margin="3dp"
+        android:layout_width="@dimen/group_set_header_button_size"
+        android:layout_height="@dimen/group_set_header_button_size"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/desc_refresh"
-        android:padding="7dp"
+        android:padding="5dp"
         android:scaleType="fitCenter"
         android:src="@drawable/refresh"
         app:tint="@color/icon_primary" />
 
     <ImageButton
         android:id="@+id/btn_tune"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_margin="3dp"
+        android:layout_width="@dimen/group_set_header_button_size"
+        android:layout_height="@dimen/group_set_header_button_size"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/settings"
-        android:padding="7dp"
+        android:padding="5dp"
         android:scaleType="fitCenter"
         android:src="@drawable/tune"
         app:tint="@color/icon_primary" />

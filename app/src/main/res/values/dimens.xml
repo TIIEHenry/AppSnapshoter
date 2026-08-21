@@ -23,6 +23,23 @@
     <dimen name="filter_section_inset_end">@dimen/filter_row_padding_vertical</dimen>
     <dimen name="toolbar_height">48dp</dimen>
 
+    <!-- 存档分组应用网格：固定行高，超过 max_rows 后内层滚动 -->
+    <dimen name="group_app_item_padding">8dp</dimen>
+    <dimen name="group_app_icon_size">48dp</dimen>
+    <dimen name="group_app_name_margin_top">4dp</dimen>
+    <dimen name="group_app_name_height">32dp</dimen>
+    <dimen name="group_app_status_size">16dp</dimen>
+    <dimen name="group_app_status_margin_top">2dp</dimen>
+    <!-- padding×2 + icon + name_margin + name + status_margin + status -->
+    <dimen name="group_app_item_height">118dp</dimen>
+    <dimen name="group_app_grid_fade_length">28dp</dimen>
+    <dimen name="archive_list_padding">8dp</dimen>
+    <dimen name="group_set_header_min_height">32dp</dimen>
+    <dimen name="group_set_block_spacing">8dp</dimen>
+    <dimen name="group_set_header_button_size">28dp</dimen>
+    <dimen name="group_set_header_chevron_size">16dp</dimen>
+    <dimen name="group_set_sticky_elevation">4dp</dimen>
+
     <!-- Fluent 2 corner radii -->
     <dimen name="fluent_corner_radius_control">4dp</dimen>
     <dimen name="fluent_corner_radius_overlay">8dp</dimen>

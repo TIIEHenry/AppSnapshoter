@@ -1,14 +1,8 @@
 package tiiehenry.android.app.snapshot.main.launch
 
-import android.content.res.ColorStateList
-import android.graphics.drawable.GradientDrawable
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.core.content.ContextCompat
-import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
@@ -22,10 +16,9 @@ import tiiehenry.android.app.snapshot.databinding.ItemEmptySetHintBinding
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.databinding.ItemGroupSetBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
-import tiiehenry.android.app.snapshot.group.GroupSetColors
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
-import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetSettingFragment
+import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetHeaderBinder
 import java.nio.file.Paths
 
 class GroupsAdapter(
@@ -46,6 +39,9 @@ class GroupsAdapter(
         private const val VIEW_TYPE_SET = 1
         private const val VIEW_TYPE_GROUP = 2
         private const val VIEW_TYPE_EMPTY_HINT = 3
+        private val appItemViewPool = RecyclerView.RecycledViewPool().apply {
+            setMaxRecycledViews(0, 24)
+        }
     }
 
     override fun getItemViewType(position: Int): Int = when (getItem(position)) {
@@ -123,47 +119,7 @@ class GroupsAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: ArchiveListItem.SetHeader) {
-            val set = item.set
-            val accent = item.accentColor
-            binding.setTitle.text = item.name
-            binding.setCount.text = binding.root.context.getString(
-                R.string.group_set_count_format,
-                item.groupCount,
-            )
-            binding.setExpandIcon.rotation = if (item.expanded) 0f else -90f
-            ImageViewCompat.setImageTintList(
-                binding.setExpandIcon,
-                ColorStateList.valueOf(accent),
-            )
-            val headerBg = (ContextCompat.getDrawable(
-                binding.root.context,
-                R.drawable.bg_group_set_header,
-            )?.mutate() as? GradientDrawable)
-            headerBg?.setColor(GroupSetColors.headerBackground(accent))
-            binding.root.background = headerBg
-
-            binding.setTitle.setOnClickListener {
-                snapshotViewModel.setGroupSetCollapsed(set.id, collapsed = item.expanded)
-            }
-            binding.setExpandIcon.setOnClickListener {
-                binding.setTitle.performClick()
-            }
-            binding.setTitle.setOnLongClickListener {
-                GroupSetSettingFragment.newInstance(set.id).show(fragmentManager, GroupSetSettingFragment.TAG)
-                true
-            }
-            binding.btnTune.setOnClickListener {
-                GroupSetSettingFragment.newInstance(set.id).show(fragmentManager, GroupSetSettingFragment.TAG)
-            }
-            binding.btnRefresh.setOnClickListener {
-                snapshotViewModel.refreshGroupSet(set.id) { count ->
-                    Toast.makeText(
-                        binding.root.context,
-                        binding.root.context.getString(R.string.group_set_refresh_result, count),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            }
+            GroupSetHeaderBinder.bind(binding, item, snapshotViewModel, fragmentManager)
         }
     }
 
@@ -178,6 +134,19 @@ class GroupsAdapter(
         private var itemTouchHelper: ItemTouchHelper? = null
         private lateinit var actionsController: GroupActionsController
         private var boundGroup: SnapGroup? = null
+        private var itemAdapter: GroupItemAdapter? = null
+        private val gridSpan = binding.root.resources.getInteger(R.integer.group_app_grid_span)
+        private val gridMaxRows = binding.root.resources.getInteger(R.integer.group_app_grid_max_rows)
+
+        init {
+            val itemHeight = binding.root.resources.getDimensionPixelSize(R.dimen.group_app_item_height)
+            binding.groupRecyclerView.maxHeightPx = itemHeight * gridMaxRows
+            binding.groupRecyclerView.layoutManager = GridLayoutManager(binding.root.context, gridSpan)
+            binding.groupRecyclerView.setRecycledViewPool(appItemViewPool)
+            binding.emptyLayout.setOnClickListener {
+                binding.btnAdd.performClick()
+            }
+        }
 
         fun bind(
             groupsAdapter: GroupsAdapter,
@@ -185,6 +154,11 @@ class GroupsAdapter(
             inSet: Boolean,
             accentColor: Int?,
         ) {
+            val groupChanged = boundGroup != null && boundGroup?.id != group.id
+            if (groupChanged && isSortMode) {
+                itemAdapter?.let { stopDragSortMode(it) }
+                isSortMode = false
+            }
             boundGroup = group
             binding.groupTitle.text = group.name
             if (inSet && accentColor != null) {
@@ -194,34 +168,57 @@ class GroupsAdapter(
                 binding.setMembershipRail.visibility = View.GONE
             }
 
-            actionsController = GroupActionsController(
-                binding, viewModel, snapshotViewModel, fragmentManager
-            ) { g -> refresh(g, binding.groupRecyclerView) }
+            if (!::actionsController.isInitialized) {
+                actionsController = GroupActionsController(
+                    binding, viewModel, snapshotViewModel, fragmentManager
+                ) { g -> refresh(g, binding.groupRecyclerView) }
+            }
             actionsController.setupActions(group, groupsAdapter, this)
             actionsController.setBatchRunning(groupsAdapter.isBatchRunning)
 
-            binding.groupRecyclerView.layoutManager = GridLayoutManager(binding.root.context, 4)
+            ensureItemAdapter(groupsAdapter, group)
+            if (groupChanged) {
+                binding.groupRecyclerView.scrollToPosition(0)
+            }
+            refresh(group, binding.groupRecyclerView)
+            syncChromeVisibility()
+        }
 
-            val adapter = GroupItemAdapter(
+        private fun ensureItemAdapter(
+            groupsAdapter: GroupsAdapter,
+            group: SnapGroup,
+        ): GroupItemAdapter {
+            val existing = itemAdapter
+            if (existing != null) {
+                existing.group = group
+                existing.setBatchRunning(groupsAdapter.isBatchRunning)
+                return existing
+            }
+            val created = GroupItemAdapter(
                 this, groupsAdapter, viewModel, snapshotViewModel, group,
                 groupsAdapter.isBatchRunning,
             ) { adapter, item ->
-                val currentList = ArrayList(group.apps)
+                val currentList = ArrayList(adapter.group.apps)
                 val index = currentList.indexOfFirst { it.appInfo.packageName == item.appInfo.packageName }
                 if (index != -1) {
                     currentList[index] = item
                     adapter.submitList(currentList)
                 }
             }
-            binding.groupRecyclerView.adapter = adapter
+            itemAdapter = created
+            binding.groupRecyclerView.adapter = created
+            return created
+        }
 
-            refresh(group, binding.groupRecyclerView)
-
-            binding.emptyLayout.setOnClickListener {
-                binding.btnAdd.performClick()
+        private fun syncInnerGridScrolling(appCount: Int) {
+            val rv = binding.groupRecyclerView
+            val canScroll = appCount > gridSpan * gridMaxRows
+            val lp = rv.layoutParams
+            val targetHeight = if (canScroll) rv.maxHeightPx else ViewGroup.LayoutParams.WRAP_CONTENT
+            if (lp.height != targetHeight) {
+                lp.height = targetHeight
+                rv.layoutParams = lp
             }
-
-            syncChromeVisibility()
         }
 
         fun applyBatchRunningState(running: Boolean) {
@@ -289,12 +286,10 @@ class GroupsAdapter(
             val sortedApps = synchronized(group.apps) {
                 applySorting(group.apps, group.config.sortConfig, group)
             }
-            Log.i("GroupsAdapter", "refresh $sortedApps")
             val adapter = recyclerView.adapter as GroupItemAdapter
+            adapter.group = group
+            syncInnerGridScrolling(sortedApps.size)
             adapter.submitList(sortedApps)
-            adapter.notifyDataSetChanged()
-            recyclerView.invalidate()
-            recyclerView.requestLayout()
             renderBody(group)
             syncChromeVisibility()
         }
@@ -305,19 +300,26 @@ class GroupsAdapter(
             syncChromeVisibility()
         }
 
+        /**
+         * 分组 body 三态互斥投影：
+         * - 空组 → 仅 empty_layout（忽略 isCollapsed，始终加号）
+         * - 有应用且折叠 → 仅 expand_group
+         * - 有应用且展开 → 仅 app_layout
+         */
         private fun renderBody(group: SnapGroup) {
             binding.progressBar.visibility = View.GONE
+            val isEmpty = synchronized(group.apps) { group.apps.isEmpty() }
             when {
-                group.isCollapsed -> {
-                    binding.expandGroup.visibility = View.VISIBLE
-                    binding.emptyLayout.visibility = View.GONE
-                    binding.appLayout.visibility = View.GONE
-                }
-                group.apps.isEmpty() -> {
+                isEmpty -> {
                     binding.expandGroup.visibility = View.GONE
                     binding.emptyLayout.visibility = View.VISIBLE
                     binding.appLayout.visibility = View.GONE
                     binding.groupRecyclerView.visibility = View.GONE
+                }
+                group.isCollapsed -> {
+                    binding.expandGroup.visibility = View.VISIBLE
+                    binding.emptyLayout.visibility = View.GONE
+                    binding.appLayout.visibility = View.GONE
                 }
                 else -> {
                     binding.expandGroup.visibility = View.GONE

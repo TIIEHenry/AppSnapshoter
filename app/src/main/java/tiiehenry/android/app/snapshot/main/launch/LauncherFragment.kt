@@ -24,6 +24,7 @@ import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentLauncherBinding
 import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
+import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetStickyHeader
 import tiiehenry.android.app.snapshot.main.launch.groupsort.GroupSortBottomSheet
 
 class LauncherFragment : Fragment() {
@@ -35,6 +36,7 @@ class LauncherFragment : Fragment() {
         SingletonViewModelFactory(SnapshotApp.getViewModel())
     }
     private lateinit var groupsAdapter: GroupsAdapter
+    private var stickySetHeader: GroupSetStickyHeader? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,17 +51,24 @@ class LauncherFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.groupsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.groupsRecyclerView.clipToPadding = false
         binding.groupsRecyclerView.updatePadding(
             bottom = (requireActivity() as MainActivity).floatingNavContentPaddingBottom()
         )
 
         groupsAdapter = GroupsAdapter(viewModel, snapshotViewModel, childFragmentManager)
         binding.groupsRecyclerView.adapter = groupsAdapter
+        stickySetHeader = GroupSetStickyHeader(
+            binding.groupsRecyclerView,
+            binding.stickySetHeader,
+            groupsAdapter,
+            snapshotViewModel,
+            childFragmentManager,
+        ).also { it.attach() }
 
         snapshotViewModel.archiveList.observe(viewLifecycleOwner) { items ->
             Log.d("LauncherFragment", "archiveList changed size=${items.size}")
             groupsAdapter.submitList(items) {
+                stickySetHeader?.update()
                 tryConsumeNavigate()
             }
         }
@@ -142,6 +151,8 @@ class LauncherFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        stickySetHeader?.detach()
+        stickySetHeader = null
         super.onDestroyView()
         _binding = null
     }

@@ -3,12 +3,12 @@ title: "分组集功能设计"
 type: system
 status: active
 updated: 2026-08-21
-summary: "以父目录组织多个分组：添加分组集时扫描直接子目录自动登记；存档 Tab 上同一集的分组连续成块、默认折叠；长按底栏存档 Tab 可快跳（含拖选）"
+summary: "以父目录组织多个分组：存档 Tab 上同一集连续成块、默认折叠、Header 吸顶；长按底栏存档 Tab 可快跳（含拖选）"
 ---
 
 # 分组集功能设计文档
 
-> 版本：v1.3 · 日期：2026-08-21 · 状态：active（已落地；底栏快跳含拖选）  
+> 版本：v1.4 · 日期：2026-08-21 · 状态：active（已落地；Header 吸顶；底栏快跳含拖选）  
 > 关联：存档 Tab（`LauncherFragment`）、`SnapGroup`、`AppDataRepository`、[存储策略](../../architecture/cross-cutting/storage.md)  
 > 修订：Grok 二轮 must-fix 已并入。第三轮为 **Grok 等价审查（降级）→ Approve**（子代理 resource_exhausted）。底栏快跳已接 `GroupSetJumpPopup` 拖选。
 
@@ -160,13 +160,13 @@ ArchiveListItem
 
 | 元素 | 行为 |
 |------|------|
-| 文件夹图标 + 名称 | 17sp；点击展开/折叠（**交互**对齐分组标题） |
+| 文件夹图标 + 名称 | 15sp；点击展开/折叠（整行可点，**交互**对齐分组标题） |
 | 计数 | `N 个分组` |
 | 刷新 | 再扫直接子目录，增删本机登记 |
 | 设置（tune） | 打开分组集设置 |
 | 标题长按 | 同样打开设置 |
 
-高度约 48dp，视觉弱于分组卡片（不必用 `round_white_background` 大卡片；可用浅底或仅底部分割线）。
+高度约 32dp。滚动时 **吸顶**：真实 overlay（`fragment_launcher` 内 `sticky_set_header`），不是 ItemDecoration 绘制，以便折展/刷新/设置仍可点。下一块（下一集 Header 或独立分组）顶上来时把当前条推走。独立分组在顶部时不吸顶。整行按压用圆角 `StateListDrawable` 叠 `fluent_reveal_pressed`，不用 ripple。
 
 点标题折展：调用 repository（如 `setGroupSetCollapsed(setId, collapsed)`），在 mutex 内改集 MMKV `isCollapsed` → `projectArchiveList` → `postValue(archiveList)`。**禁止**在 Adapter/ViewHolder 里本地 insert/remove `GroupCard`，也禁止用 Header 内 visibility 藏子卡片。`navigateToGroup` 为露出卡片而展开时走同一条路径。
 
@@ -587,8 +587,11 @@ DiffUtil：`SetHeader` 以 `set.id` 为 identity；`GroupCard` 以 `group.id` �
 | `res/layout/popup_group_set_jump.xml` | 新增 | 菜单容器 |
 | `res/layout/item_group_set_jump.xml` | 新增 | 菜单行：名称 + 数量 |
 | `main/launch/ArchiveListItem.kt` | 新增 | 密封列表项 |
-| `main/launch/LauncherFragment.kt` | 修改 | **只**观察 `archiveList`；`submitList { tryConsumeNavigate() }`；禁止 observe 里立刻 `indexOfFirst` |
-| `main/launch/GroupsAdapter.kt` | 修改 | 多 viewType；只 bind 投影结果；**禁止**本地增删 GroupCard |
+| `main/launch/LauncherFragment.kt` | 修改 | **只**观察 `archiveList`；`submitList { tryConsumeNavigate() }`；禁止 observe 里立刻 `indexOfFirst`；挂载吸顶 overlay |
+| `main/launch/GroupsAdapter.kt` | 修改 | 多 viewType；只 bind 投影结果；**禁止**本地增删 GroupCard；复用组内 Adapter |
+| `main/launch/groupset/GroupSetHeaderBinder.kt` | 新增 | 列表项与吸顶条共用 Header 绑定 |
+| `main/launch/groupset/GroupSetStickyHeader.kt` | 新增 | 滚动时钉住当前集 Header，下一块顶上来时推走 |
+| `ui/widget/MaxHeightRecyclerView.kt` | 新增 | 组内网格超过 3 行封顶自滚；顶/底渐隐；竖滑交接 |
 | `res/layout/item_group_set.xml` | 新增 | SetHeader |
 | `main/launch/addgroup/AddGroupSetBottomSheet.kt` | 新增 | 名称 + 路径 |
 | `res/layout/bottom_sheet_add_group_set.xml` | 新增 | — |
@@ -632,7 +635,7 @@ DiffUtil：`SetHeader` 以 `set.id` 为 identity；`GroupCard` 以 `group.id` �
 ### 性能
 
 - 添加/刷新只 `listDir` 集的 **一层**，再对每个新分组走现有 `loadApps`（与现在加载全部分组同量级）。
-- 折叠用 DiffUtil 增删 `GroupCard`，避免 NestedScroll + 三层 RV。
+- 折叠用 DiffUtil 增删 `GroupCard`。组内网格嵌套 RV：4 列、超过 3 行（12 个）后 `MaxHeightRecyclerView` 封顶自滚，避免把外层列表撑开。
 - 投影在 `loadGroupsMutex` 内、IO 线程完成，主线程只 `postValue`。
 
 ### 测试范围
