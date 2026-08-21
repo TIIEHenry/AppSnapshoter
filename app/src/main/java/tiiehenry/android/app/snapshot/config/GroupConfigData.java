@@ -23,6 +23,11 @@ public class GroupConfigData {
     public List<String> lockedList = new ArrayList<>();
 
     /**
+     * 成员模式：exclusive（默认）| shared。缺省或未知按 exclusive。
+     */
+    public String membershipMode = "exclusive";
+
+    /**
      * 从 JSON 字符串解析配置（静态工厂方法）
      */
     public static GroupConfigData fromJson(String jsonString) {

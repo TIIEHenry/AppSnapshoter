@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -18,7 +19,7 @@ import java.util.Date
 import java.util.Locale
 
 class TimelineAdapter(
-    private val onItemClick: (TimelineEntry) -> Unit,
+    private val onIconClick: (TimelineEntry) -> Unit,
     private val onMultiSelectModeChanged: (Boolean) -> Unit,
     private val onSelectionChanged: (Set<String>) -> Unit
 ) : ListAdapter<TimelineListItem, RecyclerView.ViewHolder>(ListItemDiffCallback()) {
@@ -136,6 +137,9 @@ class TimelineAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         init {
+            binding.itemContent.outlineProvider = ViewOutlineProvider.BACKGROUND
+            binding.itemContent.clipToOutline = true
+
             binding.itemContent.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
@@ -143,16 +147,19 @@ class TimelineAdapter(
                 if (isMultiSelectMode) {
                     toggleSelection(item.entry, pos)
                 } else {
-                    onItemClick(item.entry)
+                    toggleExpand(item.entry, pos)
                 }
             }
 
-            binding.expandButton.setOnClickListener {
+            binding.appIcon.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
                 val item = getItem(pos) as? TimelineListItem.Entry ?: return@setOnClickListener
-                if (isMultiSelectMode) return@setOnClickListener
-                toggleExpand(item.entry, pos)
+                if (isMultiSelectMode) {
+                    toggleSelection(item.entry, pos)
+                } else {
+                    onIconClick(item.entry)
+                }
             }
 
             val enterMultiSelectOnLongPress = View.OnLongClickListener {
@@ -163,7 +170,7 @@ class TimelineAdapter(
                 true
             }
             binding.itemContent.setOnLongClickListener(enterMultiSelectOnLongPress)
-            binding.expandButton.setOnLongClickListener(enterMultiSelectOnLongPress)
+            binding.appIcon.setOnLongClickListener(enterMultiSelectOnLongPress)
         }
 
         private fun enterMultiSelectWithItem(entry: TimelineEntry) {

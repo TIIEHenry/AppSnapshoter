@@ -1,5 +1,6 @@
 package tiiehenry.android.app.snapshot.main.launch
 
+import android.app.AlertDialog
 import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
@@ -12,6 +13,9 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.SortConfig
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
+import tiiehenry.android.app.snapshot.group.AddAppItemResult
+import tiiehenry.android.app.snapshot.group.AddAppsResult
+import tiiehenry.android.app.snapshot.group.MoveAppResult
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.main.launch.batch.GroupBatchRestoreDialog
 import tiiehenry.android.app.snapshot.main.launch.batch.GroupBatchRestorer
@@ -93,9 +97,11 @@ class GroupActionsController(
         // 添加应用按钮
         binding.btnAdd.setOnClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
-            SelectAppFragment.newInstance(group.id) { appInfos ->
-                snapshotViewModel.addAppsToGroup(group.id, appInfos) {
+            val targetGroupId = group.id
+            SelectAppFragment.newInstance(targetGroupId) { appInfos ->
+                snapshotViewModel.addAppsToGroup(targetGroupId, appInfos) { result ->
                     onRefresh(resolveGroup(group))
+                    handleAddAppsResult(targetGroupId, result)
                 }
             }.show(fragmentManager, "SelectAppFragment")
         }
@@ -208,5 +214,120 @@ class GroupActionsController(
         binding.btnMove.isEnabled = !running
         binding.btnTune.isEnabled = !running
         binding.root.alpha = if (running) 0.7f else 1f
+    }
+
+    private fun handleAddAppsResult(targetGroupId: String, result: AddAppsResult) {
+        val context = binding.root.context
+        val conflicts = result.conflicts
+        if (conflicts.isEmpty()) {
+            val busy = result.items.values.any { it is AddAppItemResult.Busy }
+            val corrupt = result.items.values.any { it is AddAppItemResult.CorruptMultiOwner }
+            when {
+                corrupt -> Toast.makeText(
+                    context, R.string.group_membership_corrupt, Toast.LENGTH_LONG
+                ).show()
+                busy -> Toast.makeText(
+                    context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT
+                ).show()
+            }
+            return
+        }
+
+        val target = snapshotViewModel.resolveGroup(targetGroupId) ?: return
+        if (conflicts.size == 1) {
+            val (pkg, ownerId) = conflicts.entries.first()
+            val owner = snapshotViewModel.resolveGroup(ownerId)
+            val ownerName = owner?.name ?: ownerId
+            AlertDialog.Builder(context)
+                .setTitle(R.string.group_move_conflict_title)
+                .setMessage(
+                    context.getString(
+                        R.string.group_move_conflict_message,
+                        pkg,
+                        ownerName,
+                        target.name
+                    )
+                )
+                .setPositiveButton(R.string.group_move_action) { _, _ ->
+                    moveApps(mapOf(pkg to ownerId), targetGroupId)
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        } else {
+            val lines = conflicts.entries.joinToString("\n") { (pkg, ownerId) ->
+                val ownerName = snapshotViewModel.resolveGroup(ownerId)?.name ?: ownerId
+                "$pkg → $ownerName"
+            }
+            AlertDialog.Builder(context)
+                .setTitle(R.string.group_move_conflict_title)
+                .setMessage(
+                    context.getString(R.string.group_move_conflict_multi_message, lines)
+                )
+                .setPositiveButton(R.string.group_move_all_action) { _, _ ->
+                    moveApps(conflicts, targetGroupId)
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun moveApps(conflicts: Map<String, String>, targetGroupId: String) {
+        val context = binding.root.context
+        val entries = conflicts.entries.toList()
+        fun moveNext(index: Int) {
+            if (index >= entries.size) {
+                val target = snapshotViewModel.resolveGroup(targetGroupId)
+                if (target != null) onRefresh(target)
+                return
+            }
+            val (pkg, fromId) = entries[index]
+            snapshotViewModel.moveAppBetweenGroups(fromId, targetGroupId, pkg) { result ->
+                when (result) {
+                    is MoveAppResult.Moved, is MoveAppResult.AlreadyAtTarget -> {
+                        moveNext(index + 1)
+                    }
+                    is MoveAppResult.Busy -> {
+                        Toast.makeText(
+                            context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    is MoveAppResult.Locked -> {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.group_move_failed_locked, pkg),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        moveNext(index + 1)
+                    }
+                    is MoveAppResult.TargetNonEmpty -> {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.group_move_failed_target_nonempty, pkg),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        moveNext(index + 1)
+                    }
+                    is MoveAppResult.CorruptMultiOwner -> {
+                        Toast.makeText(
+                            context, R.string.group_membership_corrupt, Toast.LENGTH_LONG
+                        ).show()
+                        moveNext(index + 1)
+                    }
+                    is MoveAppResult.Error -> {
+                        Toast.makeText(
+                            context,
+                            context.getString(
+                                R.string.group_move_failed_generic,
+                                pkg,
+                                result.message
+                            ),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        moveNext(index + 1)
+                    }
+                }
+            }
+        }
+        moveNext(0)
     }
 }

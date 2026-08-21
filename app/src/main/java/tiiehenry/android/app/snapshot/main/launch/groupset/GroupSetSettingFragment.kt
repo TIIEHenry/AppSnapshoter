@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.activityViewModels
@@ -17,7 +18,9 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentGroupSetSettingBinding
 import tiiehenry.android.app.snapshot.group.GroupSetColors
+import tiiehenry.android.app.snapshot.main.launch.userMessage
 import tiiehenry.android.app.snapshot.repository.AppDataRepository
+import tiiehenry.android.app.snapshot.repository.PathRegistrationResult
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
 
 class GroupSetSettingFragment : BottomSheetDialogFragment() {
@@ -84,8 +87,14 @@ class GroupSetSettingFragment : BottomSheetDialogFragment() {
                     newPath = path,
                     newName = name,
                     accentColor = selectedAccent,
-                )
-                dismiss()
+                ) { result ->
+                    when (result) {
+                        is PathRegistrationResult.Ok -> dismiss()
+                        else -> result.userMessage(requireContext())?.let {
+                            Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
             }
         }
         binding.btnDelete.setOnClickListener { showDeleteDialog(set.name) }

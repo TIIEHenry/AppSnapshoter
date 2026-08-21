@@ -10,6 +10,11 @@
     <string name="app_filter_system">System apps</string>
     <string name="app_filter_user">User apps</string>
     <string name="app_filter_ungrouped">Ungrouped apps</string>
+    <string name="app_filter_grouped">Grouped apps</string>
+    <string name="app_membership_ungrouped">Ungrouped</string>
+    <string name="app_membership_detail_title">Groups for %1$s</string>
+    <string name="app_membership_exclusive_item">Exclusive: %1$s</string>
+    <string name="app_membership_shared_item">Shared: %1$s</string>
     <string name="tags_filter_expand">Expand tags</string>
     <string name="tags_filter_collapse">Collapse tags</string>
 
@@ -51,6 +56,7 @@
     <string name="timeline_expand_desc">Expand snapshot details</string>
     <string name="timeline_collapse_desc">Collapse snapshot details</string>
     <string name="timeline_app_icon_desc">App icon</string>
+    <string name="timeline_subtitle_separator">·</string>
     <string name="timeline_restore">Restore</string>
     <string name="timeline_export">Export</string>
     <string name="timeline_delete">Delete</string>
@@ -257,8 +263,24 @@
     <string name="group_path_hint">Group path</string>
     <string name="group_root_path_hint">Root path</string>
     <string name="group_delete_button">Delete group</string>
+    <string name="group_membership_allow_shared">Allow shared membership</string>
+    <string name="group_membership_allow_shared_summary">When enabled, apps in this group do not claim exclusive ownership; other exclusive groups can still manage their archives</string>
+    <string name="group_membership_switch_blocked_title">Cannot switch to exclusive</string>
+    <string name="group_membership_switch_blocked_message">These apps are already in another exclusive group: %1$s. Remove them or mark the other group as shared first.</string>
+    <string name="group_membership_corrupt">Apps were found in multiple exclusive groups. Mark one group as shared or remove duplicate members first.</string>
+    <string name="group_move_conflict_title">App already in another group</string>
+    <string name="group_move_conflict_message">%1$s is in exclusive group \"%2$s\". You can move its archives to \"%3$s\".</string>
+    <string name="group_move_conflict_multi_message">These apps are in other exclusive groups:\n%1$s</string>
+    <string name="group_move_action">Move here</string>
+    <string name="group_move_all_action">Move all here</string>
+    <string name="group_move_failed_locked">Cannot move %1$s: locked in the source group</string>
+    <string name="group_move_failed_target_nonempty">Cannot move %1$s: target already has a non-empty folder</string>
+    <string name="group_move_failed_generic">Cannot move %1$s: %2$s</string>
     <string name="error_enter_group_name">Enter a group name</string>
     <string name="error_select_group_path">Select a group path</string>
+    <string name="error_path_occupied_by_group">This path is already used by another group</string>
+    <string name="error_path_occupied_by_set">This path is already used by a group set</string>
+    <string name="error_path_registration_failed">Could not register path: %1$s</string>
     <string name="group_batch_archive_confirm">Create snapshots for %2$d/%3$d apps in %1$s?</string>
     <string name="group_batch_archive_stopping">Stopping</string>
     <string name="group_batch_archive_complete">Archive all complete</string>

@@ -33,6 +33,10 @@ object RestoreRecordStore {
         group.mmkv.encode(mmkvKey(packageName, userId), JSON.toJSONString(record))
     }
 
+    fun remove(group: SnapGroup, packageName: String, userId: Int) {
+        group.mmkv.removeValueForKey(mmkvKey(packageName, userId))
+    }
+
     /** key = `packageName:userId` */
     fun loadAll(group: SnapGroup): Map<String, RestoreRecord> {
         val prefix = "restore_record:"

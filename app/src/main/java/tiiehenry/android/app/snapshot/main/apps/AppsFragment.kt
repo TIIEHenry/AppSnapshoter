@@ -6,10 +6,13 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import com.google.android.material.tabs.TabLayout
 import androidx.recyclerview.widget.RecyclerView
+import tiiehenry.android.app.snapshot.R
+import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.main.launch.app.AppConfigFragment
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.FragmentAppsBinding
 import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
+import tiiehenry.android.app.snapshot.group.GroupMembershipResolver
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
 
 class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
@@ -31,6 +34,12 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
     override fun getFilterUserButton(binding: FragmentAppsBinding): ImageButton =
         binding.appsFilterRow.btnFilterUser
 
+    override fun getUngroupedFilterButton(binding: FragmentAppsBinding): ImageButton =
+        binding.appsFilterRow.btnFilterUngrouped
+
+    override fun getGroupedFilterButton(binding: FragmentAppsBinding): ImageButton =
+        binding.appsFilterRow.btnFilterGrouped
+
     override fun getTagsFilterLayout(binding: FragmentAppsBinding): TagsFilterLayout = binding.tagsFilterLayout
 
     override fun getSearchFieldBinding(binding: FragmentAppsBinding): LayoutSearchFieldBinding =
@@ -43,12 +52,34 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
         binding.appsFilterHeader
 
     override fun setupRecyclerViewAdapter(binding: FragmentAppsBinding) {
-        appsAdapter = AppsAdapter { appInfo ->
-            // 显示AppConfigFragment作为BottomSheet
-            val fragment = AppConfigFragment.newInstance(appInfo.packageName, appInfo.userId)
-            fragment.show(parentFragmentManager, fragment.tag)
-        }
+        appsAdapter = AppsAdapter(
+            membershipIndexProvider = {
+                GroupMembershipResolver.buildMembershipIndex(
+                    snapshotViewModel.groupList.value.orEmpty()
+                )
+            },
+            onItemClick = { appInfo ->
+                val fragment = AppConfigFragment.newInstance(appInfo.packageName, appInfo.userId)
+                fragment.show(parentFragmentManager, fragment.tag)
+            },
+            onItemLongClick = { appInfo, membership ->
+                AppMembershipDialog.show(
+                    requireContext(),
+                    appInfo,
+                    membership,
+                ) { group ->
+                    snapshotViewModel.requestNavigateToGroup(group.id, appInfo.packageName)
+                    (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
+                }
+            },
+        )
         binding.appsRecyclerView.adapter = appsAdapter
+
+        snapshotViewModel.groupList.observe(viewLifecycleOwner) {
+            if (::appsAdapter.isInitialized) {
+                appsAdapter.refreshMembership()
+            }
+        }
     }
 
     override fun onAppsLoadingStateChanged(isLoading: Boolean) {

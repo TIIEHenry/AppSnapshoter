@@ -13,11 +13,19 @@ import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.config.ConfigFiles
 import tiiehenry.android.app.snapshot.config.GlobalConfig
+import tiiehenry.android.app.snapshot.group.AddAppItemResult
+import tiiehenry.android.app.snapshot.group.AddAppsResult
 import tiiehenry.android.app.snapshot.group.ArchiveRoot
+import tiiehenry.android.app.snapshot.group.GroupMembershipMode
+import tiiehenry.android.app.snapshot.group.GroupMembershipResolver
 import tiiehenry.android.app.snapshot.group.GroupSetColors
+import tiiehenry.android.app.snapshot.group.MoveAppResult
+import tiiehenry.android.app.snapshot.group.PackageOpGuard
+import tiiehenry.android.app.snapshot.group.SetMembershipModeResult
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
 import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
+import tiiehenry.android.app.snapshot.main.launch.batch.RestoreRecordStore
 import tiiehenry.android.app.snapshot.utils.AppIconUtils
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.app.UserInfoHide
@@ -30,6 +38,7 @@ import kotlin.io.path.absolutePathString
 /**
  * 应用数据仓库 - 单例
  * 管理分组/分组集登记、应用列表；存档列表形状只经 [archiveList] 投影排放。
+ * 独占归属与 packageDir 占用以本类为 SSOT。
  */
 class AppDataRepository private constructor() {
 
@@ -48,6 +57,9 @@ class AppDataRepository private constructor() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val loadGroupsMutex = Mutex()
+
+    /** 进程级占用 SSOT；ViewModel 批门闩仅为 facade。 */
+    val packageOpGuard = PackageOpGuard()
 
     val groupList = MutableLiveData<List<SnapGroup>>()
     val groupSetList = MutableLiveData<List<SnapGroupSet>>(emptyList())
@@ -137,6 +149,11 @@ class AppDataRepository private constructor() {
         groupList.postValue(groups)
         groupSetList.postValue(sets)
         archiveList.postValue(archiveItems)
+
+        val corrupt = GroupMembershipResolver.corruptKeys(groups)
+        if (corrupt.isNotEmpty()) {
+            Log.w(TAG, "exclusive multi-owner corruption: $corrupt")
+        }
     }
 
     private fun deriveLiveMembers(
@@ -245,40 +262,52 @@ class AppDataRepository private constructor() {
         name: String,
         path: String,
         userId: Int = 0,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
     ) {
         scope.launch {
-            try {
+            val result = try {
                 loadGroupsMutex.withLock {
                     val normalizedPath = GroupSetMembership.normalizePath(path)
-                    if (isPathOccupiedBySet(normalizedPath) || isPathOccupiedByGroup(normalizedPath)) {
-                        Log.w(TAG, "addGroup rejected: path already used as set or group: $normalizedPath")
-                        return@withLock
-                    }
-                    val groupId = UUID.randomUUID().toString().substring(0, 7)
-                    if (!fileSystem.exists(normalizedPath)) {
-                        fileSystem.mkdirs(normalizedPath)
-                    }
-                    val group = SnapGroup(groupId)
-                    group.path = normalizedPath
-                    group.name = name
-                    group.config.groupConfigData.userId = userId
-                    group.config.save()
+                    when {
+                        isPathOccupiedBySet(normalizedPath) -> {
+                            Log.w(TAG, "addGroup rejected: path used as set: $normalizedPath")
+                            PathRegistrationResult.OccupiedBySet
+                        }
+                        isPathOccupiedByGroup(normalizedPath) -> {
+                            Log.w(TAG, "addGroup rejected: path used as group: $normalizedPath")
+                            PathRegistrationResult.OccupiedByGroup
+                        }
+                        else -> {
+                            val groupId = UUID.randomUUID().toString().substring(0, 7)
+                            if (!fileSystem.exists(normalizedPath)) {
+                                fileSystem.mkdirs(normalizedPath)
+                            }
+                            val group = SnapGroup(groupId)
+                            group.path = normalizedPath
+                            group.name = name
+                            group.config.groupConfigData.userId = userId
+                            group.config.save()
 
-                    GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply { add(groupId) }
+                            GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply { add(groupId) }
 
-                    val parent = GroupSetMembership.parentPath(normalizedPath)
-                    val belongingSet = groupSetList.value.orEmpty()
-                        .firstOrNull { GroupSetMembership.normalizePath(it.path) == parent }
-                    if (belongingSet == null) {
-                        GlobalConfig.archiveRoots = GlobalConfig.archiveRoots + ArchiveRoot.Group(groupId)
-                    } else {
-                        appendBasenameToSetOrder(belongingSet, GroupSetMembership.basename(normalizedPath))
+                            val parent = GroupSetMembership.parentPath(normalizedPath)
+                            val belongingSet = groupSetList.value.orEmpty()
+                                .firstOrNull { GroupSetMembership.normalizePath(it.path) == parent }
+                            if (belongingSet == null) {
+                                GlobalConfig.archiveRoots = GlobalConfig.archiveRoots + ArchiveRoot.Group(groupId)
+                            } else {
+                                appendBasenameToSetOrder(belongingSet, GroupSetMembership.basename(normalizedPath))
+                            }
+                            reloadGroupsLocked(context, fileSystem, appManager)
+                            PathRegistrationResult.Ok()
+                        }
                     }
-                    reloadGroupsLocked(context, fileSystem, appManager)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "addGroup failed", e)
+                PathRegistrationResult.Error(e.message ?: "addGroup failed")
             }
+            withContext(Dispatchers.Main) { onComplete?.invoke(result) }
         }
     }
 
@@ -288,45 +317,45 @@ class AppDataRepository private constructor() {
         appManager: IAppManager,
         name: String,
         path: String,
-        onComplete: ((discoveredCount: Int) -> Unit)? = null,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
     ) {
         scope.launch {
-            var discovered = 0
-            try {
+            val result = try {
                 loadGroupsMutex.withLock {
                     val normalizedPath = GroupSetMembership.normalizePath(path)
-                    if (isPathOccupiedBySet(normalizedPath)) {
-                        Log.w(TAG, "addGroupSet rejected: set path already exists")
-                        return@withLock
-                    }
-                    if (isPathOccupiedByGroup(normalizedPath)) {
-                        Log.w(TAG, "addGroupSet rejected: path equals an existing group; upgrade empty group first")
-                        return@withLock
-                    }
-                    if (!fileSystem.exists(normalizedPath)) {
-                        fileSystem.mkdirs(normalizedPath)
-                    }
-                    val setId = UUID.randomUUID().toString().substring(0, 7)
-                    val set = SnapGroupSet(setId)
-                    set.path = normalizedPath
-                    set.name = name
-                    set.isCollapsed = true
-                    set.accentColor = GroupSetColors.defaultFor(setId)
-                    set.save()
+                    when {
+                        isPathOccupiedBySet(normalizedPath) -> {
+                            Log.w(TAG, "addGroupSet rejected: set path already exists")
+                            PathRegistrationResult.OccupiedBySet
+                        }
+                        isPathOccupiedByGroup(normalizedPath) -> {
+                            Log.w(TAG, "addGroupSet rejected: path equals an existing group; upgrade empty group first")
+                            PathRegistrationResult.OccupiedByGroup
+                        }
+                        else -> {
+                            if (!fileSystem.exists(normalizedPath)) {
+                                fileSystem.mkdirs(normalizedPath)
+                            }
+                            val setId = UUID.randomUUID().toString().substring(0, 7)
+                            val set = SnapGroupSet(setId)
+                            set.path = normalizedPath
+                            set.name = name
+                            set.isCollapsed = true
+                            set.accentColor = GroupSetColors.defaultFor(setId)
+                            set.save()
 
-                    GlobalConfig.archiveRoots = GlobalConfig.archiveRoots + ArchiveRoot.Set(setId)
-                    discovered = discoverGroupsLocked(fileSystem, set)
-                    reloadGroupsLocked(context, fileSystem, appManager)
-                }
-                withContext(Dispatchers.Main) {
-                    onComplete?.invoke(discovered)
+                            GlobalConfig.archiveRoots = GlobalConfig.archiveRoots + ArchiveRoot.Set(setId)
+                            val discovered = discoverGroupsLocked(fileSystem, set)
+                            reloadGroupsLocked(context, fileSystem, appManager)
+                            PathRegistrationResult.Ok(discovered)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "addGroupSet failed", e)
-                withContext(Dispatchers.Main) {
-                    onComplete?.invoke(discovered)
-                }
+                PathRegistrationResult.Error(e.message ?: "addGroupSet failed")
             }
+            withContext(Dispatchers.Main) { onComplete?.invoke(result) }
         }
     }
 
@@ -609,10 +638,10 @@ class AppDataRepository private constructor() {
         newPath: String,
         newName: String? = null,
         userId: Int? = null,
-        onComplete: (() -> Unit)? = null,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
     ) {
         scope.launch {
-            try {
+            val result = try {
                 loadGroupsMutex.withLock {
                     val group = groupList.value.orEmpty().find { it.id == groupId }
                         ?: SnapGroup(groupId)
@@ -620,6 +649,20 @@ class AppDataRepository private constructor() {
                     val oldBase = GroupSetMembership.basename(oldPath)
                     val normalized = GroupSetMembership.normalizePath(newPath)
                     val newBase = GroupSetMembership.basename(normalized)
+
+                    if (normalized != oldPath) {
+                        when {
+                            isPathOccupiedBySet(normalized) -> {
+                                Log.w(TAG, "updateGroupPath rejected: path used as set: $normalized")
+                                return@withLock PathRegistrationResult.OccupiedBySet
+                            }
+                            isPathOccupiedByGroup(normalized, excludeGroupId = groupId) -> {
+                                Log.w(TAG, "updateGroupPath rejected: path used as group: $normalized")
+                                return@withLock PathRegistrationResult.OccupiedByGroup
+                            }
+                        }
+                    }
+
                     group.path = normalized
                     if (newName != null) group.name = newName
                     if (userId != null) group.userId = userId
@@ -645,12 +688,13 @@ class AppDataRepository private constructor() {
                         }
                     }
                     reloadGroupsLocked(context, fileSystem, appManager)
+                    PathRegistrationResult.Ok()
                 }
-                withContext(Dispatchers.Main) { onComplete?.invoke() }
             } catch (e: Exception) {
                 Log.e(TAG, "updateGroupPath failed", e)
-                withContext(Dispatchers.Main) { onComplete?.invoke() }
+                PathRegistrationResult.Error(e.message ?: "updateGroupPath failed")
             }
+            withContext(Dispatchers.Main) { onComplete?.invoke(result) }
         }
     }
 
@@ -662,25 +706,40 @@ class AppDataRepository private constructor() {
         newPath: String,
         newName: String? = null,
         accentColor: Int? = null,
-        onComplete: (() -> Unit)? = null,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
     ) {
         scope.launch {
-            try {
+            val result = try {
                 loadGroupsMutex.withLock {
                     val set = groupSetList.value.orEmpty().find { it.id == setId }
                         ?: SnapGroupSet(setId)
-                    set.path = GroupSetMembership.normalizePath(newPath)
+                    val oldPath = GroupSetMembership.normalizePath(set.path)
+                    val normalized = GroupSetMembership.normalizePath(newPath)
+                    if (normalized != oldPath) {
+                        when {
+                            isPathOccupiedBySet(normalized, excludeSetId = setId) -> {
+                                Log.w(TAG, "updateGroupSetPath rejected: path used as set: $normalized")
+                                return@withLock PathRegistrationResult.OccupiedBySet
+                            }
+                            isPathOccupiedByGroup(normalized) -> {
+                                Log.w(TAG, "updateGroupSetPath rejected: path used as group: $normalized")
+                                return@withLock PathRegistrationResult.OccupiedByGroup
+                            }
+                        }
+                    }
+                    set.path = normalized
                     if (newName != null) set.name = newName
                     if (accentColor != null) set.accentColor = accentColor
                     set.save()
                     discoverGroupsLocked(fileSystem, set)
                     reloadGroupsLocked(context, fileSystem, appManager)
+                    PathRegistrationResult.Ok()
                 }
-                withContext(Dispatchers.Main) { onComplete?.invoke() }
             } catch (e: Exception) {
                 Log.e(TAG, "updateGroupSetPath failed", e)
-                withContext(Dispatchers.Main) { onComplete?.invoke() }
+                PathRegistrationResult.Error(e.message ?: "updateGroupSetPath failed")
             }
+            withContext(Dispatchers.Main) { onComplete?.invoke(result) }
         }
     }
 
@@ -733,41 +792,378 @@ class AppDataRepository private constructor() {
         groupId: String,
         currentGroups: List<SnapGroup>,
         appInfos: List<AppInfo>,
-        onComplete: (() -> Unit)? = null
+        onComplete: ((AddAppsResult) -> Unit)? = null
     ) {
         scope.launch {
+            val resultItems = linkedMapOf<String, AddAppItemResult>()
             try {
                 loadGroupsMutex.withLock {
-                    val group = (groupList.value ?: currentGroups)
-                        .find { it.id == groupId } ?: return@launch
+                    val groups = groupList.value ?: currentGroups
+                    val group = groups.find { it.id == groupId }
+                    if (group == null) {
+                        for (info in appInfos) {
+                            resultItems[info.packageName] =
+                                AddAppItemResult.Error("group not found: $groupId")
+                        }
+                        return@withLock
+                    }
+                    val targetExclusive = group.isExclusive
+                    var wrote = false
                     for (appInfo in appInfos) {
                         val packageName = appInfo.packageName
-                        Log.d("addAppsToGroup", "Adding app: $packageName to group: ${group.id}")
                         val packageDir = Paths.get(group.path, packageName).absolutePathString()
-                        if (!fileSystem.exists(packageDir)) {
-                            fileSystem.mkdirs(packageDir)
+                        if (packageOpGuard.isBusy(packageDir) || packageOpGuard.isGlobalBatchRunning()) {
+                            resultItems[packageName] = AddAppItemResult.Busy
+                            continue
                         }
-
-                        val iconFile = Paths.get(group.path, "$packageName.png").absolutePathString()
-                        AppIconUtils.loadAndSaveAppIcon(
-                            context,
-                            fileSystem,
-                            appManager,
-                            packageName,
-                            0,
-                            iconFile
-                        )
+                        if (GroupMembershipResolver.containsPackage(group, packageName)) {
+                            resultItems[packageName] = AddAppItemResult.AlreadyHere
+                            continue
+                        }
+                        if (targetExclusive) {
+                            val owners = GroupMembershipResolver.findExclusiveOwners(
+                                groups, packageName, group.userId
+                            )
+                            when {
+                                owners.size >= 2 -> {
+                                    resultItems[packageName] = AddAppItemResult.CorruptMultiOwner
+                                    continue
+                                }
+                                owners.size == 1 && owners[0].id != group.id -> {
+                                    resultItems[packageName] =
+                                        AddAppItemResult.Conflict(owners[0].id)
+                                    continue
+                                }
+                            }
+                        }
+                        try {
+                            if (!fileSystem.exists(packageDir)) {
+                                fileSystem.mkdirs(packageDir)
+                            }
+                            val iconFile =
+                                Paths.get(group.path, "$packageName.png").absolutePathString()
+                            AppIconUtils.loadAndSaveAppIcon(
+                                context,
+                                fileSystem,
+                                appManager,
+                                packageName,
+                                0,
+                                iconFile
+                            )
+                            resultItems[packageName] = AddAppItemResult.Added
+                            wrote = true
+                        } catch (e: Exception) {
+                            Log.e(TAG, "addAppsToGroup failed for $packageName", e)
+                            resultItems[packageName] =
+                                AddAppItemResult.Error(e.message ?: "add failed")
+                        }
                     }
-                    reloadGroupsLocked(context, fileSystem, appManager)
-                }
-                withContext(Dispatchers.Main) {
-                    onComplete?.invoke()
+                    if (wrote) {
+                        reloadGroupsLocked(context, fileSystem, appManager)
+                    }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
-                Log.e("addAppsToGroup", "Error: ${e.message}", e)
+                Log.e(TAG, "addAppsToGroup Error: ${e.message}", e)
+                for (info in appInfos) {
+                    resultItems.putIfAbsent(
+                        info.packageName,
+                        AddAppItemResult.Error(e.message ?: "add failed")
+                    )
+                }
+            }
+            val result = AddAppsResult(resultItems)
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(result)
             }
         }
+    }
+
+    fun setMembershipMode(
+        context: Context,
+        fileSystem: IFileSystem,
+        appManager: IAppManager,
+        groupId: String,
+        mode: GroupMembershipMode,
+        onComplete: ((SetMembershipModeResult) -> Unit)? = null,
+    ) {
+        scope.launch {
+            val outcome = try {
+                loadGroupsMutex.withLock {
+                    val groups = groupList.value.orEmpty()
+                    val group = groups.find { it.id == groupId }
+                        ?: return@withLock SetMembershipModeResult.Error("group not found")
+                    if (group.membershipMode == mode) {
+                        return@withLock SetMembershipModeResult.Ok
+                    }
+                    if (mode == GroupMembershipMode.EXCLUSIVE) {
+                        val conflicts = mutableListOf<String>()
+                        val members = synchronized(group.apps) { group.apps.toList() }
+                        for (app in members) {
+                            val pkg = GroupMembershipResolver.packageNameOf(app)
+                            val others = GroupMembershipResolver.findExclusiveOwners(
+                                groups, pkg, group.userId
+                            ).filter { it.id != group.id }
+                            if (others.isNotEmpty()) {
+                                conflicts += pkg
+                            }
+                        }
+                        if (conflicts.isNotEmpty()) {
+                            return@withLock SetMembershipModeResult.Conflict(conflicts.distinct())
+                        }
+                    }
+                    group.config.groupConfigData.membershipMode = mode.toStorage()
+                    group.config.save()
+                    reloadGroupsLocked(context, fileSystem, appManager)
+                    SetMembershipModeResult.Ok
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "setMembershipMode failed", e)
+                SetMembershipModeResult.Error(e.message ?: "setMembershipMode failed")
+            }
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(outcome)
+            }
+        }
+    }
+
+    fun moveAppBetweenGroups(
+        context: Context,
+        fileSystem: IFileSystem,
+        appManager: IAppManager,
+        fromGroupId: String,
+        toGroupId: String,
+        packageName: String,
+        onComplete: ((MoveAppResult) -> Unit)? = null,
+    ) {
+        scope.launch {
+            val outcome = moveAppBetweenGroupsLocked(
+                context, fileSystem, appManager, fromGroupId, toGroupId, packageName
+            )
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(outcome)
+            }
+        }
+    }
+
+    private suspend fun moveAppBetweenGroupsLocked(
+        context: Context,
+        fileSystem: IFileSystem,
+        appManager: IAppManager,
+        fromGroupId: String,
+        toGroupId: String,
+        packageName: String,
+    ): MoveAppResult {
+        var sourceDir: String? = null
+        var targetDir: String? = null
+        var beganSource = false
+        var beganTarget = false
+        try {
+            val precheck = loadGroupsMutex.withLock {
+                val groups = groupList.value.orEmpty()
+                val source = groups.find { it.id == fromGroupId }
+                    ?: return@withLock MoveAppResult.Error("source group not found")
+                val target = groups.find { it.id == toGroupId }
+                    ?: return@withLock MoveAppResult.Error("target group not found")
+                if (!target.isExclusive) {
+                    return@withLock MoveAppResult.Error("target must be exclusive")
+                }
+                if (!source.isExclusive) {
+                    return@withLock MoveAppResult.Error("source must be exclusive")
+                }
+                val owners = GroupMembershipResolver.findExclusiveOwners(
+                    groups, packageName, target.userId
+                )
+                if (owners.size >= 2) {
+                    return@withLock MoveAppResult.CorruptMultiOwner
+                }
+                if (owners.size == 1 && owners[0].id != source.id) {
+                    return@withLock MoveAppResult.Error("source is not exclusive owner")
+                }
+                if (source.config.isLocked(packageName)) {
+                    return@withLock MoveAppResult.Locked
+                }
+                if (source.userId != target.userId) {
+                    return@withLock MoveAppResult.Error("userId mismatch")
+                }
+                val src = Paths.get(source.path, packageName).absolutePathString()
+                val dst = Paths.get(target.path, packageName).absolutePathString()
+                Triple(source, target, src to dst)
+            }
+            if (precheck is MoveAppResult) return precheck
+            val (source, target, dirs) = precheck as Triple<SnapGroup, SnapGroup, Pair<String, String>>
+            sourceDir = dirs.first
+            targetDir = dirs.second
+
+            if (!packageOpGuard.tryBeginPackageOp(sourceDir!!)) {
+                return MoveAppResult.Busy
+            }
+            beganSource = true
+            if (sourceDir != targetDir) {
+                if (!packageOpGuard.tryBeginPackageOp(targetDir!!)) {
+                    return MoveAppResult.Busy
+                }
+                beganTarget = true
+            }
+
+            val srcExists = fileSystem.exists(sourceDir!!)
+            val dstExists = fileSystem.exists(targetDir!!)
+
+            if (!srcExists && dstExists && isCompletePackageDir(fileSystem, targetDir!!)) {
+                return loadGroupsMutex.withLock {
+                    finalizeMoveMetadata(source, target, packageName)
+                    reloadGroupsLocked(context, fileSystem, appManager)
+                    MoveAppResult.AlreadyAtTarget
+                }
+            }
+            if (!srcExists && !dstExists) {
+                return MoveAppResult.Error("source and target missing")
+            }
+            if (!srcExists) {
+                return MoveAppResult.Error("source packageDir missing")
+            }
+
+            if (dstExists) {
+                when {
+                    isCompletelyEmptyDir(fileSystem, targetDir!!) -> {
+                        fileSystem.delete(targetDir!!)
+                    }
+                    isIncompleteRelativeTo(fileSystem, sourceDir!!, targetDir!!) -> {
+                        fileSystem.delete(targetDir!!)
+                    }
+                    else -> return MoveAppResult.TargetNonEmpty
+                }
+            }
+
+            val moved = fileSystem.move(sourceDir!!, targetDir!!)
+            if (!moved) {
+                val copied = fileSystem.copyRecursively(sourceDir!!, targetDir!!, false)
+                if (!copied || !isCompleteRelativeTo(fileSystem, sourceDir!!, targetDir!!)) {
+                    if (fileSystem.exists(targetDir!!)) {
+                        runCatching { fileSystem.delete(targetDir!!) }
+                    }
+                    return MoveAppResult.Error("move/copy failed")
+                }
+                if (!fileSystem.delete(sourceDir!!)) {
+                    Log.w(TAG, "copied but failed to delete source: $sourceDir")
+                    return MoveAppResult.Error("copied but source delete failed")
+                }
+            }
+
+            moveGroupIcon(fileSystem, source.path, target.path, packageName)
+
+            return loadGroupsMutex.withLock {
+                finalizeMoveMetadata(source, target, packageName)
+                reloadGroupsLocked(context, fileSystem, appManager)
+                MoveAppResult.Moved
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "moveAppBetweenGroups failed", e)
+            return MoveAppResult.Error(e.message ?: "move failed")
+        } finally {
+            if (beganTarget && targetDir != null) packageOpGuard.endPackageOp(targetDir!!)
+            if (beganSource && sourceDir != null) packageOpGuard.endPackageOp(sourceDir!!)
+        }
+    }
+
+    private fun finalizeMoveMetadata(
+        source: SnapGroup,
+        target: SnapGroup,
+        packageName: String,
+    ) {
+        val sourceSort = source.config.sortConfig.sortOrder
+        if (sourceSort.remove(packageName)) {
+            source.config.save()
+        }
+        source.config.removeFromLockedList(packageName)
+
+        val targetSort = target.config.sortConfig.sortOrder
+        if (packageName !in targetSort) {
+            targetSort.add(packageName)
+            target.config.save()
+        }
+
+        try {
+            val record = RestoreRecordStore.get(source, packageName, source.userId)
+            if (record != null) {
+                RestoreRecordStore.put(target, packageName, target.userId, record)
+                RestoreRecordStore.remove(source, packageName, source.userId)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "RestoreRecord migrate failed for $packageName", e)
+        }
+    }
+
+    private fun moveGroupIcon(
+        fileSystem: IFileSystem,
+        sourceGroupPath: String,
+        targetGroupPath: String,
+        packageName: String,
+    ) {
+        val srcIcon = Paths.get(sourceGroupPath, "$packageName.png").absolutePathString()
+        val dstIcon = Paths.get(targetGroupPath, "$packageName.png").absolutePathString()
+        if (!fileSystem.exists(srcIcon)) return
+        if (fileSystem.exists(dstIcon)) {
+            fileSystem.delete(dstIcon)
+        }
+        if (!fileSystem.move(srcIcon, dstIcon)) {
+            if (fileSystem.copyRecursively(srcIcon, dstIcon, true)) {
+                fileSystem.delete(srcIcon)
+            }
+        }
+    }
+
+    private fun isCompletelyEmptyDir(fileSystem: IFileSystem, path: String): Boolean {
+        if (!fileSystem.exists(path)) return true
+        if (fileSystem.fileType(path) != IFileType.TYPE_DIR) return false
+        val entries = fileSystem.listDir(path).orEmpty().filter { it != "." && it != ".." }
+        return entries.isEmpty()
+    }
+
+    private fun collectFileEntries(fileSystem: IFileSystem, root: String): Map<String, Long> {
+        val result = linkedMapOf<String, Long>()
+        fun walk(dir: String, rel: String) {
+            for (name in fileSystem.listDir(dir).orEmpty()) {
+                if (name == "." || name == "..") continue
+                val child = Paths.get(dir, name).absolutePathString()
+                val childRel = if (rel.isEmpty()) name else "$rel/$name"
+                when (fileSystem.fileType(child)) {
+                    IFileType.TYPE_DIR -> walk(child, childRel)
+                    IFileType.TYPE_FILE -> result[childRel] = fileSystem.length(child)
+                }
+            }
+        }
+        if (fileSystem.exists(root) && fileSystem.fileType(root) == IFileType.TYPE_DIR) {
+            walk(root, "")
+        }
+        return result
+    }
+
+    private fun isCompletePackageDir(fileSystem: IFileSystem, path: String): Boolean {
+        if (!fileSystem.exists(path) || fileSystem.fileType(path) != IFileType.TYPE_DIR) return false
+        return !isCompletelyEmptyDir(fileSystem, path)
+    }
+
+    private fun isCompleteRelativeTo(
+        fileSystem: IFileSystem,
+        source: String,
+        target: String,
+    ): Boolean {
+        val src = collectFileEntries(fileSystem, source)
+        if (src.isEmpty()) return isCompletelyEmptyDir(fileSystem, target)
+        val dst = collectFileEntries(fileSystem, target)
+        for ((rel, size) in src) {
+            if (dst[rel] != size) return false
+        }
+        return true
+    }
+
+    private fun isIncompleteRelativeTo(
+        fileSystem: IFileSystem,
+        source: String,
+        target: String,
+    ): Boolean {
+        if (isCompletelyEmptyDir(fileSystem, target)) return true
+        return !isCompleteRelativeTo(fileSystem, source, target)
     }
 
     fun deleteGroup(
@@ -806,19 +1202,23 @@ class AppDataRepository private constructor() {
         }
     }
 
-    private fun isPathOccupiedBySet(path: String): Boolean {
-        return GlobalConfig.groupSetIds.any {
-            GroupSetMembership.normalizePath(SnapGroupSet(it).path) == path
-        } || groupSetList.value.orEmpty().any {
-            GroupSetMembership.normalizePath(it.path) == path
+    private fun isPathOccupiedBySet(path: String, excludeSetId: String? = null): Boolean {
+        return GlobalConfig.groupSetIds.any { id ->
+            id != excludeSetId &&
+                GroupSetMembership.normalizePath(SnapGroupSet(id).path) == path
+        } || groupSetList.value.orEmpty().any { set ->
+            set.id != excludeSetId &&
+                GroupSetMembership.normalizePath(set.path) == path
         }
     }
 
-    private fun isPathOccupiedByGroup(path: String): Boolean {
-        return GlobalConfig.groups.any {
-            GroupSetMembership.normalizePath(SnapGroup(it).path) == path
-        } || groupList.value.orEmpty().any {
-            GroupSetMembership.normalizePath(it.path) == path
+    private fun isPathOccupiedByGroup(path: String, excludeGroupId: String? = null): Boolean {
+        return GlobalConfig.groups.any { id ->
+            id != excludeGroupId &&
+                GroupSetMembership.normalizePath(SnapGroup(id).path) == path
+        } || groupList.value.orEmpty().any { group ->
+            group.id != excludeGroupId &&
+                GroupSetMembership.normalizePath(group.path) == path
         }
     }
 

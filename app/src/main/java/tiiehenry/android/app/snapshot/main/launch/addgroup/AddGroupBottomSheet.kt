@@ -20,6 +20,8 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.BottomSheetAddGroupBinding
 import tiiehenry.android.app.snapshot.main.launch.LauncherViewModel
+import tiiehenry.android.app.snapshot.main.launch.userMessage
+import tiiehenry.android.app.snapshot.repository.PathRegistrationResult
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
 import tiiehenry.android.snapshot.app.UserInfoHide
 import java.nio.file.Paths
@@ -172,7 +174,13 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
         if (addingSet) {
             val appContext = requireContext().applicationContext
             val setName = name
-            snapshotViewModel.addGroupSet(setName, path) { count ->
+            snapshotViewModel.addGroupSet(setName, path) { result ->
+                val error = result.userMessage(appContext)
+                if (error != null) {
+                    Toast.makeText(appContext, error, Toast.LENGTH_SHORT).show()
+                    return@addGroupSet
+                }
+                val count = (result as? PathRegistrationResult.Ok)?.discoveredCount ?: 0
                 Toast.makeText(
                     appContext,
                     appContext.getString(R.string.group_set_added_toast, setName, count),
@@ -184,7 +192,12 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             val userId = if (selectedIndex >= 0 && selectedIndex < userInfoList.size) {
                 userInfoList[selectedIndex].id
             } else 0
-            snapshotViewModel.addGroup(name, path, userId)
+            val appContext = requireContext().applicationContext
+            snapshotViewModel.addGroup(name, path, userId) { result ->
+                result.userMessage(appContext)?.let {
+                    Toast.makeText(appContext, it, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         dismiss()
     }

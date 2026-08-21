@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="@color/main_tab_background">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/groups_recycler_view"

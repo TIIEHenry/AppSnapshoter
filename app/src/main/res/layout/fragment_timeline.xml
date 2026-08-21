@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
+    android:background="@color/main_tab_background"
     android:orientation="vertical">
 
     <include
@@ -137,8 +137,9 @@
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:nestedScrollingEnabled="true"
-            android:paddingHorizontal="4dp"
-            android:paddingBottom="8dp" />
+            android:paddingHorizontal="@dimen/archive_list_padding"
+            android:paddingTop="4dp"
+            android:paddingBottom="88dp" />
 
         <LinearLayout
             android:id="@+id/empty_state"

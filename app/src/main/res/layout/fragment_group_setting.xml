@@ -64,6 +64,21 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp" />
 
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_allow_shared"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
+        android:text="@string/group_membership_allow_shared" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/group_membership_allow_shared_summary"
+        android:textSize="12sp" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_upgrade_to_set"
             style="@style/Widget.Material3.Button.OutlinedButton"

@@ -10,6 +10,11 @@
     <string name="app_filter_system">系统应用</string>
     <string name="app_filter_user">用户应用</string>
     <string name="app_filter_ungrouped">未分组应用</string>
+    <string name="app_filter_grouped">已分组应用</string>
+    <string name="app_membership_ungrouped">未分组</string>
+    <string name="app_membership_detail_title">%1$s 的分组归属</string>
+    <string name="app_membership_exclusive_item">独占：%1$s</string>
+    <string name="app_membership_shared_item">共享：%1$s</string>
     <string name="tags_filter_expand">展开标签</string>
     <string name="tags_filter_collapse">收起标签</string>
 
@@ -51,6 +56,7 @@
     <string name="timeline_expand_desc">展开快照详情</string>
     <string name="timeline_collapse_desc">收起快照详情</string>
     <string name="timeline_app_icon_desc">应用图标</string>
+    <string name="timeline_subtitle_separator">·</string>
     <string name="timeline_restore">恢复</string>
     <string name="timeline_export">导出</string>
     <string name="timeline_delete">删除</string>
@@ -257,8 +263,24 @@
     <string name="group_path_hint">分组路径</string>
     <string name="group_root_path_hint">根路径</string>
     <string name="group_delete_button">删除分组</string>
+    <string name="group_membership_allow_shared">允许共享成员</string>
+    <string name="group_membership_allow_shared_summary">开启后，本组成员不占用应用归属，其它独占组仍可单独管理该应用存档</string>
+    <string name="group_membership_switch_blocked_title">无法改为独占</string>
+    <string name="group_membership_switch_blocked_message">以下应用已在其它独占组中：%1$s。请先移出或将对应组设为共享。</string>
+    <string name="group_membership_corrupt">检测到应用在多个独占组中，请先将其中一组改为共享或删除多余成员</string>
+    <string name="group_move_conflict_title">应用已在其它分组</string>
+    <string name="group_move_conflict_message">%1$s 已在独占组「%2$s」。可将存档移动到「%3$s」。</string>
+    <string name="group_move_conflict_multi_message">以下应用已在其它独占组：\n%1$s</string>
+    <string name="group_move_action">移动过来</string>
+    <string name="group_move_all_action">全部移动过来</string>
+    <string name="group_move_failed_locked">无法移动 %1$s：源组已锁定该应用</string>
+    <string name="group_move_failed_target_nonempty">无法移动 %1$s：目标组已有非空目录</string>
+    <string name="group_move_failed_generic">无法移动 %1$s：%2$s</string>
     <string name="error_enter_group_name">请输入分组名称</string>
     <string name="error_select_group_path">请选择分组路径</string>
+    <string name="error_path_occupied_by_group">该路径已被其它分组使用</string>
+    <string name="error_path_occupied_by_set">该路径已被分组集使用</string>
+    <string name="error_path_registration_failed">路径登记失败：%1$s</string>
     <string name="group_batch_archive_confirm">确定为 %1$s 中的 %2$d/%3$d 个应用创建快照？</string>
     <string name="group_batch_archive_stopping">正在停止</string>
     <string name="group_batch_archive_complete">全部归档完成</string>

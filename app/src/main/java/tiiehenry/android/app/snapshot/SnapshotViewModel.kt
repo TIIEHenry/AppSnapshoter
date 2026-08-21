@@ -9,6 +9,7 @@ import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
 import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
 import tiiehenry.android.app.snapshot.repository.AppDataRepository
+import tiiehenry.android.app.snapshot.repository.PathRegistrationResult
 import tiiehenry.android.snapshot.app.UserInfoHide
 
 /**
@@ -32,8 +33,13 @@ class SnapshotViewModel : ViewModel() {
     /** 应用 catalog 加载态；见 [AppDataRepository.isAppsLoading]。 */
     val isAppsLoading: MutableLiveData<Boolean> get() = repository.isAppsLoading
 
-    /** Event: timeline requests scrolling to a specific group in the archive tab */
+    /** Event: timeline / apps 跳转存档 Tab 的分组 */
     val navigateToGroup = MutableLiveData<String?>(null)
+
+    /** 与 [navigateToGroup] 配套：滚到组内该包名（可空） */
+    @Volatile
+    var pendingNavigatePackage: String? = null
+        private set
 
     /** Event: scroll to SetHeader；不强制展开 */
     val navigateToGroupSet = MutableLiveData<String?>(null)
@@ -42,12 +48,13 @@ class SnapshotViewModel : ViewModel() {
     val isBatchRunning = MutableLiveData(false)
 
     fun tryBeginBatchOperation(): Boolean {
-        if (isBatchRunning.value == true) return false
+        if (!repository.packageOpGuard.tryBeginGlobalBatch()) return false
         isBatchRunning.value = true
         return true
     }
 
     fun endBatchOperation() {
+        repository.packageOpGuard.endGlobalBatch()
         isBatchRunning.value = false
     }
 
@@ -72,12 +79,21 @@ class SnapshotViewModel : ViewModel() {
         repository.scheduleLoadGroups(context, fileSystem, appManager)
     }
 
-    fun addGroup(name: String, path: String, userId: Int = 0) {
+    fun addGroup(
+        name: String,
+        path: String,
+        userId: Int = 0,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
+    ) {
         val (context, fileSystem, appManager) = appDeps()
-        repository.addGroup(context, fileSystem, appManager, name, path, userId)
+        repository.addGroup(context, fileSystem, appManager, name, path, userId, onComplete)
     }
 
-    fun addGroupSet(name: String, path: String, onComplete: ((Int) -> Unit)? = null) {
+    fun addGroupSet(
+        name: String,
+        path: String,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
+    ) {
         val (context, fileSystem, appManager) = appDeps()
         repository.addGroupSet(context, fileSystem, appManager, name, path, onComplete)
     }
@@ -121,7 +137,7 @@ class SnapshotViewModel : ViewModel() {
         newPath: String,
         newName: String? = null,
         userId: Int? = null,
-        onComplete: (() -> Unit)? = null,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
     ) {
         val (context, fileSystem, appManager) = appDeps()
         repository.updateGroupPath(
@@ -134,7 +150,7 @@ class SnapshotViewModel : ViewModel() {
         newPath: String,
         newName: String? = null,
         accentColor: Int? = null,
-        onComplete: (() -> Unit)? = null,
+        onComplete: ((PathRegistrationResult) -> Unit)? = null,
     ) {
         val (context, fileSystem, appManager) = appDeps()
         repository.updateGroupSetPath(
@@ -147,7 +163,11 @@ class SnapshotViewModel : ViewModel() {
         repository.upgradeEmptyGroupToSet(context, fileSystem, appManager, groupId, setName, onComplete)
     }
 
-    fun addAppsToGroup(groupId: String, appInfos: List<AppInfo>, callback: () -> Unit) {
+    fun addAppsToGroup(
+        groupId: String,
+        appInfos: List<AppInfo>,
+        callback: (tiiehenry.android.app.snapshot.group.AddAppsResult) -> Unit,
+    ) {
         val (context, fileSystem, appManager) = appDeps()
         repository.addAppsToGroup(
             context = context,
@@ -158,6 +178,27 @@ class SnapshotViewModel : ViewModel() {
             appInfos = appInfos,
             onComplete = callback,
         )
+    }
+
+    fun moveAppBetweenGroups(
+        fromGroupId: String,
+        toGroupId: String,
+        packageName: String,
+        callback: (tiiehenry.android.app.snapshot.group.MoveAppResult) -> Unit,
+    ) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.moveAppBetweenGroups(
+            context, fileSystem, appManager, fromGroupId, toGroupId, packageName, callback
+        )
+    }
+
+    fun setMembershipMode(
+        groupId: String,
+        mode: tiiehenry.android.app.snapshot.group.GroupMembershipMode,
+        callback: (tiiehenry.android.app.snapshot.group.SetMembershipModeResult) -> Unit,
+    ) {
+        val (context, fileSystem, appManager) = appDeps()
+        repository.setMembershipMode(context, fileSystem, appManager, groupId, mode, callback)
     }
 
     fun deleteGroup(groupId: String, deleteFiles: Boolean = false) {
@@ -172,8 +213,9 @@ class SnapshotViewModel : ViewModel() {
         )
     }
 
-    /** 时间线跳转：若所属集折叠则先展开再 pending 滚到 GroupCard */
-    fun requestNavigateToGroup(groupId: String) {
+    /** 时间线/应用 Tab 跳转：若所属集折叠则先展开再 pending 滚到 GroupCard；可选滚到组内应用 */
+    fun requestNavigateToGroup(groupId: String, packageName: String? = null) {
+        pendingNavigatePackage = packageName
         val group = resolveGroup(groupId) ?: run {
             navigateToGroup.value = groupId
             return
@@ -184,6 +226,15 @@ class SnapshotViewModel : ViewModel() {
         if (set != null && set.isCollapsed) {
             setGroupSetCollapsed(set.id, collapsed = false)
         }
+        if (group.isCollapsed) {
+            group.isCollapsed = false
+        }
         navigateToGroup.value = groupId
+    }
+
+    fun consumePendingNavigatePackage(): String? {
+        val pkg = pendingNavigatePackage
+        pendingNavigatePackage = null
+        return pkg
     }
 }

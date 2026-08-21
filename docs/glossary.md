@@ -16,6 +16,10 @@ summary: "项目中使用的专业术语和缩写定义"
 | **存档 (Archive)** | 快照文件的统称，每个应用可有多个历史存档 |
 | **分组 (Group)** | 应用的逻辑集合（`SnapGroup`），用于批量操作和管理。每个分组有独立的存档目录和配置 |
 | **分组集 (Group Set)** | 同一父目录下多个分组的组织容器（`SnapGroupSet`）。该目录即分组集；添加时扫描直接子目录自动登记为分组。快照/恢复仍以分组为单元。见 [分组集](systems/snapshot/GROUP_SET.md) |
+| **独占组 (Exclusive Group)** | `membershipMode=exclusive`（默认）。成员占用应用归属；同一 `(packageName, userId)` 至多属于一个独占组。见 [分组应用归属与移动](systems/snapshot/GROUP_MEMBERSHIP.md) |
+| **共享组 (Shared Group)** | `membershipMode=shared`。成员不占用归属、不参与冲突检测；适合收藏/主题型集合。见同上 |
+| **未分组应用** | 不在任何**独占**组中的应用（可仅存在于共享组）。应用 Tab「未分组」筛选按此定义 |
+| **应用移动 (Move App)** | 将某应用在源组下的 `packageDir`（含存档）迁到目标独占组，并清理源侧成员关系。与「仅加成员」分离 |
 | **排除规则 (Exclude Pattern)** | 配置中指定不纳入快照的文件/目录匹配模式，按压缩类型分类 |
 | **额外压缩项 (Extra Item)** | 除默认目录外，用户自定义添加的额外压缩目录 |
 | **保留策略 (RetentionPolicy)** | 自动清理旧存档的规则，由 `RetentionPolicyExecutor` 执行 |

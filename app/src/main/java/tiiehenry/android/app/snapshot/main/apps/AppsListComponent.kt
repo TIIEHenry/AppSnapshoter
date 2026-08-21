@@ -57,6 +57,7 @@ class AppsListComponent<VB : ViewBinding>(
         fun getFilterSystemButton(binding: VB): ImageButton
         fun getFilterUserButton(binding: VB): ImageButton
         fun getUngroupedFilterButton(binding: VB): ImageButton? = null
+        fun getGroupedFilterButton(binding: VB): ImageButton? = null
         fun getTagsFilterLayout(binding: VB): TagsFilterLayout
         fun getSearchFieldBinding(binding: VB): LayoutSearchFieldBinding
         fun getSearchToggle(binding: VB): ImageView
@@ -83,7 +84,7 @@ class AppsListComponent<VB : ViewBinding>(
 
         // 设置 Filter 图标按钮
         setupFilterIconToggles()
-        setupUngroupedToggle()
+        setupMembershipFilterToggles()
 
         // 设置 Tags Filter
         setupTagsFilter()
@@ -198,13 +199,44 @@ class AppsListComponent<VB : ViewBinding>(
         }
     }
 
-    private fun setupUngroupedToggle() {
-        val button = callbacks.getUngroupedFilterButton(binding) ?: return
-        button.visibility = View.VISIBLE
-        button.isSelected = false
-        button.setOnClickListener {
-            button.isSelected = !button.isSelected
-            viewModel.setUngroupedOnly(button.isSelected)
+    private fun setupMembershipFilterToggles() {
+        val ungroupedButton = callbacks.getUngroupedFilterButton(binding)
+        val groupedButton = callbacks.getGroupedFilterButton(binding)
+        if (ungroupedButton == null && groupedButton == null) return
+
+        ungroupedButton?.visibility = View.VISIBLE
+        groupedButton?.visibility = View.VISIBLE
+
+        fun syncSelection(filter: AppsViewModel.MembershipFilter) {
+            ungroupedButton?.isSelected =
+                filter == AppsViewModel.MembershipFilter.UNGROUPED_ONLY
+            groupedButton?.isSelected =
+                filter == AppsViewModel.MembershipFilter.GROUPED_ONLY
+        }
+
+        syncSelection(viewModel.getMembershipFilter())
+
+        ungroupedButton?.setOnClickListener {
+            val next = if (viewModel.getMembershipFilter() ==
+                AppsViewModel.MembershipFilter.UNGROUPED_ONLY
+            ) {
+                AppsViewModel.MembershipFilter.ALL
+            } else {
+                AppsViewModel.MembershipFilter.UNGROUPED_ONLY
+            }
+            syncSelection(next)
+            viewModel.setMembershipFilter(next)
+        }
+        groupedButton?.setOnClickListener {
+            val next = if (viewModel.getMembershipFilter() ==
+                AppsViewModel.MembershipFilter.GROUPED_ONLY
+            ) {
+                AppsViewModel.MembershipFilter.ALL
+            } else {
+                AppsViewModel.MembershipFilter.GROUPED_ONLY
+            }
+            syncSelection(next)
+            viewModel.setMembershipFilter(next)
         }
     }
 

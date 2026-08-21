@@ -300,6 +300,23 @@ class GroupsAdapter(
             syncChromeVisibility()
         }
 
+        /** 展开分组并滚到指定包名（用于应用 Tab / 时间线跳转）。 */
+        fun scrollToPackage(packageName: String) {
+            val group = boundGroup ?: return
+            if (group.isCollapsed) {
+                group.isCollapsed = false
+                updateCollapseState(false)
+            }
+            val adapter = itemAdapter ?: return
+            val index = adapter.currentList.indexOfFirst {
+                it.appInfo.packageName == packageName
+            }
+            if (index < 0) return
+            binding.groupRecyclerView.post {
+                binding.groupRecyclerView.scrollToPosition(index)
+            }
+        }
+
         /**
          * 分组 body 三态互斥投影：
          * - 空组 → 仅 empty_layout（忽略 isCollapsed，始终加号）

@@ -2,6 +2,7 @@ package tiiehenry.android.app.snapshot.config
 
 import com.tencent.mmkv.MMKV
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.group.GroupMembershipMode
 import java.io.File
 
 /**
@@ -41,6 +42,13 @@ class GroupConfig(val groupId: String) {
         set(value) { groupConfigData.sortConfig = value }
 
     var groupConfigData: GroupConfigData = GroupConfigData()
+
+    /** 只读；写入请走 [tiiehenry.android.app.snapshot.repository.AppDataRepository.setMembershipMode]。 */
+    val membershipMode: GroupMembershipMode
+        get() = GroupMembershipMode.fromStorage(groupConfigData.membershipMode)
+
+    val isExclusive: Boolean
+        get() = membershipMode == GroupMembershipMode.EXCLUSIVE
 
     init {
         load()

@@ -10,15 +10,24 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.ItemAppListBinding
+import tiiehenry.android.app.snapshot.group.AppGroupMembership
+import tiiehenry.android.app.snapshot.main.apps.AppListItemBinder
 
 class SelectAppAdapter(
+    private val membershipIndexProvider: () -> Map<String, AppGroupMembership>,
     private val onItemClick: (AppInfo) -> Unit,
     private val onMultiSelectModeChanged: (Boolean) -> Unit = {},
     private val onMultiSelectedAppsChanged: (List<AppInfo>) -> Unit = {}
 ) : ListAdapter<AppInfo, SelectAppAdapter.ViewHolder>(AppDiffCallback()) {
 
     private var isMultiSelectMode = false
-    private val selectedApps = mutableSetOf<String>() // 使用包名作为唯一标识
+    private val selectedApps = mutableSetOf<String>()
+    private var membershipIndex: Map<String, AppGroupMembership> = emptyMap()
+
+    override fun submitList(list: List<AppInfo>?) {
+        membershipIndex = membershipIndexProvider()
+        super.submitList(list)
+    }
 
     fun toggleMultiSelectMode() {
         isMultiSelectMode = !isMultiSelectMode
@@ -60,20 +69,22 @@ class SelectAppAdapter(
         }
     }
 
-    private fun getItemPosition(appInfo: AppInfo): Int {
-        return currentList.indexOfFirst { it.packageName == appInfo.packageName }
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppListBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding, onItemClick, ::toggleAppSelection, ::toggleMultiSelectMode)
+        return ViewHolder(
+            binding,
+            onItemClick,
+            ::toggleAppSelection,
+            ::toggleMultiSelectMode
+        )
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(
             getItem(position),
             isMultiSelectMode,
-            getItem(position).packageName in selectedApps
+            getItem(position).packageName in selectedApps,
+            membershipIndex,
         )
     }
 
@@ -85,17 +96,25 @@ class SelectAppAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         @SuppressLint("SetTextI18n")
-        fun bind(appInfo: AppInfo, isMultiSelectMode: Boolean, isSelected: Boolean) {
-            binding.appName.text = appInfo.label
-            binding.appPackage.text = appInfo.packageName
-            binding.appVersion.text = "${appInfo.versionName} (${appInfo.versionCode})"
+        fun bind(
+            appInfo: AppInfo,
+            isMultiSelectMode: Boolean,
+            isSelected: Boolean,
+            membershipIndex: Map<String, AppGroupMembership>,
+        ) {
+            val membership = membershipIndex["${appInfo.packageName}:${appInfo.userId}"]
+                ?: AppGroupMembership(
+                    appInfo.packageName,
+                    appInfo.userId,
+                    emptyList(),
+                    emptyList(),
+                )
+            AppListItemBinder.bindBasics(binding, appInfo, membership)
 
-            // 使用Glide加载图标
             Glide.with(binding.root.context)
                 .load(appInfo.icon)
                 .into(binding.appIcon)
 
-            // 设置多选模式下的UI状态
             if (isMultiSelectMode) {
                 binding.appCheckbox.visibility = View.VISIBLE
                 binding.appCheckbox.setOnCheckedChangeListener(null)
@@ -106,7 +125,6 @@ class SelectAppAdapter(
                 binding.root.isActivated = false
             }
 
-            // 设置点击事件
             binding.root.setOnClickListener {
                 if (isMultiSelectMode) {
                     onAppToggle(appInfo, bindingAdapterPosition, !binding.appCheckbox.isChecked)
@@ -115,7 +133,6 @@ class SelectAppAdapter(
                 }
             }
 
-            // 设置新的监听器
             binding.appCheckbox.setOnCheckedChangeListener { _, isChecked ->
                 if (isMultiSelectMode) {
                     binding.root.post {
@@ -123,17 +140,16 @@ class SelectAppAdapter(
                     }
                 }
             }
-            // 设置长按事件进入多选模式
             binding.root.setOnLongClickListener {
-                onLongPressEnterMultiSelectMode() // 长按时进入多选模式
-                true // 消费长按事件
+                onLongPressEnterMultiSelectMode()
+                true
             }
         }
     }
 
     private class AppDiffCallback : DiffUtil.ItemCallback<AppInfo>() {
         override fun areItemsTheSame(oldItem: AppInfo, newItem: AppInfo): Boolean {
-            return oldItem.packageName == newItem.packageName
+            return oldItem.packageName == newItem.packageName && oldItem.userId == newItem.userId
         }
 
         override fun areContentsTheSame(oldItem: AppInfo, newItem: AppInfo): Boolean {

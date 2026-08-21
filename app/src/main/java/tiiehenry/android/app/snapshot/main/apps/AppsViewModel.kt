@@ -21,7 +21,13 @@ class AppsViewModel : ViewModel() {
     private var currentFilterType: Set<AppFilterType> = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
     private var currentUserId: Int= 0
     private var selectedTagIds: Set<String> = emptySet()
-    private var ungroupedOnly: Boolean = false
+    private var membershipFilter: MembershipFilter = MembershipFilter.ALL
+
+    enum class MembershipFilter {
+        ALL,
+        UNGROUPED_ONLY,
+        GROUPED_ONLY,
+    }
 
     // 缓存每个应用的标签，避免重复计算
     private var appTagsCache: Map<String, List<AppTag>> = emptyMap()
@@ -94,20 +100,22 @@ class AppsViewModel : ViewModel() {
         selectedTagIds = emptySet()
     }
 
-    fun setUngroupedOnly(ungroupedOnly: Boolean) {
-        this.ungroupedOnly = ungroupedOnly
+    fun setMembershipFilter(filter: MembershipFilter) {
+        this.membershipFilter = filter
         applyFilter()
     }
 
+    fun getMembershipFilter(): MembershipFilter = membershipFilter
+
     /**
-     * 还原搜索、系统/用户、用户 Tab、标签与未分组筛选到默认状态。
+     * 还原搜索、系统/用户、用户 Tab、标签与分组筛选到默认状态。
      */
     fun resetFilters() {
         currentQuery = ""
         currentFilterType = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
         currentUserId = 0
         selectedTagIds = emptySet()
-        ungroupedOnly = false
+        membershipFilter = MembershipFilter.ALL
     }
 
     private fun applyFilter() {
@@ -117,7 +125,7 @@ class AppsViewModel : ViewModel() {
 
             // 按标签过滤（使用缓存的标签）
             result = filterAppsByTagsWithCache(result, selectedTagIds)
-            result = filterUngrouped(result)
+            result = filterByMembership(result)
 
             // 按搜索词和类型过滤
             filteredAppList.value =
@@ -125,18 +133,25 @@ class AppsViewModel : ViewModel() {
         }
     }
 
-    private fun filterUngrouped(apps: List<AppInfo>): List<AppInfo> {
-        if (!ungroupedOnly) {
+    private fun filterByMembership(apps: List<AppInfo>): List<AppInfo> {
+        if (membershipFilter == MembershipFilter.ALL) {
             return apps
         }
         val groupedKeys = groupedAppKeys()
-        return apps.filter { app -> "${app.packageName}:${app.userId}" !in groupedKeys }
+        return when (membershipFilter) {
+            MembershipFilter.UNGROUPED_ONLY ->
+                apps.filter { app -> "${app.packageName}:${app.userId}" !in groupedKeys }
+            MembershipFilter.GROUPED_ONLY ->
+                apps.filter { app -> "${app.packageName}:${app.userId}" in groupedKeys }
+            MembershipFilter.ALL -> apps
+        }
     }
 
     private fun groupedAppKeys(): Set<String> {
         val groups = groupsProvider?.invoke().orEmpty()
         val keys = HashSet<String>()
         for (group in groups) {
+            if (!group.isExclusive) continue
             val members = synchronized(group.apps) { group.apps.toList() }
             for (archived in members) {
                 val pkg = java.nio.file.Paths.get(archived.packageDir).fileName.toString()

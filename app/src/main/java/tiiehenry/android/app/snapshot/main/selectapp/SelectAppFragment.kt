@@ -112,6 +112,9 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
     override fun getUngroupedFilterButton(binding: FragmentSelectAppBinding): ImageButton =
         binding.appsFilterRow.btnFilterUngrouped
 
+    override fun getGroupedFilterButton(binding: FragmentSelectAppBinding): ImageButton =
+        binding.appsFilterRow.btnFilterGrouped
+
     override fun getTagsFilterLayout(binding: FragmentSelectAppBinding): TagsFilterLayout = binding.tagsFilterLayout
 
     override fun getSearchFieldBinding(binding: FragmentSelectAppBinding): LayoutSearchFieldBinding =
@@ -125,6 +128,11 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     override fun setupRecyclerViewAdapter(binding: FragmentSelectAppBinding) {
         selectAppAdapter = SelectAppAdapter(
+            membershipIndexProvider = {
+                tiiehenry.android.app.snapshot.group.GroupMembershipResolver.buildMembershipIndex(
+                    snapshotViewModel.groupList.value.orEmpty()
+                )
+            },
             onItemClick = { appInfo ->
                 onAppsSelected?.invoke(listOf(appInfo))
                 dismiss()

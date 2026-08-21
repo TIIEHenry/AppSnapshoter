@@ -131,7 +131,15 @@ class LauncherFragment : Fragment() {
         }
         if (index >= 0) {
             binding.groupsRecyclerView.scrollToPosition(index)
+            val packageName = snapshotViewModel.consumePendingNavigatePackage()
             snapshotViewModel.navigateToGroup.value = null
+            if (!packageName.isNullOrBlank()) {
+                binding.groupsRecyclerView.post {
+                    val holder = binding.groupsRecyclerView
+                        .findViewHolderForAdapterPosition(index) as? GroupsAdapter.GroupViewHolder
+                    holder?.scrollToPackage(packageName)
+                }
+            }
         }
     }
 

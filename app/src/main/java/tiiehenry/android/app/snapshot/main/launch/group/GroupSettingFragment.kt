@@ -20,9 +20,14 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.GroupConfig
 import tiiehenry.android.app.snapshot.databinding.FragmentGroupSettingBinding
+import tiiehenry.android.app.snapshot.group.GroupMembershipMode
+import tiiehenry.android.app.snapshot.group.SetMembershipModeResult
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.main.launch.userMessage
+import tiiehenry.android.app.snapshot.repository.PathRegistrationResult
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
 import tiiehenry.android.snapshot.app.UserInfoHide
+import android.widget.Toast
 
 class GroupSettingFragment : BottomSheetDialogFragment() {
 
@@ -103,8 +108,6 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
     private fun initViews() {
         binding.btnSave.setOnClickListener {
             saveConfig()
-            onConfigSavedListener?.invoke()
-            dismiss()
         }
 
         binding.btnDeleteGroup.setOnClickListener {
@@ -169,6 +172,7 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
     private fun loadConfig() {
         binding.etGroupName.setText(groupName)
         binding.etRootPath.setText(groupConfig.rootPath)
+        binding.switchAllowShared.isChecked = !groupConfig.isExclusive
 
         // 设置 userIdSpinner 的选中项
         val savedUserId = groupConfig.groupConfigData.userId
@@ -188,12 +192,61 @@ class GroupSettingFragment : BottomSheetDialogFragment() {
             null
         }
         groupName = name
-        snapshotViewModel.updateGroupPath(
-            groupId = groupId,
-            newPath = path,
-            newName = name,
-            userId = userId,
-        )
+        val desiredMode =
+            if (binding.switchAllowShared.isChecked) GroupMembershipMode.SHARED
+            else GroupMembershipMode.EXCLUSIVE
+
+        fun finishSave() {
+            snapshotViewModel.updateGroupPath(
+                groupId = groupId,
+                newPath = path,
+                newName = name,
+                userId = userId,
+            ) { result ->
+                when (result) {
+                    is PathRegistrationResult.Ok -> {
+                        onConfigSavedListener?.invoke()
+                        dismiss()
+                    }
+                    else -> {
+                        result.userMessage(requireContext())?.let {
+                            Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+
+        if (desiredMode == groupConfig.membershipMode) {
+            finishSave()
+            return
+        }
+
+        snapshotViewModel.setMembershipMode(groupId, desiredMode) { result ->
+            when (result) {
+                is SetMembershipModeResult.Ok -> finishSave()
+                is SetMembershipModeResult.Conflict -> {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.group_membership_switch_blocked_title)
+                        .setMessage(
+                            getString(
+                                R.string.group_membership_switch_blocked_message,
+                                result.packageNames.joinToString(", ")
+                            )
+                        )
+                        .setPositiveButton(R.string.confirm, null)
+                        .show()
+                    binding.switchAllowShared.isChecked = !groupConfig.isExclusive
+                }
+                is SetMembershipModeResult.Error -> {
+                    AlertDialog.Builder(requireContext())
+                        .setMessage(result.message)
+                        .setPositiveButton(R.string.confirm, null)
+                        .show()
+                    binding.switchAllowShared.isChecked = !groupConfig.isExclusive
+                }
+            }
+        }
     }
 
     private fun showDeleteConfirmDialog() {

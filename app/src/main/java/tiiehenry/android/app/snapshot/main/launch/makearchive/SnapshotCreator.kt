@@ -81,6 +81,21 @@ class SnapshotCreator(
             onError(ArchiveFailedException(msg))
         }
         viewModelScope.launch(Dispatchers.Default) {
+            val packageDir = item.packageDir
+            val guard = tiiehenry.android.app.snapshot.repository.AppDataRepository.getInstance().packageOpGuard
+            val underGlobalBatch = guard.isGlobalBatchRunning()
+            val acquiredPackage = if (underGlobalBatch) {
+                true
+            } else {
+                guard.tryBeginPackageOp(packageDir)
+            }
+            if (!acquiredPackage) {
+                withContext(Dispatchers.Main) {
+                    onErrorCallback(context.getString(R.string.batch_operation_in_progress))
+                    callback?.onFinish()
+                }
+                return@launch
+            }
             try {
                 val snapShotApp = SnapshotApp.getInstance()
                 val fs = snapShotApp.fileSystem
@@ -173,6 +188,9 @@ class SnapshotCreator(
                     onError(e)
                 }
             } finally {
+                if (!underGlobalBatch) {
+                    guard.endPackageOp(packageDir)
+                }
                 val packageName = item.appInfo.packageName
                 val userId = group.userId
                 if (!AppStatusHelper.releasePackageAfterSnapshot(packageName, userId)) {

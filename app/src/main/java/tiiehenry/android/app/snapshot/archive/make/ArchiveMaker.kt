@@ -14,6 +14,8 @@ import tiiehenry.android.app.snapshot.archive.bean.MetaInfo
 import tiiehenry.android.app.snapshot.archive.bean.MetaPackageInfo
 import tiiehenry.android.app.snapshot.archive.bean.MetaPermission
 import tiiehenry.android.app.snapshot.group.ArchivedApp
+import tiiehenry.android.app.snapshot.group.GroupMembershipResolver
+import tiiehenry.android.app.snapshot.repository.AppDataRepository
 import tiiehenry.android.app.snapshot.utils.ApksUtil
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.ICompressCallback
@@ -45,8 +47,24 @@ object ArchiveMaker {
         try {
             val rootPath = groupConfig.rootPath
             val packageDir = Paths.get(rootPath, appInfo.packageName).absolutePathString()
+            val group = archivedApp.group
 
             if (fileSystem.fileType(packageDir) == IFileType.TYPE_NONE) {
+                if (group.isExclusive) {
+                    val owners = GroupMembershipResolver.findExclusiveOwners(
+                        AppDataRepository.getInstance().groupList.value.orEmpty(),
+                        appInfo.packageName,
+                        group.userId,
+                    )
+                    val foreign = owners.any { it.id != group.id }
+                    if (foreign || owners.size > 1) {
+                        Log.w(
+                            "ArchiveMaker",
+                            "refuse mkdir for exclusive conflict: ${appInfo.packageName} in ${group.id}"
+                        )
+                        return null
+                    }
+                }
                 fileSystem.mkdirs(packageDir)
             }
 

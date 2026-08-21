@@ -57,6 +57,12 @@ data class SnapGroup(
             mmkv.encode("isCollapsed", value)
         }
 
+    val membershipMode: GroupMembershipMode
+        get() = config.membershipMode
+
+    val isExclusive: Boolean
+        get() = config.isExclusive
+
     val apps: MutableList<ArchivedApp> = mutableListOf()
 
     private fun ensureNoMedia(fs: IFileSystem) {

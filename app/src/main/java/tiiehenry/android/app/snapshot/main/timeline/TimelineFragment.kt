@@ -19,6 +19,7 @@ import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentTimelineBinding
+import tiiehenry.android.app.snapshot.group.GroupMembershipResolver
 import tiiehenry.android.app.snapshot.ui.widget.CollapsibleSearchController
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
 import java.time.Instant
@@ -97,8 +98,15 @@ class TimelineFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = TimelineAdapter(
-            onItemClick = { entry ->
-                snapshotViewModel.requestNavigateToGroup(entry.key.groupId)
+            onIconClick = { entry ->
+                val groups = snapshotViewModel.groupList.value.orEmpty()
+                val exclusive = GroupMembershipResolver.exclusiveOwnerOrNull(
+                    groups,
+                    entry.key.packageName,
+                    entry.key.userId,
+                )
+                val targetGroupId = exclusive?.id ?: entry.key.groupId
+                snapshotViewModel.requestNavigateToGroup(targetGroupId, entry.key.packageName)
                 (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
             },
             onMultiSelectModeChanged = { _ ->

@@ -13,7 +13,6 @@
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:contentDescription="@string/desc_app_icon"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -22,46 +21,42 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
-        android:ellipsize="marquee"
+        android:ellipsize="end"
         android:maxLines="1"
-        android:singleLine="true"
-        tools:text="App Name" android:text=""
+        android:textColor="?android:textColorPrimary"
         android:textSize="15sp"
         android:textStyle="bold"
-        android:textColor="?android:textColorPrimary"
         app:layout_constraintEnd_toStartOf="@id/app_checkbox"
         app:layout_constraintStart_toEndOf="@id/app_icon"
-        app:layout_constraintTop_toTopOf="@id/app_icon" />
+        app:layout_constraintTop_toTopOf="@id/app_icon"
+        tools:text="App Name" />
 
     <TextView
         android:id="@+id/app_package"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:ellipsize="marquee"
+        android:ellipsize="end"
         android:maxLines="1"
-        android:singleLine="true"
-        tools:text="com.example.app" android:text=""
         android:textColor="?android:textColorSecondary"
         android:textSize="12sp"
-        app:layout_constraintBottom_toTopOf="@id/app_version"
         app:layout_constraintEnd_toStartOf="@id/app_checkbox"
         app:layout_constraintStart_toStartOf="@id/app_name"
-        app:layout_constraintTop_toBottomOf="@id/app_name" />
+        app:layout_constraintTop_toBottomOf="@id/app_name"
+        tools:text="com.example.app · 1.0.0" />
 
     <TextView
-        android:id="@+id/app_version"
+        android:id="@+id/app_groups"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:ellipsize="marquee"
-        android:maxLines="1"
-        android:singleLine="true"
-        tools:text="1.0.0 (1)" android:text=""
-        android:textColor="?android:textColorSecondary"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="?attr/colorPrimary"
         android:textSize="12sp"
-        app:layout_constraintTop_toBottomOf="@id/app_package"
-        app:layout_constraintBottom_toBottomOf="@id/app_icon"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/app_checkbox"
-        app:layout_constraintStart_toStartOf="@id/app_name" />
+        app:layout_constraintStart_toStartOf="@id/app_name"
+        app:layout_constraintTop_toBottomOf="@id/app_package"
+        tools:text="工作 · 收藏" />
 
     <com.google.android.material.checkbox.MaterialCheckBox
         android:id="@+id/app_checkbox"
