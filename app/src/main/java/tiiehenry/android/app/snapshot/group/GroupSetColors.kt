@@ -35,9 +35,6 @@ object GroupSetColors {
         return PRESETS[idx]
     }
 
-    fun headerBackground(accent: Int): Int =
-        ColorUtils.setAlphaComponent(accent, 0x28)
-
     fun parseHex(hex: String?): Int? {
         if (hex.isNullOrBlank()) return null
         return try {

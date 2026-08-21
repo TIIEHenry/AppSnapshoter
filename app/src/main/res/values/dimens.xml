@@ -35,6 +35,7 @@
     <dimen name="group_app_grid_fade_length">28dp</dimen>
     <dimen name="archive_list_padding">8dp</dimen>
     <dimen name="group_set_header_min_height">32dp</dimen>
+    <dimen name="group_set_header_hairline">1.5dp</dimen>
     <dimen name="group_set_block_spacing">8dp</dimen>
     <dimen name="group_set_header_button_size">28dp</dimen>
     <dimen name="group_set_header_chevron_size">16dp</dimen>

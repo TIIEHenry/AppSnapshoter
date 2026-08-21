@@ -78,9 +78,9 @@ class GroupSetStickyHeader(
     private fun show(item: ArchiveListItem.SetHeader) {
         val key = "${item.set.id}|${item.name}|${item.groupCount}|${item.expanded}|${item.accentColor}"
         if (boundKey != key) {
-            val backdrop = ContextCompat.getColor(overlay.root.context, R.color.background)
+            val surface = ContextCompat.getColor(overlay.root.context, R.color.surface)
             GroupSetHeaderBinder.bind(
-                overlay, item, snapshotViewModel, fragmentManager, opaqueBackdrop = backdrop
+                overlay, item, snapshotViewModel, fragmentManager, opaqueBackdrop = surface
             )
             boundKey = key
         }

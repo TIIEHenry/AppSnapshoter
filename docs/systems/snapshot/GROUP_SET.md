@@ -166,7 +166,7 @@ ArchiveListItem
 | 设置（tune） | 打开分组集设置 |
 | 标题长按 | 同样打开设置 |
 
-高度约 32dp。滚动时 **吸顶**：真实 overlay（`fragment_launcher` 内 `sticky_set_header`），不是 ItemDecoration 绘制，以便折展/刷新/设置仍可点。下一块（下一集 Header 或独立分组）顶上来时把当前条推走。独立分组在顶部时不吸顶。整行按压用圆角 `StateListDrawable` 叠 `fluent_reveal_pressed`，不用 ripple。
+高度约 32dp。滚动时 **吸顶**：真实 overlay（`fragment_launcher` 内 `sticky_set_header`），不是 ItemDecoration 绘制，以便折展/刷新/设置仍可点。下一块（下一集 Header 或独立分组）顶上来时把当前条推走。独立分组在顶部时不吸顶。Header 视觉：强调色**描边一圈** + 中间 `@color/surface`（与分组卡片同底）；按压叠 `fluent_reveal_pressed`，不用 ripple。
 
 点标题折展：调用 repository（如 `setGroupSetCollapsed(setId, collapsed)`），在 mutex 内改集 MMKV `isCollapsed` → **内存再投影** `reprojectArchiveListLocked` → `postValue(archiveList)`。**禁止**为此调用 `reloadGroupsLocked` / `loadApps`（见 [折展性能](group-set-expand-perf.md)）。**禁止**在 Adapter/ViewHolder 里本地 insert/remove `GroupCard`，也禁止用 Header 内 visibility 藏子卡片。`navigateToGroup` 为露出卡片而展开时走同一条路径。
 
