@@ -217,8 +217,8 @@ class PackageManagerDelegate(
             if (!create.isSuccess) {
                 throw Exception("Failed to create install session: $output")
             }
-            val sessionMatch = Regex("\\[(\\d+)]").find(output)
-            if (sessionMatch == null) {
+            val sessionId = parseInstallSessionId(output)
+            if (sessionId == null) {
                 LogHelper.e(
                     "SnapshotRootService",
                     "installApks",
@@ -226,7 +226,6 @@ class PackageManagerDelegate(
                 )
                 return false
             }
-            val sessionId = sessionMatch.groupValues[1]
             for ((index, filePath) in files.withIndex()) {
                 val file = File(filePath)
                 val fileSize = file.length()
@@ -295,5 +294,13 @@ class PackageManagerDelegate(
             )
             return false
         }
+    }
+
+    /** pm install-create 输出可能是 [123] 或 grep 后的纯数字行。 */
+    private fun parseInstallSessionId(output: String): String? {
+        Regex("\\[(\\d+)]").find(output)?.groupValues?.get(1)?.let { return it }
+        return output.lineSequence()
+            .map { it.trim() }
+            .firstOrNull { it.isNotEmpty() && it.all(Char::isDigit) }
     }
 }
