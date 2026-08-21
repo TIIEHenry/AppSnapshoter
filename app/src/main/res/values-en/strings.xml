@@ -232,6 +232,8 @@
     <string name="group_batch_archive_cancelled">Archiving cancelled</string>
     <string name="group_batch_no_installed_apps">No installed apps to archive</string>
     <string name="snapshot_create_failed_title">Snapshot failed (%d)</string>
+    <string name="snapshot_suspend_failed">Could not suspend %1$s; the app may keep running during backup</string>
+    <string name="snapshot_unsuspend_failed">Could not unsuspend %1$s; the app may stay suspended—restart the device or try again later</string>
     <string name="snapshot_create_success_title">Snapshot succeeded (%d)</string>
     <string name="snapshot_error_detail_title">Error: %s</string>
     <string name="snapshot_success_item_info">Time: %1$s, data: %2$s</string>

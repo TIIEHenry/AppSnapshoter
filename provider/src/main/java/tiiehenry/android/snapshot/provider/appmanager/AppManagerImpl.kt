@@ -226,20 +226,20 @@ class AppManagerImpl(
         return runBlocking { safeCall("uninstallApk", false) { uninstallApk(packageName, userId) } }
     }
 
-    override fun forceStopPackage(packageName: String, userId: Int) {
-        runBlocking { safeRun("forceStopPackage") { forceStopPackage(packageName, userId) } }
+    override fun forceStopPackage(packageName: String, userId: Int): Boolean {
+        return runBlocking { safeCall("forceStopPackage", false) { forceStopPackage(packageName, userId) } }
     }
 
     override fun clearAppData(packageName: String, userId: Int) {
         runBlocking { safeRun("clearAppData") { clearAppData(packageName, userId) } }
     }
 
-    override fun suspendPackage(packageName: String, userId: Int) {
-        runBlocking { safeRun("suspendPackage") { suspendPackage(packageName, userId) } }
+    override fun suspendPackage(packageName: String, userId: Int): Boolean {
+        return runBlocking { safeCall("suspendPackage", false) { suspendPackage(packageName, userId) } }
     }
 
-    override fun unsuspendPackage(packageName: String, userId: Int) {
-        runBlocking { safeRun("unsuspendPackage") { unsuspendPackage(packageName, userId) } }
+    override fun unsuspendPackage(packageName: String, userId: Int): Boolean {
+        return runBlocking { safeCall("unsuspendPackage", false) { unsuspendPackage(packageName, userId) } }
     }
 
     override fun isPackageRunning(packageName: String, userId: Int): Boolean {

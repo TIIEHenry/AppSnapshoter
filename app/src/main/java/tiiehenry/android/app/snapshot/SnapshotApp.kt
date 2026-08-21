@@ -7,6 +7,7 @@ import android.util.Log
 import com.tencent.mmkv.MMKV
 import com.topjohnwu.superuser.Shell
 import tiiehenry.android.app.snapshot.utils.AppShell
+import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.provider.Providers
@@ -54,6 +55,15 @@ class SnapshotApp : Application() {
             Log.i("SnapShotApp", "isRoot $isRoot")
             if (isRoot) {
                 _providers.bindRootService()
+                Thread {
+                    try {
+                        if (_providers.waitForConnection()) {
+                            AppStatusHelper.recoverOrphanedSuspensions()
+                        }
+                    } catch (e: Exception) {
+                        Log.w("SnapShotApp", "Failed to recover orphaned suspensions", e)
+                    }
+                }.start()
             }
         } catch (e: Exception) {
             e.printStackTrace()

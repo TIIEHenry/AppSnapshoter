@@ -1,14 +1,18 @@
 package tiiehenry.android.app.snapshot.utils
 
+import android.util.Log
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.group.item.PackageStatus
+import tiiehenry.android.snapshot.app.IAppManager
 
 /**
  * 应用状态帮助类
  * 负责判断应用的安装状态、运行状态、版本状态等
  */
 object AppStatusHelper {
+
+    private const val TAG = "AppStatusHelper"
 
     /**
      * 获取应用包状态
@@ -103,32 +107,78 @@ object AppStatusHelper {
     }
 
     /**
-     * 挂起应用
-     * @param packageName 包名
-     * @param userId 用户ID
+     * 快照前准备：强停进程后挂起应用。
+     * @return 挂起是否成功（强停失败不会阻断备份，但会记录日志）
      */
-    fun suspendPackage(packageName: String, userId: Int) {
-        try {
-            val appManager = SnapshotApp.getInstance().appManager
-            appManager.suspendPackage(packageName, userId)
-        } catch (e: Exception) {
-            e.printStackTrace()
+    fun preparePackageForSnapshot(packageName: String, userId: Int): Boolean {
+        val appManager = SnapshotApp.getInstance().appManager
+        if (!isInstalledSafe(appManager, packageName, userId)) {
+            Log.w(TAG, "preparePackageForSnapshot skipped, not installed: $packageName user=$userId")
+            return false
         }
+
+        val forceStopOk = runCatching { appManager.forceStopPackage(packageName, userId) }
+            .getOrDefault(false)
+        if (!forceStopOk) {
+            Log.w(TAG, "forceStopPackage failed: $packageName user=$userId")
+        }
+
+        val suspendOk = runCatching { appManager.suspendPackage(packageName, userId) }
+            .getOrDefault(false)
+        if (suspendOk) {
+            AppSuspendTracker.markSuspended(packageName, userId)
+        } else {
+            Log.w(TAG, "suspendPackage failed: $packageName user=$userId")
+        }
+        return suspendOk
     }
 
     /**
-     * 恢复挂起应用
-     * @param packageName 包名
-     * @param userId 用户ID
+     * 快照结束后恢复挂起状态。
+     * @return 解冻是否成功；若本流程未挂起该包则返回 true
      */
-    fun unsuspendPackage(packageName: String, userId: Int) {
-        try {
-            val appManager = SnapshotApp.getInstance().appManager
-            if (appManager.isInstalled(packageName, userId)) {
-                appManager.unsuspendPackage(packageName, userId)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+    fun releasePackageAfterSnapshot(packageName: String, userId: Int): Boolean {
+        if (!AppSuspendTracker.isTracked(packageName, userId)) {
+            return true
         }
+
+        val appManager = SnapshotApp.getInstance().appManager
+        if (!isInstalledSafe(appManager, packageName, userId)) {
+            AppSuspendTracker.markReleased(packageName, userId)
+            return true
+        }
+
+        val unsuspendOk = runCatching { appManager.unsuspendPackage(packageName, userId) }
+            .getOrDefault(false)
+        if (unsuspendOk) {
+            AppSuspendTracker.markReleased(packageName, userId)
+        } else {
+            Log.e(TAG, "unsuspendPackage failed: $packageName user=$userId")
+        }
+        return unsuspendOk
+    }
+
+    /**
+     * 启动时兜底：尝试解冻上次异常退出时遗留的挂起记录。
+     */
+    fun recoverOrphanedSuspensions(): Int {
+        var recovered = 0
+        for ((packageName, userId) in AppSuspendTracker.pendingEntries()) {
+            if (releasePackageAfterSnapshot(packageName, userId)) {
+                recovered++
+            }
+        }
+        if (recovered > 0) {
+            Log.i(TAG, "Recovered $recovered orphaned suspended package(s)")
+        }
+        return recovered
+    }
+
+    private fun isInstalledSafe(
+        appManager: IAppManager,
+        packageName: String,
+        userId: Int
+    ): Boolean {
+        return runCatching { appManager.isInstalled(packageName, userId) }.getOrDefault(false)
     }
 }

@@ -232,6 +232,8 @@
     <string name="group_batch_archive_cancelled">已中止归档</string>
     <string name="group_batch_no_installed_apps">没有已安装的应用可归档</string>
     <string name="snapshot_create_failed_title">创建快照失败 (%d个)</string>
+    <string name="snapshot_suspend_failed">无法挂起 %1$s，备份期间应用可能仍在运行</string>
+    <string name="snapshot_unsuspend_failed">无法恢复 %1$s，应用可能仍处于挂起状态，请重启设备或稍后重试</string>
     <string name="snapshot_create_success_title">创建快照成功 (%d个)</string>
     <string name="snapshot_error_detail_title">错误: %s</string>
     <string name="snapshot_success_item_info">耗时: %1$s, 数据: %2$s</string>

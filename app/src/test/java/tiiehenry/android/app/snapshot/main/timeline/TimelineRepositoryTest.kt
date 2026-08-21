@@ -245,10 +245,10 @@ private object StubAppManager : IAppManager {
     override fun installApk(file: String, userId: Int) = false
     override fun installApks(files: MutableList<String>, userId: Int) = false
     override fun uninstallApk(packageName: String, userId: Int) = false
-    override fun forceStopPackage(packageName: String, userId: Int) {}
+    override fun forceStopPackage(packageName: String, userId: Int) = true
     override fun clearAppData(packageName: String, userId: Int) {}
-    override fun suspendPackage(packageName: String, userId: Int) {}
-    override fun unsuspendPackage(packageName: String, userId: Int) {}
+    override fun suspendPackage(packageName: String, userId: Int) = true
+    override fun unsuspendPackage(packageName: String, userId: Int) = true
     override fun isPackageRunning(packageName: String, userId: Int) = false
     override fun launchApp(packageName: String, userId: Int) = false
     // IPermissionManager

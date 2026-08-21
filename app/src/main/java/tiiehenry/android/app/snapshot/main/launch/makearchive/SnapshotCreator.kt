@@ -2,6 +2,7 @@ package tiiehenry.android.app.snapshot.main.launch.makearchive
 
 import android.content.Context
 import android.text.format.Formatter
+import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -91,9 +92,19 @@ class SnapshotCreator(
                     item.appInfo.userId
                 )
                 val groupConfig = group.config
+                val packageName = item.appInfo.packageName
+                val userId = group.userId
 
-                // 挂起应用（应用进程暂停运行）
-                AppStatusHelper.suspendPackage(item.appInfo.packageName, item.appInfo.userId)
+                // 强停并挂起应用，减少备份期间数据变更
+                if (!AppStatusHelper.preparePackageForSnapshot(packageName, userId)) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.snapshot_suspend_failed, packageName),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
 
                 // 创建压缩回调
                 val compressCallback =
@@ -162,8 +173,17 @@ class SnapshotCreator(
                     onError(e)
                 }
             } finally {
-                // 恢复挂起应用
-                AppStatusHelper.unsuspendPackage(item.appInfo.packageName, item.appInfo.userId)
+                val packageName = item.appInfo.packageName
+                val userId = group.userId
+                if (!AppStatusHelper.releasePackageAfterSnapshot(packageName, userId)) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.snapshot_unsuspend_failed, packageName),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
                 ArchiveManager.reloadArchives(item, true)
                 withContext(Dispatchers.Main) {
                     callback?.onFinish()

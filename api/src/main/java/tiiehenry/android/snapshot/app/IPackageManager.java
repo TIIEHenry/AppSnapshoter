@@ -36,13 +36,13 @@ public interface IPackageManager {
     boolean uninstallApk(String packageName, int userId);
 
     // ========== 生命周期控制 ==========
-    void forceStopPackage(String packageName, int userId);
+    boolean forceStopPackage(String packageName, int userId);
 
     void clearAppData(String packageName, int userId);
 
-    void suspendPackage(String packageName, int userId);
+    boolean suspendPackage(String packageName, int userId);
 
-    void unsuspendPackage(String packageName, int userId);
+    boolean unsuspendPackage(String packageName, int userId);
 
     // ========== 运行状态 ==========
     boolean isPackageRunning(String packageName, int userId);
