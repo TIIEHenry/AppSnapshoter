@@ -1,10 +1,14 @@
 package tiiehenry.android.app.snapshot.main.launch
 
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
@@ -18,6 +22,7 @@ import tiiehenry.android.app.snapshot.databinding.ItemEmptySetHintBinding
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
 import tiiehenry.android.app.snapshot.databinding.ItemGroupSetBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
+import tiiehenry.android.app.snapshot.group.GroupSetColors
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
 import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetSettingFragment
@@ -84,21 +89,13 @@ class GroupsAdapter(
         when (val item = getItem(position)) {
             is ArchiveListItem.SetHeader -> (holder as SetHeaderViewHolder).bind(item)
             is ArchiveListItem.EmptySetHint -> (holder as EmptySetHintViewHolder).bind(item)
-            is ArchiveListItem.GroupCard -> {
-                val card = item
-                val indent = if (card.setId != null) {
-                    (12 * holder.itemView.resources.displayMetrics.density).toInt()
-                } else {
-                    0
-                }
-                holder.itemView.setPadding(
-                    indent,
-                    holder.itemView.paddingTop,
-                    holder.itemView.paddingRight,
-                    holder.itemView.paddingBottom,
+            is ArchiveListItem.GroupCard ->
+                (holder as GroupViewHolder).bind(
+                    this,
+                    item.group,
+                    inSet = item.setId != null,
+                    accentColor = item.accentColor,
                 )
-                (holder as GroupViewHolder).bind(this, card.group)
-            }
         }
     }
 
@@ -108,11 +105,7 @@ class GroupsAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: ArchiveListItem.EmptySetHint) {
-            val density = binding.root.resources.displayMetrics.density
-            val indent = (12 * density).toInt()
-            val vPad = (14 * density).toInt()
-            val hPad = (20 * density).toInt()
-            binding.root.setPadding(indent + hPad, vPad, hPad, vPad)
+            binding.hintMembershipRail.setBackgroundColor(item.accentColor)
             binding.root.setOnClickListener {
                 val suggested = Paths.get(item.set.path, "group").toString()
                 AddGroupBottomSheet.newInstance(
@@ -131,13 +124,29 @@ class GroupsAdapter(
 
         fun bind(item: ArchiveListItem.SetHeader) {
             val set = item.set
-            binding.setTitle.text = set.name
+            val accent = item.accentColor
+            binding.setTitle.text = item.name
             binding.setCount.text = binding.root.context.getString(
                 R.string.group_set_count_format,
                 item.groupCount,
             )
+            binding.setExpandIcon.rotation = if (item.expanded) 0f else -90f
+            ImageViewCompat.setImageTintList(
+                binding.setExpandIcon,
+                ColorStateList.valueOf(accent),
+            )
+            val headerBg = (ContextCompat.getDrawable(
+                binding.root.context,
+                R.drawable.bg_group_set_header,
+            )?.mutate() as? GradientDrawable)
+            headerBg?.setColor(GroupSetColors.headerBackground(accent))
+            binding.root.background = headerBg
+
             binding.setTitle.setOnClickListener {
                 snapshotViewModel.setGroupSetCollapsed(set.id, collapsed = item.expanded)
+            }
+            binding.setExpandIcon.setOnClickListener {
+                binding.setTitle.performClick()
             }
             binding.setTitle.setOnLongClickListener {
                 GroupSetSettingFragment.newInstance(set.id).show(fragmentManager, GroupSetSettingFragment.TAG)
@@ -170,9 +179,20 @@ class GroupsAdapter(
         private lateinit var actionsController: GroupActionsController
         private var boundGroup: SnapGroup? = null
 
-        fun bind(groupsAdapter: GroupsAdapter, group: SnapGroup) {
+        fun bind(
+            groupsAdapter: GroupsAdapter,
+            group: SnapGroup,
+            inSet: Boolean,
+            accentColor: Int?,
+        ) {
             boundGroup = group
             binding.groupTitle.text = group.name
+            if (inSet && accentColor != null) {
+                binding.setMembershipRail.visibility = View.VISIBLE
+                binding.setMembershipRail.setBackgroundColor(accentColor)
+            } else {
+                binding.setMembershipRail.visibility = View.GONE
+            }
 
             actionsController = GroupActionsController(
                 binding, viewModel, snapshotViewModel, fragmentManager
@@ -354,17 +374,20 @@ class GroupsAdapter(
         override fun areContentsTheSame(oldItem: ArchiveListItem, newItem: ArchiveListItem): Boolean {
             return when {
                 oldItem is ArchiveListItem.SetHeader && newItem is ArchiveListItem.SetHeader ->
-                    oldItem.set.name == newItem.set.name &&
+                    oldItem.name == newItem.name &&
                         oldItem.groupCount == newItem.groupCount &&
-                        oldItem.expanded == newItem.expanded
+                        oldItem.expanded == newItem.expanded &&
+                        oldItem.accentColor == newItem.accentColor
                 oldItem is ArchiveListItem.EmptySetHint && newItem is ArchiveListItem.EmptySetHint ->
-                    oldItem.set.path == newItem.set.path
+                    oldItem.set.path == newItem.set.path &&
+                        oldItem.accentColor == newItem.accentColor
                 oldItem is ArchiveListItem.GroupCard && newItem is ArchiveListItem.GroupCard -> {
                     val o = oldItem.group
                     val n = newItem.group
                     if (o.name != n.name) return false
                     if (o.isCollapsed != n.isCollapsed) return false
                     if (oldItem.setId != newItem.setId) return false
+                    if (oldItem.accentColor != newItem.accentColor) return false
                     val oldPkgs = o.apps.map { it.appInfo.packageName }
                     val newPkgs = n.apps.map { it.appInfo.packageName }
                     oldPkgs == newPkgs

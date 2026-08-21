@@ -3,14 +3,14 @@ title: "分组集功能设计"
 type: system
 status: active
 updated: 2026-08-21
-summary: "以父目录组织多个分组：添加分组集时扫描直接子目录自动登记；存档 Tab 上同一集的分组连续成块、默认折叠；长按底栏存档 Tab 可快跳"
+summary: "以父目录组织多个分组：添加分组集时扫描直接子目录自动登记；存档 Tab 上同一集的分组连续成块、默认折叠；长按底栏存档 Tab 可快跳（含拖选）"
 ---
 
 # 分组集功能设计文档
 
-> 版本：v1.2 · 日期：2026-08-21 · 状态：active（已落地；底栏快跳为 PopupMenu 精简版）  
+> 版本：v1.3 · 日期：2026-08-21 · 状态：active（已落地；底栏快跳含拖选）  
 > 关联：存档 Tab（`LauncherFragment`）、`SnapGroup`、`AppDataRepository`、[存储策略](../../architecture/cross-cutting/storage.md)  
-> 修订：Grok 二轮 must-fix 已并入。第三轮为 **Grok 等价审查（降级）→ Approve**（子代理 resource_exhausted）。
+> 修订：Grok 二轮 must-fix 已并入。第三轮为 **Grok 等价审查（降级）→ Approve**（子代理 resource_exhausted）。底栏快跳已接 `GroupSetJumpPopup` 拖选。
 
 ## 文档索引
 
@@ -679,7 +679,7 @@ UI：添加集、折叠成块、在集内添加分组、排序两级、时间线
 
 - [x] 两级 `GroupSortBottomSheet`（不写 `groups` 集合）
 - [x] `navigateToGroup`：`submitList` commit 里 `tryConsumeNavigate`；`navigateToGroupSet` 滚 Header 不改折叠
-- [x] （可裁）存档 Tab 长按 `GroupSetJumpTouchSession`（超时后 PopupMenu；未移植 Singular 拖选 hover）
+- [x] （可裁）存档 Tab 长按 `GroupSetJumpTouchSession` + `GroupSetJumpPopup`（超时后弹出；支持点选与拖选 hover）
 - [ ] （可选）时间线条目显示 `集名 / 分组名`
 
 ### 验收标准
@@ -690,7 +690,7 @@ UI：添加集、折叠成块、在集内添加分组、排序两级、时间线
 - [x] 顶层排序只改 `archiveRoots`；集内排序只改 basename `groupOrder`；`groups` ID 集合不变
 - [ ] 删除集默认不删文件，子分组出现在顶层（待真机验）
 - [ ] 时间线跳到集内（默认折叠）分组时，先展开再见到该卡片（不丢事件）（待真机验）
-- [x] （Phase 3 可裁）长按存档 Tab 弹出分组集；超时前滑动不切 Tab（PopupMenu；无拖选）
+- [x] （Phase 3 可裁）长按存档 Tab 弹出分组集；超时前滑动不切 Tab；点选与拖选均可跳转
 - [ ] 快照/恢复/分组配置行为与改前一致（待真机验）
 - [x] 添加/刷新/改 path 走 `AppDataRepository.scope` + mutex，列表即时更新
 

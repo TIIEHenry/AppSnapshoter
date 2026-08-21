@@ -8,7 +8,6 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.PopupMenu
 import androidx.core.view.MenuProvider
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
@@ -25,7 +24,6 @@ import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentLauncherBinding
 import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
-import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupSetBottomSheet
 import tiiehenry.android.app.snapshot.main.launch.groupsort.GroupSortBottomSheet
 
 class LauncherFragment : Fragment() {
@@ -85,7 +83,12 @@ class LauncherFragment : Fragment() {
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                 return when (menuItem.itemId) {
                     R.id.menu_add_group -> {
-                        showAddChooser()
+                        AddGroupBottomSheet.newInstance()
+                            .show(childFragmentManager, AddGroupBottomSheet.TAG)
+                        true
+                    }
+                    R.id.menu_collapse_all -> {
+                        snapshotViewModel.collapseAllArchive()
                         true
                     }
                     R.id.menu_sort_groups -> {
@@ -123,29 +126,9 @@ class LauncherFragment : Fragment() {
         }
     }
 
-    private fun showAddChooser() {
-        val toolbar = (requireActivity() as? MainActivity)?.findViewById<View>(R.id.toolbar)
-            ?: binding.root
-        PopupMenu(requireContext(), toolbar).apply {
-            menu.add(0, 1, 0, R.string.menu_add_group_choice)
-            menu.add(0, 2, 1, R.string.menu_add_group_set_choice)
-            setOnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    1 -> AddGroupBottomSheet.newInstance()
-                        .show(childFragmentManager, AddGroupBottomSheet.TAG)
-                    2 -> AddGroupSetBottomSheet.newInstance()
-                        .show(childFragmentManager, AddGroupSetBottomSheet.TAG)
-                }
-                true
-            }
-            show()
-        }
-    }
-
     private fun showSortGroupsDialog() {
         val bottomSheet = GroupSortBottomSheet.newInstance()
         bottomSheet.setOnSortSavedListener {
-            // 排序应经 repository；旧路径直接 submitList(groupList) 已禁止
             snapshotViewModel.loadGroups()
         }
         bottomSheet.show(childFragmentManager, GroupSortBottomSheet.TAG)

@@ -24,7 +24,7 @@ summary: "所有实施阶段概览、里程碑和当前焦点"
 
 架构加固计划（planning）：先行 Phase A–C 正确性批次——`ITaskHandler` 契约重写 + 错误码通道、FIFO 看门狗、SELinux/chown 下沉与 `callTarCli` 白名单。
 
-分组集已落地（implemented）；可选：时间线「集名 / 分组名」、底栏拖选 hover。
+分组集已落地（implemented）；可选：时间线「集名 / 分组名」。
 
 ## 历史计划
 

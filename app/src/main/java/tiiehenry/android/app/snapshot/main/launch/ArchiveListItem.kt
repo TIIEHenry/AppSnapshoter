@@ -11,16 +11,22 @@ sealed class ArchiveListItem {
         val set: SnapGroupSet,
         val groupCount: Int,
         val expanded: Boolean,
+        /** 投影时快照，避免 DiffUtil 读到已原地修改的同一 [SnapGroupSet] */
+        val name: String,
+        val accentColor: Int,
     ) : ArchiveListItem()
 
     data class GroupCard(
         val group: SnapGroup,
         /** null = 独立分组 */
         val setId: String?,
+        /** 集内成员左侧色条；独立分组为 null */
+        val accentColor: Int? = null,
     ) : ArchiveListItem()
 
     /** 空集展开后的「在此添加分组」行 */
     data class EmptySetHint(
         val set: SnapGroupSet,
+        val accentColor: Int,
     ) : ArchiveListItem()
 }

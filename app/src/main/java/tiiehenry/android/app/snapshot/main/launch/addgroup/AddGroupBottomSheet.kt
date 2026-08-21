@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -21,6 +22,7 @@ import tiiehenry.android.app.snapshot.databinding.BottomSheetAddGroupBinding
 import tiiehenry.android.app.snapshot.main.launch.LauncherViewModel
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
 import tiiehenry.android.snapshot.app.UserInfoHide
+import java.nio.file.Paths
 
 class AddGroupBottomSheet : BottomSheetDialogFragment() {
 
@@ -33,6 +35,7 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
 
     private lateinit var userIdSpinner: Spinner
     private val userInfoList = mutableListOf<UserInfoHide>()
+    private var addingSet = false
 
     private val pathPickerHelper = GroupPathPickerHelper(this) { absolutePath, uri ->
         binding.etGroupPath.setText(absolutePath)
@@ -43,11 +46,15 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             absolutePath,
             binding.etGroupName
         )
-        // 尝试从 group.json 自动解析 userId 并选中对应项
-        val configData = GroupPathPickerHelper.readGroupConfigData(this, uri)
-        if (configData != null) {
-            val idx = userInfoList.indexOfFirst { it.id == configData.userId }
-            if (idx >= 0) userIdSpinner.setSelection(idx)
+        if (!addingSet) {
+            val configData = GroupPathPickerHelper.readGroupConfigData(this, uri)
+            if (configData != null) {
+                val idx = userInfoList.indexOfFirst { it.id == configData.userId }
+                if (idx >= 0) userIdSpinner.setSelection(idx)
+            }
+        } else if (binding.etGroupName.text.isNullOrBlank()) {
+            val base = Paths.get(absolutePath).fileName?.toString().orEmpty()
+            if (base.isNotEmpty()) binding.etGroupName.setText(base)
         }
     }
 
@@ -56,6 +63,14 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pathPickerHelper.register()
+        addingSet = savedInstanceState?.getBoolean(STATE_ADDING_SET)
+            ?: arguments?.getBoolean(ARG_START_AS_SET, false)
+            ?: false
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_ADDING_SET, addingSet)
     }
 
     override fun onCreateView(
@@ -85,6 +100,14 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
+        binding.toggleAddKind.check(if (addingSet) R.id.btn_kind_set else R.id.btn_kind_group)
+        binding.toggleAddKind.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            addingSet = checkedId == R.id.btn_kind_set
+            applyKindUi()
+        }
+        applyKindUi()
+
         userIdSpinner = binding.spinnerUserId
         lifecycleScope.launch {
             val users = withContext(Dispatchers.IO) {
@@ -104,7 +127,6 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
             userIdSpinner.adapter = userAdapter
         }
 
-        // 为 TextInputLayout 的 endIcon 设置点击事件
         binding.tilGroupPath.setEndIconOnClickListener {
             pathPickerHelper.launch()
         }
@@ -114,25 +136,57 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
         }
 
         binding.btnConfirm.setOnClickListener {
-            val groupName = binding.etGroupName.text.toString().trim()
-            val groupPath = binding.etGroupPath.text.toString().trim()
-
-            if (groupName.isNotEmpty() && groupPath.isNotEmpty()) {
-                val selectedIndex = userIdSpinner.selectedItemPosition
-                val userId = if (selectedIndex >= 0 && selectedIndex < userInfoList.size) {
-                    userInfoList[selectedIndex].id
-                } else 0
-                snapshotViewModel.addGroup(groupName, groupPath, userId)
-                dismiss()
-            } else {
-                if (groupName.isEmpty()) {
-                    binding.etGroupName.error = getString(R.string.error_enter_group_name)
-                }
-                if (groupPath.isEmpty()) {
-                    binding.etGroupPath.error = getString(R.string.error_select_group_path)
-                }
-            }
+            submit()
         }
+    }
+
+    private fun applyKindUi() {
+        if (addingSet) {
+            binding.tvAddTitle.setText(R.string.group_set_add_title)
+            binding.tilGroupName.setHint(getString(R.string.group_set_name_hint))
+            binding.tilGroupPath.setHint(getString(R.string.group_set_path_hint))
+            binding.userSection.visibility = View.GONE
+        } else {
+            binding.tvAddTitle.setText(R.string.group_add_title)
+            binding.tilGroupName.setHint(getString(R.string.group_name_hint))
+            binding.tilGroupPath.setHint(getString(R.string.group_path_hint))
+            binding.userSection.visibility = View.VISIBLE
+        }
+    }
+
+    private fun submit() {
+        val name = binding.etGroupName.text.toString().trim()
+        val path = binding.etGroupPath.text.toString().trim()
+        if (name.isEmpty()) {
+            binding.etGroupName.error = getString(
+                if (addingSet) R.string.error_enter_group_set_name else R.string.error_enter_group_name
+            )
+        }
+        if (path.isEmpty()) {
+            binding.etGroupPath.error = getString(
+                if (addingSet) R.string.error_select_group_set_path else R.string.error_select_group_path
+            )
+        }
+        if (name.isEmpty() || path.isEmpty()) return
+
+        if (addingSet) {
+            val appContext = requireContext().applicationContext
+            val setName = name
+            snapshotViewModel.addGroupSet(setName, path) { count ->
+                Toast.makeText(
+                    appContext,
+                    appContext.getString(R.string.group_set_added_toast, setName, count),
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        } else {
+            val selectedIndex = userIdSpinner.selectedItemPosition
+            val userId = if (selectedIndex >= 0 && selectedIndex < userInfoList.size) {
+                userInfoList[selectedIndex].id
+            } else 0
+            snapshotViewModel.addGroup(name, path, userId)
+        }
+        dismiss()
     }
 
     override fun onDestroyView() {
@@ -144,15 +198,19 @@ class AddGroupBottomSheet : BottomSheetDialogFragment() {
         const val TAG = "AddGroupBottomSheet"
         private const val ARG_SUGGESTED_PATH = "suggested_path"
         private const val ARG_SUGGESTED_NAME = "suggested_name"
+        private const val ARG_START_AS_SET = "start_as_set"
+        private const val STATE_ADDING_SET = "state_adding_set"
 
         fun newInstance(
             suggestedPath: String? = null,
             suggestedName: String? = null,
+            startAsSet: Boolean = false,
         ): AddGroupBottomSheet {
             return AddGroupBottomSheet().apply {
                 arguments = Bundle().apply {
                     if (suggestedPath != null) putString(ARG_SUGGESTED_PATH, suggestedPath)
                     if (suggestedName != null) putString(ARG_SUGGESTED_NAME, suggestedName)
+                    putBoolean(ARG_START_AS_SET, startAsSet)
                 }
             }
         }

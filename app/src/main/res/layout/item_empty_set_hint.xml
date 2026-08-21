@@ -3,17 +3,28 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/round_white_background"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="14dp">
+    android:paddingVertical="4dp">
+
+    <View
+        android:id="@+id/hint_membership_rail"
+        android:layout_width="3dp"
+        android:layout_height="match_parent"
+        android:layout_marginVertical="10dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_set_membership_rail"
+        android:minHeight="28dp" />
 
     <TextView
         android:id="@+id/hint_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
         android:text="@string/group_set_empty_add"
         android:textColor="@color/icon_secondary"
         android:textSize="14sp"

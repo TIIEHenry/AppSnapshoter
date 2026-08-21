@@ -7,6 +7,11 @@
         android:icon="@drawable/folder_add"
         app:showAsAction="always" />
     <item
+        android:id="@+id/menu_collapse_all"
+        android:title="@string/menu_collapse_all"
+        android:icon="@drawable/ic_chevron_up"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/menu_sort_groups"
         android:title="@string/menu_group_sort"
         android:icon="@drawable/group_sort_1"

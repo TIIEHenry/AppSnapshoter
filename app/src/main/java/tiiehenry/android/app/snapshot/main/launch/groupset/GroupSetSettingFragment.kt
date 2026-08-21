@@ -1,11 +1,14 @@
 package tiiehenry.android.app.snapshot.main.launch.groupset
 
 import android.app.AlertDialog
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.GridLayout
 import androidx.core.content.ContextCompat
+import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import tiiehenry.android.app.snapshot.R
@@ -13,6 +16,7 @@ import tiiehenry.android.app.snapshot.SingletonViewModelFactory
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.FragmentGroupSetSettingBinding
+import tiiehenry.android.app.snapshot.group.GroupSetColors
 import tiiehenry.android.app.snapshot.repository.AppDataRepository
 import tiiehenry.android.app.snapshot.utils.GroupPathPickerHelper
 
@@ -24,6 +28,7 @@ class GroupSetSettingFragment : BottomSheetDialogFragment() {
         SingletonViewModelFactory(SnapshotApp.getViewModel())
     }
     private lateinit var setId: String
+    private var selectedAccent: Int = GroupSetColors.PRESETS[0]
 
     private val pathPickerHelper = GroupPathPickerHelper(this) { absolutePath, uri ->
         binding.etSetPath.setText(absolutePath)
@@ -56,7 +61,15 @@ class GroupSetSettingFragment : BottomSheetDialogFragment() {
         }
         binding.etSetName.setText(set.name)
         binding.etSetPath.setText(set.path)
+        selectedAccent = set.accentColor
         binding.tilSetPath.setEndIconOnClickListener { pathPickerHelper.launch() }
+        binding.btnColorCustom.setOnClickListener {
+            AccentColorPickerDialog.show(requireContext(), selectedAccent) { picked ->
+                selectedAccent = picked
+                bindColorRow()
+            }
+        }
+        bindColorRow()
 
         binding.btnSave.apply {
             backgroundTintList = null
@@ -66,11 +79,108 @@ class GroupSetSettingFragment : BottomSheetDialogFragment() {
                 val name = binding.etSetName.text.toString().trim()
                 val path = binding.etSetPath.text.toString().trim()
                 if (name.isEmpty() || path.isEmpty()) return@setOnClickListener
-                snapshotViewModel.updateGroupSetPath(setId, path, name)
+                snapshotViewModel.updateGroupSetPath(
+                    setId = setId,
+                    newPath = path,
+                    newName = name,
+                    accentColor = selectedAccent,
+                )
                 dismiss()
             }
         }
         binding.btnDelete.setOnClickListener { showDeleteDialog(set.name) }
+    }
+
+    private fun bindColorRow() {
+        val row = binding.colorRow
+        if (row.width <= 0) {
+            row.post { bindColorRow() }
+            return
+        }
+        row.removeAllViews()
+
+        val density = resources.displayMetrics.density
+        val size = (28 * density).toInt()
+        val gap = (6 * density).toInt()
+        val strokeSelected = (2 * density).toInt()
+        val onSurface = ContextCompat.getColor(requireContext(), R.color.on_surface)
+
+        updateCustomColorButton()
+
+        val cell = size + gap
+        val columns = (row.width / cell).coerceAtLeast(1)
+        val sidePad = ((row.width - columns * cell) / 2).coerceAtLeast(0)
+        row.setPaddingRelative(sidePad, 0, sidePad, 0)
+        row.columnCount = columns
+
+        fun swatchLp(): GridLayout.LayoutParams =
+            GridLayout.LayoutParams().apply {
+                width = size
+                height = size
+                setMargins(gap / 2, gap / 2, gap / 2, gap / 2)
+            }
+
+        fun addColorSwatch(color: Int) {
+            val swatch = View(requireContext()).apply {
+                layoutParams = swatchLp()
+                background = (ContextCompat.getDrawable(requireContext(), R.drawable.bg_color_swatch)
+                    ?.mutate() as GradientDrawable).also { d ->
+                    d.setColor(color)
+                    d.setStroke(
+                        if (GroupSetColors.sameColor(color, selectedAccent)) strokeSelected else 0,
+                        onSurface,
+                    )
+                }
+                contentDescription = getString(R.string.group_set_color_label)
+                setOnClickListener {
+                    selectedAccent = color
+                    bindColorRow()
+                }
+            }
+            row.addView(swatch)
+        }
+
+        for (color in GroupSetColors.PRESETS) {
+            addColorSwatch(color)
+        }
+
+        if (!GroupSetColors.isPreset(selectedAccent)) {
+            addColorSwatch(selectedAccent)
+        }
+    }
+
+    private fun updateCustomColorButton() {
+        val density = resources.displayMetrics.density
+        val stroke = if (!GroupSetColors.isPreset(selectedAccent)) {
+            (2 * density).toInt()
+        } else {
+            0
+        }
+        val fill = if (GroupSetColors.isPreset(selectedAccent)) {
+            ContextCompat.getColor(requireContext(), R.color.fluent_fill_subtle)
+        } else {
+            selectedAccent
+        }
+        binding.btnColorCustom.background =
+            (ContextCompat.getDrawable(requireContext(), R.drawable.bg_color_swatch)
+                ?.mutate() as GradientDrawable).also { d ->
+                d.setColor(fill)
+                d.setStroke(
+                    stroke,
+                    ContextCompat.getColor(requireContext(), R.color.on_surface),
+                )
+            }
+        val iconTint = if (!GroupSetColors.isPreset(selectedAccent) &&
+            android.graphics.Color.luminance(selectedAccent) < 0.45
+        ) {
+            ContextCompat.getColor(requireContext(), R.color.white)
+        } else {
+            ContextCompat.getColor(requireContext(), R.color.icon_primary)
+        }
+        ImageViewCompat.setImageTintList(
+            binding.btnColorCustom,
+            android.content.res.ColorStateList.valueOf(iconTint),
+        )
     }
 
     private fun showDeleteDialog(setName: String) {

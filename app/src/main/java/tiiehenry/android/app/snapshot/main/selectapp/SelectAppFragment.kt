@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import android.widget.ImageButton
@@ -27,7 +28,7 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     private var _binding: FragmentSelectAppBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: AppsViewModel by activityViewModels()
+    private val viewModel: AppsViewModel by viewModels()
     private val snapshotViewModel: SnapshotViewModel by activityViewModels {
         SingletonViewModelFactory(SnapshotApp.getViewModel())
     }
@@ -93,6 +94,7 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewModel.resetFilters()
         appsListComponent.onViewCreated(viewLifecycleOwner)
     }
 
@@ -106,6 +108,9 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     override fun getFilterUserButton(binding: FragmentSelectAppBinding): ImageButton =
         binding.appsFilterRow.btnFilterUser
+
+    override fun getUngroupedFilterButton(binding: FragmentSelectAppBinding): ImageButton =
+        binding.appsFilterRow.btnFilterUngrouped
 
     override fun getTagsFilterLayout(binding: FragmentSelectAppBinding): TagsFilterLayout = binding.tagsFilterLayout
 

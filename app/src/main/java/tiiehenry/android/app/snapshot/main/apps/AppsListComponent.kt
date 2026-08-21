@@ -1,5 +1,6 @@
 package tiiehenry.android.app.snapshot.main.apps
 
+import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
@@ -55,6 +56,7 @@ class AppsListComponent<VB : ViewBinding>(
         fun getUserTabLayout(binding: VB): TabLayout
         fun getFilterSystemButton(binding: VB): ImageButton
         fun getFilterUserButton(binding: VB): ImageButton
+        fun getUngroupedFilterButton(binding: VB): ImageButton? = null
         fun getTagsFilterLayout(binding: VB): TagsFilterLayout
         fun getSearchFieldBinding(binding: VB): LayoutSearchFieldBinding
         fun getSearchToggle(binding: VB): ImageView
@@ -81,6 +83,7 @@ class AppsListComponent<VB : ViewBinding>(
 
         // 设置 Filter 图标按钮
         setupFilterIconToggles()
+        setupUngroupedToggle()
 
         // 设置 Tags Filter
         setupTagsFilter()
@@ -192,6 +195,16 @@ class AppsListComponent<VB : ViewBinding>(
             callbacks.getFilterUserButton(binding)
         ) { filterType ->
             viewModel.setFilterType(filterType)
+        }
+    }
+
+    private fun setupUngroupedToggle() {
+        val button = callbacks.getUngroupedFilterButton(binding) ?: return
+        button.visibility = View.VISIBLE
+        button.isSelected = false
+        button.setOnClickListener {
+            button.isSelected = !button.isSelected
+            viewModel.setUngroupedOnly(button.isSelected)
         }
     }
 

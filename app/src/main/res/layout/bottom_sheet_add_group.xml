@@ -7,15 +7,44 @@
     android:padding="16dp">
 
     <TextView
+        android:id="@+id/tv_add_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:gravity="center"
         android:text="@string/group_add_title"
         android:textSize="18sp"
         android:textStyle="bold" />
 
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/toggle_add_kind"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        app:checkedButton="@id/btn_kind_group"
+        app:selectionRequired="true"
+        app:singleSelection="true">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_kind_group"
+            style="@style/Widget.AppSnapshot.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/menu_add_group_choice" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_kind_set"
+            style="@style/Widget.AppSnapshot.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/menu_add_group_set_choice" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til_group_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
@@ -35,7 +64,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:hint="@string/group_path_hint"
-        app:endIconContentDescription="选择路径"
+        app:endIconContentDescription="@string/group_path_hint"
         app:endIconDrawable="@drawable/ic_folder_open"
         app:endIconMode="custom">
 
@@ -49,18 +78,25 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
+    <LinearLayout
+        android:id="@+id/user_section"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
-        android:text="@string/user_label"
-        android:textSize="14sp" />
+        android:orientation="vertical">
 
-    <Spinner
-        android:id="@+id/spinner_user_id"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="@string/user_label"
+            android:textSize="14sp" />
+
+        <Spinner
+            android:id="@+id/spinner_user_id"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

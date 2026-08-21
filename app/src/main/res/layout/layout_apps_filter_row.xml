@@ -46,6 +46,14 @@
             app:srcCompat="@drawable/ic_filter_user" />
 
         <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/btn_filter_ungrouped"
+            style="@style/Widget.AppSnapshot.FilterRowIcon.Toggle"
+            android:layout_marginStart="@dimen/filter_row_icon_spacing"
+            android:contentDescription="@string/app_filter_ungrouped"
+            android:visibility="gone"
+            app:srcCompat="@drawable/ic_filter_ungrouped" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/btn_search_toggle"
             style="@style/Widget.AppSnapshot.FilterRowIcon"
             android:layout_marginStart="@dimen/filter_row_icon_spacing"

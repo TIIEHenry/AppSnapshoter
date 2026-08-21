@@ -4,18 +4,21 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/bg_group_set_header"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingHorizontal="8dp"
     android:paddingVertical="6dp">
 
     <ImageView
+        android:id="@+id/set_expand_icon"
         android:layout_width="20dp"
         android:layout_height="20dp"
         android:layout_marginEnd="8dp"
         android:contentDescription="@null"
-        android:src="@drawable/ic_folder_open"
-        app:tint="@color/icon_secondary" />
+        android:src="@drawable/chevron_down"
+        app:tint="@color/fluent_accent" />
 
     <TextView
         android:id="@+id/set_title"

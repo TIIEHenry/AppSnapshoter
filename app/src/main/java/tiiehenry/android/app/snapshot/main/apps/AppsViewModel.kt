@@ -21,6 +21,7 @@ class AppsViewModel : ViewModel() {
     private var currentFilterType: Set<AppFilterType> = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
     private var currentUserId: Int= 0
     private var selectedTagIds: Set<String> = emptySet()
+    private var ungroupedOnly: Boolean = false
 
     // 缓存每个应用的标签，避免重复计算
     private var appTagsCache: Map<String, List<AppTag>> = emptyMap()
@@ -93,6 +94,22 @@ class AppsViewModel : ViewModel() {
         selectedTagIds = emptySet()
     }
 
+    fun setUngroupedOnly(ungroupedOnly: Boolean) {
+        this.ungroupedOnly = ungroupedOnly
+        applyFilter()
+    }
+
+    /**
+     * 还原搜索、系统/用户、用户 Tab、标签与未分组筛选到默认状态。
+     */
+    fun resetFilters() {
+        currentQuery = ""
+        currentFilterType = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
+        currentUserId = 0
+        selectedTagIds = emptySet()
+        ungroupedOnly = false
+    }
+
     private fun applyFilter() {
         viewModelScope.launch {
             // 获取当前用户的应用列表
@@ -100,11 +117,33 @@ class AppsViewModel : ViewModel() {
 
             // 按标签过滤（使用缓存的标签）
             result = filterAppsByTagsWithCache(result, selectedTagIds)
+            result = filterUngrouped(result)
 
             // 按搜索词和类型过滤
             filteredAppList.value =
                 AppFilterHelper.filterApps(result, currentQuery, currentFilterType)
         }
+    }
+
+    private fun filterUngrouped(apps: List<AppInfo>): List<AppInfo> {
+        if (!ungroupedOnly) {
+            return apps
+        }
+        val groupedKeys = groupedAppKeys()
+        return apps.filter { app -> "${app.packageName}:${app.userId}" !in groupedKeys }
+    }
+
+    private fun groupedAppKeys(): Set<String> {
+        val groups = groupsProvider?.invoke().orEmpty()
+        val keys = HashSet<String>()
+        for (group in groups) {
+            val members = synchronized(group.apps) { group.apps.toList() }
+            for (archived in members) {
+                val pkg = java.nio.file.Paths.get(archived.packageDir).fileName.toString()
+                keys.add("$pkg:${group.userId}")
+            }
+        }
+        return keys
     }
 
     /**

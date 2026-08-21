@@ -14,6 +14,7 @@ import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.config.ConfigFiles
 import tiiehenry.android.app.snapshot.config.GlobalConfig
 import tiiehenry.android.app.snapshot.group.ArchiveRoot
+import tiiehenry.android.app.snapshot.group.GroupSetColors
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
 import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
@@ -171,15 +172,22 @@ class AppDataRepository private constructor() {
             when (item) {
                 is ArchiveListProjector.DraftItem.SetHeader -> {
                     val set = setsById[item.setId] ?: return@mapNotNull null
-                    ArchiveListItem.SetHeader(set, item.groupCount, item.expanded)
+                    ArchiveListItem.SetHeader(
+                        set = set,
+                        groupCount = item.groupCount,
+                        expanded = item.expanded,
+                        name = set.name,
+                        accentColor = set.accentColor,
+                    )
                 }
                 is ArchiveListProjector.DraftItem.GroupCard -> {
                     val group = groupsById[item.groupId] ?: return@mapNotNull null
-                    ArchiveListItem.GroupCard(group, item.setId)
+                    val accent = item.setId?.let { setsById[it]?.accentColor }
+                    ArchiveListItem.GroupCard(group, item.setId, accent)
                 }
                 is ArchiveListProjector.DraftItem.EmptySetHint -> {
                     val set = setsById[item.setId] ?: return@mapNotNull null
-                    ArchiveListItem.EmptySetHint(set)
+                    ArchiveListItem.EmptySetHint(set, set.accentColor)
                 }
             }
         }
@@ -303,6 +311,7 @@ class AppDataRepository private constructor() {
                     set.path = normalizedPath
                     set.name = name
                     set.isCollapsed = true
+                    set.accentColor = GroupSetColors.defaultFor(setId)
                     set.save()
 
                     GlobalConfig.archiveRoots = GlobalConfig.archiveRoots + ArchiveRoot.Set(setId)
@@ -518,6 +527,29 @@ class AppDataRepository private constructor() {
         }
     }
 
+    /** 一键折叠：所有分组集 Header + 所有分组卡片 body。 */
+    fun collapseAllArchive(
+        context: Context,
+        fileSystem: IFileSystem,
+        appManager: IAppManager,
+    ) {
+        scope.launch {
+            try {
+                loadGroupsMutex.withLock {
+                    for (set in groupSetList.value.orEmpty()) {
+                        set.isCollapsed = true
+                    }
+                    for (group in groupList.value.orEmpty()) {
+                        group.isCollapsed = true
+                    }
+                    reloadGroupsLocked(context, fileSystem, appManager)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "collapseAllArchive failed", e)
+            }
+        }
+    }
+
     fun saveArchiveRootsOrder(
         context: Context,
         fileSystem: IFileSystem,
@@ -629,6 +661,7 @@ class AppDataRepository private constructor() {
         setId: String,
         newPath: String,
         newName: String? = null,
+        accentColor: Int? = null,
         onComplete: (() -> Unit)? = null,
     ) {
         scope.launch {
@@ -638,6 +671,7 @@ class AppDataRepository private constructor() {
                         ?: SnapGroupSet(setId)
                     set.path = GroupSetMembership.normalizePath(newPath)
                     if (newName != null) set.name = newName
+                    if (accentColor != null) set.accentColor = accentColor
                     set.save()
                     discoverGroupsLocked(fileSystem, set)
                     reloadGroupsLocked(context, fileSystem, appManager)

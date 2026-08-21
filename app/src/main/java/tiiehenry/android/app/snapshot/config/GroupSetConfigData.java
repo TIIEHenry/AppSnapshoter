@@ -14,6 +14,9 @@ public class GroupSetConfigData {
 
     public List<String> groupOrder = new ArrayList<>();
 
+    /** ARGB hex，如 #FF0078D4；缺省时本机按 setId 选默认色 */
+    public String accentColor;
+
     public static GroupSetConfigData fromJson(String jsonString) {
         GroupSetConfigData data = JSON.parseObject(jsonString, GroupSetConfigData.class);
         if (data == null) {

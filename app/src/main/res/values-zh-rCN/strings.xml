@@ -9,6 +9,7 @@
     <!-- 应用筛选 -->
     <string name="app_filter_system">系统应用</string>
     <string name="app_filter_user">用户应用</string>
+    <string name="app_filter_ungrouped">未分组应用</string>
     <string name="tags_filter_expand">展开标签</string>
     <string name="tags_filter_collapse">收起标签</string>
 
@@ -216,11 +217,19 @@
     <string name="group_set_name_hint">分组集名称</string>
     <string name="group_set_path_hint">分组集路径</string>
     <string name="group_set_empty_add">在此添加分组</string>
+    <string name="group_set_color_label">强调色</string>
+    <string name="group_set_color_custom">自定义颜色</string>
+    <string name="group_set_color_picker_title">选择颜色</string>
+    <string name="group_set_color_hex_hint">十六进制</string>
+    <string name="group_set_color_hue">色相</string>
+    <string name="group_set_color_saturation">饱和度</string>
+    <string name="group_set_color_value">明度</string>
     <string name="group_upgrade_to_set">升级为分组集</string>
     <string name="group_upgrade_to_set_title">升级为分组集</string>
     <string name="group_upgrade_to_set_message">将空分组「%s」改为分组集，并扫描其子目录？</string>
     <string name="group_sort_two_level_hint">拖动调整顶层顺序；点分组集展开后可调整集内顺序</string>
     <string name="group_set_count_format">%d 个分组</string>
+    <string name="group_set_jump_content_description">存档，长按跳转到分组集</string>
     <string name="group_set_added_toast">已添加分组集「%1$s」，发现 %2$d 个分组</string>
     <string name="group_set_refresh_result">发现 %d 个新分组</string>
     <string name="group_set_delete_button">删除分组集</string>
@@ -389,6 +398,7 @@
 
     <!-- 菜单 -->
     <string name="menu_add_group">添加分组</string>
+    <string name="menu_collapse_all">一键折叠</string>
     <string name="menu_group_sort">分组排序</string>
 
     <!-- 其他 -->

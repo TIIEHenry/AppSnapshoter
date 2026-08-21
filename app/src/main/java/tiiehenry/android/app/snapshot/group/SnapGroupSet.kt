@@ -40,6 +40,12 @@ data class SnapGroupSet(
             config.isCollapsed = value
         }
 
+    var accentColor: Int
+        get() = config.accentColor
+        set(value) {
+            config.accentColor = value
+        }
+
     /** 集内顺序：直接子目录 basename */
     var groupOrder: List<String>
         get() = config.data.groupOrder?.toList() ?: emptyList()

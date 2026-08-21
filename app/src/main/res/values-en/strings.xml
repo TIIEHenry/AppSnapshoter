@@ -9,6 +9,7 @@
     <!-- App filters -->
     <string name="app_filter_system">System apps</string>
     <string name="app_filter_user">User apps</string>
+    <string name="app_filter_ungrouped">Ungrouped apps</string>
     <string name="tags_filter_expand">Expand tags</string>
     <string name="tags_filter_collapse">Collapse tags</string>
 
@@ -216,11 +217,19 @@
     <string name="group_set_name_hint">Group set name</string>
     <string name="group_set_path_hint">Group set path</string>
     <string name="group_set_empty_add">Add a group here</string>
+    <string name="group_set_color_label">Accent color</string>
+    <string name="group_set_color_custom">Custom color</string>
+    <string name="group_set_color_picker_title">Pick a color</string>
+    <string name="group_set_color_hex_hint">Hex</string>
+    <string name="group_set_color_hue">Hue</string>
+    <string name="group_set_color_saturation">Saturation</string>
+    <string name="group_set_color_value">Brightness</string>
     <string name="group_upgrade_to_set">Upgrade to group set</string>
     <string name="group_upgrade_to_set_title">Upgrade to group set</string>
     <string name="group_upgrade_to_set_message">Turn empty group \"%s\" into a group set and scan its subfolders?</string>
     <string name="group_sort_two_level_hint">Drag to reorder top-level blocks; tap a set to expand and reorder groups inside</string>
     <string name="group_set_count_format">%d groups</string>
+    <string name="group_set_jump_content_description">Archive, long-press to jump to a group set</string>
     <string name="group_set_added_toast">Added group set \"%1$s\", found %2$d groups</string>
     <string name="group_set_refresh_result">Found %d new groups</string>
     <string name="group_set_delete_button">Delete group set</string>
@@ -389,6 +398,7 @@
 
     <!-- Menu -->
     <string name="menu_add_group">Add group</string>
+    <string name="menu_collapse_all">Collapse all</string>
     <string name="menu_group_sort">Group order</string>
 
     <!-- Misc -->

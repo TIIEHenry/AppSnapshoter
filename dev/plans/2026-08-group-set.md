@@ -3,7 +3,7 @@ title: "分组集实施计划"
 type: plan
 status: implemented
 updated: 2026-08-21
-summary: "Phase 1–3 已落地：模型/投影/UI/两级排序/底栏 PopupMenu 快跳；可选时间线集名显示未做"
+summary: "Phase 1–3 已落地：模型/投影/UI/两级排序/底栏拖选快跳；可选时间线集名显示未做"
 ---
 
 # 分组集实施计划
@@ -42,7 +42,7 @@ summary: "Phase 1–3 已落地：模型/投影/UI/两级排序/底栏 PopupMenu
 - [x] `GroupSortBottomSheet` 两级；只写 `archiveRoots` / basename `groupOrder`
 - [x] `navigateToGroup`：`submitList { tryConsumeNavigate() }`；时间线走 `requestNavigateToGroup`
 - [x] `navigateToGroupSet` 滚 Header 不改折叠
-- [x] `GroupSetJumpTouchSession`：超时后 PopupMenu（未移植 Singular 拖选 hover）
+- [x] `GroupSetJumpTouchSession` + `GroupSetJumpPopup`：长按超时弹出，支持点选与拖选
 - [ ] （可选）时间线条目 `集名 / 分组名`
 
 ## 验收标准
