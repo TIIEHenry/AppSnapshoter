@@ -107,20 +107,14 @@ object AppStatusHelper {
     }
 
     /**
-     * 快照前准备：强停进程后挂起应用。
-     * @return 挂起是否成功（强停失败不会阻断备份，但会记录日志）
+     * 快照前准备：仅挂起应用（不做 forceStop，避免部分机型/银行包在强停后 APK 路径短暂不可读）。
+     * @return 挂起是否成功
      */
     fun preparePackageForSnapshot(packageName: String, userId: Int): Boolean {
         val appManager = SnapshotApp.getInstance().appManager
         if (!isInstalledSafe(appManager, packageName, userId)) {
             Log.w(TAG, "preparePackageForSnapshot skipped, not installed: $packageName user=$userId")
             return false
-        }
-
-        val forceStopOk = runCatching { appManager.forceStopPackage(packageName, userId) }
-            .getOrDefault(false)
-        if (!forceStopOk) {
-            Log.w(TAG, "forceStopPackage failed: $packageName user=$userId")
         }
 
         val suspendOk = runCatching { appManager.suspendPackage(packageName, userId) }

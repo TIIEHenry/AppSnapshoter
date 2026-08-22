@@ -23,6 +23,34 @@ import java.util.concurrent.atomic.AtomicBoolean
 object TarCompressor : IAlgorithmCompressor {
     private const val TAG = "TarCompressor"
 
+    /**
+     * 将压缩回调的完成/失败同步到 [ITaskHandler] 状态，供 SnapshotCreator 中止判定。
+     */
+    private fun wrapStatefulCallback(
+        callback: ICompressCallback,
+        setState: (Int) -> Unit
+    ): ICompressCallback {
+        return object : ICompressCallback.Stub() {
+            override fun onStart() {
+                callback.onStart()
+            }
+
+            override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
+                callback.onProgress(bytesWritten, bytesPerS)
+            }
+
+            override fun onDone(originSize: Long, targetSize: Long, md5: String) {
+                setState(CompressState.COMPRESS_STATE_COMPLETE)
+                callback.onDone(originSize, targetSize, md5)
+            }
+
+            override fun onError(msg: String?) {
+                setState(CompressState.COMPRESS_STATE_ERROR)
+                callback.onError(msg)
+            }
+        }
+    }
+
     override fun compress(
         context: Context,
         fileSystem: IFileSystem,
@@ -48,7 +76,15 @@ object TarCompressor : IAlgorithmCompressor {
 
             override fun start() {
                 state = CompressState.COMPRESS_STATE_RUNNING
-                doCompress(context, fileSystem, dir, targetFile, excludes, excludeFiles, callback)
+                doCompress(
+                    context,
+                    fileSystem,
+                    dir,
+                    targetFile,
+                    excludes,
+                    excludeFiles,
+                    wrapStatefulCallback(callback) { state = it }
+                )
             }
 
             override fun cancel() {
@@ -208,7 +244,11 @@ object TarCompressor : IAlgorithmCompressor {
             override fun start() {
                 state = CompressState.COMPRESS_STATE_RUNNING
                 doCompressMultiple(
-                    context, fileSystem, files, targetFile, callback
+                    context,
+                    fileSystem,
+                    files,
+                    targetFile,
+                    wrapStatefulCallback(callback) { state = it }
                 )
             }
 

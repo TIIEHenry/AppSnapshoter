@@ -367,10 +367,22 @@ class GroupItemAdapter(
             val snapshotCreator = SnapshotCreator(binding.root.context, viewModel.viewModelScope)
             snapshotCreator.createSnapshot(item, group, object : SnapshotCreator.Callback {
                 override fun onSuccess() {
+                    Toast.makeText(
+                        binding.root.context,
+                        R.string.snapshot_single_success,
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
 
                 override fun onError(e: Exception) {
-
+                    Toast.makeText(
+                        binding.root.context,
+                        binding.root.context.getString(
+                            R.string.snapshot_single_failed,
+                            e.message ?: e.javaClass.simpleName
+                        ),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
 
                 override fun onFinish() {

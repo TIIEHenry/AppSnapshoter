@@ -2,6 +2,7 @@ package tiiehenry.android.app.snapshot.main.launch.makearchive
 
 import android.content.Context
 import android.text.format.Formatter
+import android.util.Log
 import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +23,9 @@ import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.ItemProgr
 import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 import tiiehenry.android.snapshot.file.ICompressCallback
 import tiiehenry.android.snapshot.fs.CompressState
+import tiiehenry.android.snapshot.task.ITaskHandler
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.collections.iterator
 
 /**
@@ -74,12 +77,18 @@ class SnapshotCreator(
         isCanceled: AtomicBoolean,
         callback: Callback? = null
     ) {
-        val onError = { msg: Exception ->
+        val failed = AtomicBoolean(false)
+        val errorMessage = AtomicReference<String?>(null)
+
+        val reportError = { msg: Exception ->
+            failed.set(true)
+            errorMessage.compareAndSet(null, msg.message)
             loadingDialog.setItemException(msg)
         }
-        val onErrorCallback = { msg: String ->
-            onError(ArchiveFailedException(msg))
+        val reportErrorMessage = { msg: String ->
+            reportError(ArchiveFailedException(msg))
         }
+
         viewModelScope.launch(Dispatchers.Default) {
             val packageDir = item.packageDir
             val guard = tiiehenry.android.app.snapshot.repository.AppDataRepository.getInstance().packageOpGuard
@@ -91,7 +100,11 @@ class SnapshotCreator(
             }
             if (!acquiredPackage) {
                 withContext(Dispatchers.Main) {
-                    onErrorCallback(context.getString(R.string.batch_operation_in_progress))
+                    val ex = ArchiveFailedException(
+                        context.getString(R.string.batch_operation_in_progress)
+                    )
+                    reportError(ex)
+                    callback?.onError(ex)
                     callback?.onFinish()
                 }
                 return@launch
@@ -110,7 +123,7 @@ class SnapshotCreator(
                 val packageName = item.appInfo.packageName
                 val userId = group.userId
 
-                // 强停并挂起应用，减少备份期间数据变更
+                // 挂起应用，减少备份期间数据变更（不做 forceStop）
                 if (!AppStatusHelper.preparePackageForSnapshot(packageName, userId)) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(
@@ -123,7 +136,7 @@ class SnapshotCreator(
 
                 // 创建压缩回调
                 val compressCallback =
-                    createCompressCallback(context, loadingDialog, onErrorCallback)
+                    createCompressCallback(context, loadingDialog, failed, reportErrorMessage)
 
                 val snapshotTasks = ArchiveMaker.makeSnapshot(
                     fs, appManager, item, item.appInfo, compressCallback, groupConfig, appConfig
@@ -136,8 +149,26 @@ class SnapshotCreator(
                         loadingDialog.setItemProgress(index * 100 / totalTask)
                     }
 
-                    // 先启动meta-info任务
-                    val job = tasks.remove("meta-info")?.let {
+                    suspend fun failAndAbort(reason: String) {
+                        Log.e(TAG, "snapshot aborted: $reason")
+                        fs.delete(snapshotTasks.dir)
+                        withContext(Dispatchers.Main) {
+                            val ex = ArchiveFailedException(
+                                errorMessage.get() ?: reason
+                            )
+                            if (!failed.get()) {
+                                reportError(ex)
+                            } else {
+                                // 已通过回调写入对话框；仍要通知上层
+                                loadingDialog.setItemException(ex)
+                            }
+                            callback?.onError(ex)
+                        }
+                    }
+
+                    // 先启动 meta-info 任务
+                    val metaHandler: ITaskHandler? = tasks.remove("meta-info")
+                    val metaJob = metaHandler?.let {
                         currentIndex++
                         withContext(Dispatchers.Main) {
                             updateIndex(currentIndex)
@@ -146,24 +177,44 @@ class SnapshotCreator(
                     }
                     // 执行其他任务
                     for (entry in tasks) {
-                        if (isCanceled.get()) {
-                            continue
+                        if (isCanceled.get() || failed.get()) {
+                            break
                         }
                         currentIndex++
                         withContext(Dispatchers.Main) {
+                            if (failed.get()) return@withContext
                             updateIndex(currentIndex)
                             loadingDialog.setCurrentItem(entry.key)
-                            loadingDialog.setItemMessage(context.getString(R.string.progress_processing))
+                            loadingDialog.setItemMessage(
+                                context.getString(R.string.progress_processing)
+                            )
                             loadingDialog.setItemStatus("...")
                         }
+                        if (failed.get()) {
+                            break
+                        }
                         entry.value.start()
-                        if (entry.value.state() == CompressState.COMPRESS_STATE_ERROR) {
-                            job?.await() // wait finish writing and propagate exception
-                            fs.delete(snapshotTasks.dir)
+                        if (failed.get() ||
+                            entry.value.state() == CompressState.COMPRESS_STATE_ERROR
+                        ) {
+                            metaJob?.await()
+                            failAndAbort(
+                                errorMessage.get()
+                                    ?: "task ${entry.key} failed (state=${entry.value.state()})"
+                            )
                             return@launch
                         }
                     }
-                    job?.await() // wait finish writing and propagate exception
+                    metaJob?.await()
+                    if (failed.get() ||
+                        metaHandler?.state() == CompressState.COMPRESS_STATE_ERROR
+                    ) {
+                        failAndAbort(
+                            errorMessage.get()
+                                ?: "meta-info failed (state=${metaHandler?.state()})"
+                        )
+                        return@launch
+                    }
                     if (isCanceled.get()) {
                         fs.delete(snapshotTasks.dir)
                         return@launch
@@ -178,14 +229,16 @@ class SnapshotCreator(
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        onErrorCallback("no task")
+                        val ex = ArchiveFailedException("no task")
+                        reportError(ex)
+                        callback?.onError(ex)
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     callback?.onError(e)
-                    onError(e)
+                    reportError(e)
                 }
             } finally {
                 if (!underGlobalBatch) {
@@ -216,6 +269,7 @@ class SnapshotCreator(
     private fun createCompressCallback(
         context: Context,
         loadingDialog: IItemProgressDialog,
+        failed: AtomicBoolean,
         onErrorCallback: (String) -> Unit
     ): ICompressCallback {
         return object : ICompressCallback.Stub() {
@@ -224,9 +278,13 @@ class SnapshotCreator(
             }
 
             override fun onProgress(bytesWritten: Long, bytesPerS: Long) {
+                if (failed.get()) return
                 viewModelScope.launch(Dispatchers.Main) {
+                    if (failed.get()) return@launch
                     val fileSize = Formatter.formatFileSize(context, bytesWritten)
-                    loadingDialog.setItemMessage(context.getString(R.string.progress_written, fileSize))
+                    loadingDialog.setItemMessage(
+                        context.getString(R.string.progress_written, fileSize)
+                    )
                     if (bytesPerS == 0L) {
                         loadingDialog.setItemStatus("...")
                     } else {
@@ -241,8 +299,11 @@ class SnapshotCreator(
             }
 
             override fun onError(msg: String?) {
+                val message = msg ?: "unknown"
+                // 同步标记，避免后续任务继续；UI 更新仍切主线程
+                failed.set(true)
                 viewModelScope.launch(Dispatchers.Main) {
-                    onErrorCallback(msg ?: "unknow")
+                    onErrorCallback(message)
                 }
             }
         }
