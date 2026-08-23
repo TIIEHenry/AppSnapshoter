@@ -175,6 +175,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         accentColor = accent,
                         collapsed = item.collapsed,
                         visiblePackages = item.visiblePackages,
+                        name = group.name,
+                        appsFingerprint = archiveAppsFingerprint(group),
                     )
                 }
                 is ArchiveSearchFilter.DraftItem.EmptySetHint -> {

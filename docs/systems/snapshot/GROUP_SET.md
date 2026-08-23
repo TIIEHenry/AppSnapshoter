@@ -443,7 +443,7 @@ sealed class ArchiveListItem {
 }
 ```
 
-示意不完整。完整字段见 `ArchiveListItem.kt`（`SetHeader.name` / `accentColor`、`GroupCard.accentColor`、`EmptySetHint`）。`collapsed` / `expanded` 必须在投影时快照，见 [折展性能](group-set-expand-perf.md)。
+示意不完整。完整字段见 `ArchiveListItem.kt`（`SetHeader.name` / `accentColor`、`GroupCard.accentColor` / `name` / `appsFingerprint`、`EmptySetHint`）。`collapsed` / `expanded` / `appsFingerprint` 必须在投影时快照，见 [折展性能](group-set-expand-perf.md)。
 
 `AppDataRepository` 的 `archiveList: LiveData<List<ArchiveListItem>>` 是存档 Tab **结构** SSOT。全量路径：`reloadGroupsLocked` 覆盖锁内工作集 `loadedGroups` / `loadedSets` → `postValue(groupList, groupSetList)` → `reprojectArchiveListLocked()` 只 `archiveList.postValue`。mutex 内禁止读 `*.value`。`groupList` 保持扁平，供时间线 / 主线程 `resolveGroup` / 标签。详见 [折展性能](group-set-expand-perf.md)。
 

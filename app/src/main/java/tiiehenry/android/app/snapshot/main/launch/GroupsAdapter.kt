@@ -469,7 +469,8 @@ class GroupsAdapter(
      * DiffUtil：折叠相关字段只比投影快照（[ArchiveListItem.SetHeader.expanded]、
      * [ArchiveListItem.GroupCard.collapsed]），禁止读 [SnapGroup.isCollapsed] /
      * [tiiehenry.android.app.snapshot.group.SnapGroupSet.isCollapsed] live getter。
-     * [ArchiveListItem.GroupCard.visiblePackages] 变化视为内容变化。
+     * [ArchiveListItem.GroupCard.visiblePackages] / [ArchiveListItem.GroupCard.appsFingerprint]
+     * 变化视为内容变化。禁止读 live [SnapGroup.apps]。
      */
     private class ArchiveDiffCallback : DiffUtil.ItemCallback<ArchiveListItem>() {
         override fun areItemsTheSame(oldItem: ArchiveListItem, newItem: ArchiveListItem): Boolean {
@@ -494,18 +495,8 @@ class GroupsAdapter(
                 oldItem is ArchiveListItem.EmptySetHint && newItem is ArchiveListItem.EmptySetHint ->
                     oldItem.set.path == newItem.set.path &&
                         oldItem.accentColor == newItem.accentColor
-                oldItem is ArchiveListItem.GroupCard && newItem is ArchiveListItem.GroupCard -> {
-                    val o = oldItem.group
-                    val n = newItem.group
-                    if (o.name != n.name) return false
-                    if (oldItem.collapsed != newItem.collapsed) return false
-                    if (oldItem.setId != newItem.setId) return false
-                    if (oldItem.accentColor != newItem.accentColor) return false
-                    if (oldItem.visiblePackages != newItem.visiblePackages) return false
-                    val oldPkgs = o.apps.map { it.appInfo.packageName }
-                    val newPkgs = n.apps.map { it.appInfo.packageName }
-                    oldPkgs == newPkgs
-                }
+                oldItem is ArchiveListItem.GroupCard && newItem is ArchiveListItem.GroupCard ->
+                    archiveGroupCardContentsTheSame(oldItem, newItem)
                 else -> false
             }
         }
@@ -530,4 +521,20 @@ internal fun filterVisibleApps(
     visiblePackages: Set<String>?,
 ): List<ArchivedApp> =
     visiblePackages?.let { pkgs -> sorted.filter { it.appInfo.packageName in pkgs } } ?: sorted
+
+/**
+ * GroupCard 内容比较只吃投影快照（name / collapsed / fingerprint），禁止读 live apps。
+ * 同一 [SnapGroup] 原地改 apps 后，新旧卡片必须靠 [ArchiveListItem.GroupCard.appsFingerprint] 才能 Diff 到。
+ */
+internal fun archiveGroupCardContentsTheSame(
+    oldItem: ArchiveListItem.GroupCard,
+    newItem: ArchiveListItem.GroupCard,
+): Boolean {
+    if (oldItem.name != newItem.name) return false
+    if (oldItem.collapsed != newItem.collapsed) return false
+    if (oldItem.setId != newItem.setId) return false
+    if (oldItem.accentColor != newItem.accentColor) return false
+    if (oldItem.visiblePackages != newItem.visiblePackages) return false
+    return oldItem.appsFingerprint == newItem.appsFingerprint
+}
 

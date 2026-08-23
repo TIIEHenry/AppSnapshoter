@@ -253,10 +253,12 @@ data class GroupCard(
     val collapsed: Boolean,
     /** null = 组内全部应用；非 null = 网格只显示这些包名 */
     val visiblePackages: Set<String>? = null,
+    val name: String,                 // 投影时组名快照
+    val appsFingerprint: List<String>, // 投影时 apps 包名指纹
 )
 ```
 
-`materializeArchiveList` 继续只填 `visiblePackages = null`。DiffUtil：`visiblePackages` 变化视为内容变化。组名命中 + `apps` 从空变有时同 `SnapGroup` 实例可能让 DiffUtil 跳过——物化带 **apps 包名指纹**（或 `groupList` 更新后强制 `refresh` 可见卡片）。
+`materializeArchiveList` 与搜索物化都写入 `name` + `appsFingerprint`。DiffUtil 只比这些快照，**禁止**再读 live `group.apps` / `group.name`（同一 `SnapGroup` 原地改 apps 后两边会是同一可变列表）。`visiblePackages` 变化仍视为内容变化。
 
 ### 展示折叠：`displayCollapsed`（禁止全局改 bind 只吃投影）
 
@@ -289,13 +291,14 @@ Adapter 级 `searchQuery` + highlight payload，覆盖：组标题、`SetHeader`
 
 ```text
 navigateToGroup / navigateToGroupSet 到达
-  → 若 searchQuery 非空：clearSearch()（只改 LiveData）
-  → 不要在这一拍 tryConsumeNavigate
-  → displayedArchiveList 因 query 变空而提交未过滤 archiveList
-  → submitList commit 后：仅当 searchQuery.isBlank() 才 tryConsumeNavigate
+  → 若 searchQuery 非空：clearSearch()（只改 LiveData），本拍不 consume
+  → 若 searchQuery 已空白：也不对本拍 currentList consume
+      （刚清空搜索时 raw archiveList 的 submitList 可能尚未 commit）
+  → 已空白时重走 submitDisplayedList；displayedArchiveList 因 query 变空也会提交未过滤 archiveList
+  → submitList commit 后：仅当 searchQuery.isBlank() 且 items === archiveList 才 tryConsumeNavigate
 ```
 
-`clearSearch()` 不是同步 `submitList`。过滤态第一次 `indexOfFirst` 命中后立刻 `value = null` 会滚偏或丢掉 `pendingPackage`。
+`clearSearch()` 不是同步 `submitList`。`navigateToGroup` 观察者禁止在 query 空白时立刻 `tryConsumeNavigate`：过滤态 `currentList` 上 `indexOfFirst` 后立刻 `value = null` 会滚偏或丢掉 `pendingPackage`。
 
 `GroupSetStickyHeader` 继续看 `currentList`。空结果时 sticky `gone`。
 

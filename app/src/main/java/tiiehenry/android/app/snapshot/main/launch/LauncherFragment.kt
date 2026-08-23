@@ -158,11 +158,12 @@ class LauncherFragment : Fragment() {
         Log.d("LauncherFragment", "displayedArchiveList size=${items.size} queryBlank=${query.isEmpty()}")
         groupsAdapter.submitList(items) {
             stickySetHeader?.update()
-            val archive = snapshotViewModel.archiveList.value
-            val canConsume = viewModel.searchQuery.value.orEmpty().isBlank() &&
-                archive != null &&
-                items === archive
-            if (canConsume) {
+            if (canConsumeNavigateAfterSubmit(
+                    viewModel.searchQuery.value.orEmpty(),
+                    items,
+                    snapshotViewModel.archiveList.value,
+                )
+            ) {
                 tryConsumeNavigate()
             }
         }
@@ -170,7 +171,8 @@ class LauncherFragment : Fragment() {
 
     /**
      * 有 pending 且 query 非空：只 clearSearch，本拍不 consume。
-     * tryConsumeNavigate 仅当 query 空白且本次 commit 是未过滤 archiveList。
+     * query 已空白时也不对本拍 currentList consume（刚清空搜索时 raw submitList 可能未 commit）。
+     * tryConsumeNavigate 仅在未过滤 archiveList 的 submitList commit 里。
      */
     private fun onNavigatePending() {
         val hasPending = snapshotViewModel.navigateToGroup.value != null ||
@@ -182,7 +184,8 @@ class LauncherFragment : Fragment() {
             searchController?.collapse()
             return
         }
-        tryConsumeNavigate()
+        val items = viewModel.displayedArchiveList.value ?: return
+        submitDisplayedList(items)
     }
 
     /**
@@ -241,3 +244,13 @@ class LauncherFragment : Fragment() {
         _binding = null
     }
 }
+
+/**
+ * 仅当提交的是未过滤 [archiveList] 且 query 空白才允许 consume。
+ * 身份比较必须是引用（`===`），不能用 currentList（ListAdapter 会包一层 unmodifiable）。
+ */
+internal fun canConsumeNavigateAfterSubmit(
+    query: String,
+    submittedItems: List<ArchiveListItem>,
+    archiveList: List<ArchiveListItem>?,
+): Boolean = query.isBlank() && archiveList != null && submittedItems === archiveList
