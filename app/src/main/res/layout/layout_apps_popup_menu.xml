@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/popup_menu_background"
+    android:clipToOutline="true"
+    android:elevation="16dp"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_add"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
+            android:layout_margin="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/apps_popup_add"
+            android:src="@drawable/folder_add"
+            app:tint="@color/icon_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_info"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
+            android:layout_margin="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/desc_info"
+            android:src="@drawable/information_slab_circle_outline"
+            app:tint="@color/icon_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
+            android:layout_margin="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/settings"
+            android:src="@drawable/cog_transfer"
+            app:tint="@color/icon_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_uninstall"
+            android:layout_width="@dimen/popup_btn_size"
+            android:layout_height="@dimen/popup_btn_size"
+            android:layout_margin="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/apps_popup_uninstall"
+            android:src="@drawable/delete_outline"
+            app:tint="@color/icon_primary" />
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/group_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:maxHeight="200dp" />
+
+</LinearLayout>

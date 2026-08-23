@@ -18,12 +18,23 @@ object AddAppsResultUi {
         if (conflicts.isEmpty()) {
             val busy = result.items.values.any { it is AddAppItemResult.Busy }
             val corrupt = result.items.values.any { it is AddAppItemResult.CorruptMultiOwner }
+            val error = result.items.values.filterIsInstance<AddAppItemResult.Error>().firstOrNull()
+            val alreadyAll = result.items.isNotEmpty() &&
+                result.items.values.all { it is AddAppItemResult.AlreadyHere }
             when {
                 corrupt -> Toast.makeText(
                     context, R.string.group_membership_corrupt, Toast.LENGTH_LONG
                 ).show()
                 busy -> Toast.makeText(
                     context, R.string.batch_operation_in_progress, Toast.LENGTH_SHORT
+                ).show()
+                error != null -> Toast.makeText(
+                    context,
+                    context.getString(R.string.apps_popup_add_failed, error.message),
+                    Toast.LENGTH_LONG
+                ).show()
+                alreadyAll -> Toast.makeText(
+                    context, R.string.apps_popup_already_here, Toast.LENGTH_SHORT
                 ).show()
             }
             return

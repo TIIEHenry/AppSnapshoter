@@ -427,6 +427,18 @@
     <string name="menu_collapse_all">一键折叠</string>
     <string name="menu_group_sort">分组排序</string>
 
+    <!-- 应用列表弹出菜单 -->
+    <string name="apps_popup_add">加入</string>
+    <string name="apps_popup_add_empty">没有可加入的独立组</string>
+    <string name="apps_popup_pick_group_title">选择独立组</string>
+    <string name="apps_popup_already_here">已在该组中</string>
+    <string name="apps_popup_add_failed">加入失败：%1$s</string>
+    <string name="apps_popup_group_gone">分组已不存在</string>
+    <string name="apps_popup_uninstall">卸载</string>
+    <string name="apps_popup_uninstall_title">卸载 %1$s？</string>
+    <string name="apps_popup_uninstall_message">将卸载该用户下的应用，分组中的存档不会删除。</string>
+    <string name="apps_popup_uninstall_failed">卸载失败</string>
+
     <!-- 其他 -->
     <string name="file_name_placeholder">文件名</string>
     <string name="archive_name_placeholder">存档名称</string>
