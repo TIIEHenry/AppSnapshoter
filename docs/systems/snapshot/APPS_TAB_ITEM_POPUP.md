@@ -3,7 +3,7 @@ title: "应用 Tab Item 长按 Popup"
 type: system
 status: implemented
 updated: 2026-08-23
-summary: "应用 Tab 长按复用存档 Item popup 壳：上排「加入」选独立组，另有系统信息 / 配置 / 卸载；下半列表展示已加入的组并跳转"
+summary: "应用 Tab 长按复用存档 Item popup 壳：上排「加入」选组（独立或集内），另有系统信息 / 配置 / 卸载；下半列表展示已加入的组并跳转"
 ---
 
 # 应用 Tab Item 长按 Popup
@@ -26,7 +26,7 @@ summary: "应用 Tab 长按复用存档 Item popup 壳：上排「加入」选�
 
 ## 快速摘要
 
-应用 Tab 长按不再弹 `AppMembershipDialog`。改为与存档主页 Item **同一架构**的 `PopupWindow`：上排图标按钮，下半 `RecyclerView`。列表 item 是该应用**已经加入的组**（独占优先、再共享），点组跳到存档 Tab。入组入口是上排**一个「加入」按钮**，再选独立组。同排另有系统应用信息 / 应用配置 / 卸载。加入走现有 `addAppsToGroup` + 冲突移动，不新开归属模型。
+应用 Tab 长按不再弹 `AppMembershipDialog`。改为与存档主页 Item **同一架构**的 `PopupWindow`：上排图标按钮，下半 `RecyclerView`。列表 item 是该应用**已经加入的组**（独占优先、再共享），点组跳到存档 Tab。入组入口是上排**一个「加入」按钮**，再选组（独立组与集内组均可，集内显示 `集名 / 组名`）。同排另有系统应用信息 / 应用配置 / 卸载。加入走现有 `addAppsToGroup` + 冲突移动，不新开归属模型。
 
 ---
 
@@ -115,7 +115,7 @@ summary: "应用 Tab 长按复用存档 Item popup 壳：上排「加入」选�
 | D6 | 入组入口 = 上排**一个「加入」按钮**，再 Dialog 选独立组 | 用户选定。列表只表示「已在哪些组」，不和候选组混排；不要列表末行「加入…」、不要同一列表点未加入组即加入 |
 | D7 | 上排共四键：「加入」/ 系统信息 / 应用配置 / 卸载 | 「加入」只负责入组；详情与卸载仍在同排，不塞进列表 item |
 | D8 | 单击仍打开 `AppConfigFragment` | 长按增强，不改浏览路径 |
-| D9 | 加入目标仅独立组，且 `group.userId == app.userId` | 用户原话「独立组」；跨 user 不入组 |
+| D9 | 加入目标 `group.userId == app.userId` | ~~用户原话「独立组」~~ **v1.1 勘误**：真机反馈后候选扩展为独立组 + 集内组（`GroupMembershipResolver.joinTargets`，扁平列表、标签 `集名 / 组名`）；跨 user 仍不入组 |
 | D10 | 选择独立组后走 `addAppsToGroup`；Conflict 走抽出的结果 UI → move | D9 of 归属方案：不变量在 repository |
 | D11 | 卸载：确认框 → `uninstallApk`；本应用自己禁用卸载 | 防误触；Root 卸载与现网包管理一致 |
 | D12 | 不把快照/锁定放进应用 Tab popup | 无所属组则无锁定列表、无存档树 |
@@ -143,7 +143,7 @@ summary: "应用 Tab 长按复用存档 Item popup 壳：上排「加入」选�
 ```text
 AppsItemPopup（PopupWindow，锚在被长按的 item）
 ├── 上排 ImageButton
-│   ├── btn_add            加入（选独立组）
+│   ├── btn_add            加入（选组：独立 / 集内）
 │   ├── btn_info          系统应用信息
 │   ├── btn_settings      AppConfigFragment
 │   └── btn_uninstall     卸载（确认）
@@ -166,7 +166,7 @@ flowchart TD
     C -->|应用配置| E[dismiss → AppConfigFragment]
     C -->|系统信息| F[dismiss → ACTION_APPLICATION_DETAILS_SETTINGS]
     C -->|卸载| G[确认 → IO 上 uninstallApk → scheduleLoadApps]
-    C -->|加入| H[独立组选择]
+    C -->|加入| H[选组 Dialog：独立 + 集内]
     H -->|无候选| I[Toast]
     H -->|选中一组| J[先 dismiss popup → addAppsToGroup]
     J --> K{结果}
@@ -176,7 +176,7 @@ flowchart TD
     K -->|Busy / Corrupt / Error| O[现有归属文案 Toast]
 ```
 
-**独立组选择（v1）**：`AlertDialog.setItems`，条目 = 候选独立组名，顺序与存档顶层独立 `GroupCard` 一致。候选定义见 [查询](#查询)。组很多时仍用 Dialog（与现冲突框一致）；不在 v1 做搜索。
+**选组 Dialog**：`AlertDialog.setItems`，条目 = 候选组显示名（独立组为组名，集内组为 `集名 / 组名`），顺序与 `archiveList` 一致。候选定义见 [查询](#查询)。组很多时仍用 Dialog（与现冲突框一致）；搜索见 Phase 2。
 
 **卸载确认**：标题用应用名；正文说明将卸载该用户下的应用，**不**删除任何分组里的存档目录。
 
@@ -218,21 +218,22 @@ rows = membership.exclusiveGroups.map { exclusive=true }
      + membership.sharedGroups.map { exclusive=false }
 ```
 
-**独立组候选**（加入按钮）：
+**加入候选**（加入按钮；v1.1 起含集内组）：
 
 ```text
-independent = archiveList
+targets = archiveList
   .filterIsInstance<GroupCard>()
-  .filter { it.setId == null }
-  .map { it.group }
+  .map { JoinTargetCard(it.group, it.setId, it.group.userId) }
   .filter { it.userId == app.userId }
-  .filter { !containsPackage(it, app.packageName) }
+  .filter { !containsPackage(it.group, app.packageName) }
+  .map { JoinTarget(it.group, it.setId, setId?.let(setNames[setId])) }
 ```
 
-- `archiveList` 为空或尚未投影：候选为空，Toast「没有可加入的独立组」。禁止 fallback 把集内组算进去。
-- 已在该独立组（独占或共享）的组不进候选（避免 AlreadyHere 往返）。若该应用已在另一独占组，候选里的其它独占独立组仍列出；选中后 repository 返回 `Conflict`，再走移动。
+- 显示名：独立组 = 组名；集内组 = `集名 / 组名`（集名从 `SnapshotViewModel.groupSetList` 解析）。
+- `archiveList` 为空或尚未投影：候选为空，Toast「没有可加入的分组」。
+- 已在该组（独占或共享）的组不进候选（避免 AlreadyHere 往返）。若该应用已在另一独占组，候选里的其它独占组仍列出；选中后 repository 返回 `Conflict`，再走移动。
 
-纯函数建议放 `GroupMembershipResolver`（或并列 `AppsPopupTargets`），单测覆盖：集内组排除、userId、已是成员排除。
+纯函数放 `GroupMembershipResolver.joinTargets(cards, pkg, userId, setNameOf)`，单测覆盖：userId、已是成员排除、集内组显示名前缀、archiveList 顺序。
 
 ### 加入
 
@@ -280,7 +281,7 @@ UI 用抽出的 `AddAppsResultUi`：**必须同时迁走** `handleAddAppsResult`
 | `main/apps/AppsPopupGroupAdapter.kt` | 新增 | 组行 ListAdapter |
 | `group/AddAppsResultUi.kt`（建议名） | 新增 | 迁走 `handleAddAppsResult` **与** `moveApps`；Controller / Apps 共用 |
 | `utils/AppDetailsLauncher.kt`（建议名） | 新增 | 系统应用信息；存档 popup 改调此处 |
-| `group/GroupMembershipResolver.kt` | 改 | `independentJoinTargets(...)` 纯函数 |
+| `group/GroupMembershipResolver.kt` | 改 | `joinTargets(...)` 纯函数（v1.1：独立 + 集内） |
 | `main/apps/AppsAdapter.kt` | 改 | 长按回调改为 `(View, AppInfo, AppGroupMembership)`，否则无锚点 |
 | `main/apps/AppsFragment.kt` | 改 | 长按 → popup；`onDestroyView` dismiss；传入 navigate / add / uninstall |
 | `main/apps/AppsViewModel.kt` | 改 | `groupList` 变化时重跑 `applyFilter()`；不承担入组写入 |
@@ -291,7 +292,7 @@ UI 用抽出的 `AddAppsResultUi`：**必须同时迁走** `handleAddAppsResult`
 | `SnapshotViewModel` | 改 | 加 `uninstallApp` 门面；`loadApps()` 已存在；禁止卸载走 `loadData()` |
 | `group/UninstallAppResult.kt` | 新增 | 卸载结果类型 |
 | `res/values*/strings.xml` | 改 | `apps_popup_*`；可保留 `app_membership_*` 给组行 |
-| `app/src/test/.../GroupMembershipResolverTest` 或新建 | 改/增 | 独立组候选 |
+| `app/src/test/.../GroupMembershipResolverTest` 或新建 | 改/增 | 加入候选（独立 + 集内） |
 
 ---
 
@@ -301,8 +302,8 @@ UI 用抽出的 `AddAppsResultUi`：**必须同时迁走** `handleAddAppsResult`
 
 | 场景 | 行为 |
 |------|------|
-| 无任何组 / 无独立组 | 加入 → Toast；列表空 |
-| 仅有集内组 | 加入候选为空（即使集内已有空位） |
+| 无任何组 / 无候选 | 加入 → Toast；列表空 |
+| 仅有集内组 | 集内组进候选，显示 `集名 / 组名`；选中后同 `addAppsToGroup` 管道 |
 | 已在唯一独占独立组 | 该组不在候选；其它独立共享组仍可加入 |
 | 目标独占且它处有独占 owner | Conflict → 移动 / 取消 |
 | 多独占损坏 | Toast `group_membership_corrupt`，不写盘 |
@@ -327,7 +328,7 @@ UI 用抽出的 `AddAppsResultUi`：**必须同时迁走** `handleAddAppsResult`
 
 | 类型 | 用例 |
 |------|------|
-| 单测 | 独立组候选：排除 `setId != null`、错 userId、已是成员 |
+| 单测 | 加入候选：错 userId、已是成员排除；集内组显示名 `集名 / 组名`、顺序同 `archiveList`（v1.1） |
 | 单测 | 组行顺序：独占全部在共享前 |
 | 真机 | 未分组 → 加入独立独占组 → 摘要更新、未分组筛选消失 |
 | 真机 | 已在独占 A → 加入独立独占 B → 冲突 → 移动后 A 无、B 有 |
@@ -370,7 +371,7 @@ UI 用抽出的 `AddAppsResultUi`：**必须同时迁走** `handleAddAppsResult`
 
 - [ ] 下半列表兼列未加入的独立组（点加入 / 点已加入则跳转）
 - [ ] 独立组选择改为带搜索的 BottomSheet
-- [ ] 允许加入集内组（二级：集名 / 组名）
+- [x] 允许加入集内组（扁平列表：`集名 / 组名`，按 `archiveList` 顺序；D9 勘误）
 - [ ] 长按新建独立组并加入
 
 ### 验收标准
@@ -379,7 +380,7 @@ UI 用抽出的 `AddAppsResultUi`：**必须同时迁走** `handleAddAppsResult`
 - [ ] 已加入组出现在 popup 列表；点组走 `requestNavigateToGroup`（含折叠集内组）
 - [ ] 未分组筛选下加入独占独立组后，该项从列表消失（`applyFilter` 重跑，不只改副标题）
 - [ ] 未分组应用列表为空，上排加入仍可用
-- [ ] 只能加入独立组；集内组不出现在选择列表
+- [ ] 只能加入独立组；集内组不出现在选择列表（**v1.1 勘误**：已改为独立 + 集内均可选，见 D9）
 - [ ] 独占冲突不写盘，移动与存档 Tab `+` 同一套对话框
 - [ ] 绕过 UI 调 `addAppsToGroup` 仍受 repository 守卫（本方案不削弱）
 - [ ] 单击仍打开应用配置
@@ -392,7 +393,7 @@ UI 用抽出的 `AddAppsResultUi`：**必须同时迁走** `handleAddAppsResult`
 | 风险 | 缓解 |
 |------|------|
 | 两套冲突 UI 分叉 | `AddAppsResultUi` 含 handle + move；Controller 只委托 |
-| 「独立组」算错，把集内组加进去 | 只认 `GroupCard.setId == null` |
+| 候选算错（漏组 / 多组） | 只从 `archiveList` `GroupCard` 投影；过滤只看 userId + `containsPackage` |
 | popup 无锚点 / 回收 | `AppsAdapter` 传 item `View`；`onDestroyView` dismiss |
 | 点击线程 `uninstallApk` ANR | IO + `scheduleLoadApps`；门闸用 `packageOpGuard` |
 | `repository.scope` 不可见 | `scheduleLoadApps` 必做，不用 VM `viewModelScope` 加载 catalog |

@@ -100,20 +100,22 @@ class AppsItemPopupMenu(
         val cards = snapshotViewModel.archiveList.value.orEmpty()
             .filterIsInstance<ArchiveListItem.GroupCard>()
             .map { JoinTargetCard(it.group, it.setId, it.group.userId) }
-        val targets = GroupMembershipResolver.independentJoinTargets(
+        val setNames = snapshotViewModel.groupSetList.value.orEmpty()
+            .associate { it.id to it.name }
+        val targets = GroupMembershipResolver.joinTargets(
             cards,
             appInfo.packageName,
             appInfo.userId,
-        )
+        ) { setId -> setNames[setId] }
         if (targets.isEmpty()) {
             Toast.makeText(context, R.string.apps_popup_add_empty, Toast.LENGTH_SHORT).show()
             return
         }
-        val names = targets.map { it.name }.toTypedArray()
+        val names = targets.map { it.displayName }.toTypedArray()
         AlertDialog.Builder(context)
             .setTitle(R.string.apps_popup_pick_group_title)
             .setItems(names) { _, which ->
-                val targetId = targets[which].id
+                val targetId = targets[which].group.id
                 dismiss()
                 snapshotViewModel.addAppsToGroup(targetId, listOf(appInfo)) { result ->
                     AddAppsResultUi.handle(

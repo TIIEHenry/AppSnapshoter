@@ -429,8 +429,8 @@
 
     <!-- 应用列表弹出菜单 -->
     <string name="apps_popup_add">加入</string>
-    <string name="apps_popup_add_empty">没有可加入的独立组</string>
-    <string name="apps_popup_pick_group_title">选择独立组</string>
+    <string name="apps_popup_add_empty">没有可加入的分组</string>
+    <string name="apps_popup_pick_group_title">选择分组</string>
     <string name="apps_popup_already_here">已在该组中</string>
     <string name="apps_popup_add_failed">加入失败：%1$s</string>
     <string name="apps_popup_group_gone">分组已不存在</string>

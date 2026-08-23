@@ -35,6 +35,15 @@ data class JoinTargetCard(
     val userId: Int,
 )
 
+data class JoinTarget(
+    val group: SnapGroup,
+    val setId: String?,
+    val setName: String?,
+) {
+    val displayName: String
+        get() = GroupMembershipResolver.joinDisplayName(group.name, setName)
+}
+
 data class AppsPopupGroupRow(
     val group: SnapGroup,
     val exclusive: Boolean,
@@ -157,13 +166,22 @@ object GroupMembershipResolver {
         membership.exclusiveGroups.map { AppsPopupGroupRow(it, exclusive = true) } +
             membership.sharedGroups.map { AppsPopupGroupRow(it, exclusive = false) }
 
-    fun independentJoinTargets(
+    fun joinTargets(
         cards: List<JoinTargetCard>,
         packageName: String,
         userId: Int,
-    ): List<SnapGroup> =
-        cards.filter { it.setId == null }
-            .filter { it.userId == userId }
+        setNameOf: (String) -> String? = { null },
+    ): List<JoinTarget> =
+        cards.filter { it.userId == userId }
             .filter { !containsPackage(it.group, packageName) }
-            .map { it.group }
+            .map { card ->
+                JoinTarget(
+                    card.group,
+                    card.setId,
+                    card.setId?.let(setNameOf)?.takeIf { it.isNotEmpty() },
+                )
+            }
+
+    fun joinDisplayName(groupName: String, setName: String?): String =
+        if (setName.isNullOrEmpty()) groupName else "$setName / $groupName"
 }

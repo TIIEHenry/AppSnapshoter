@@ -429,8 +429,8 @@
 
     <!-- Apps tab popup menu -->
     <string name="apps_popup_add">Add</string>
-    <string name="apps_popup_add_empty">No independent groups to join</string>
-    <string name="apps_popup_pick_group_title">Choose an independent group</string>
+    <string name="apps_popup_add_empty">No groups available to join</string>
+    <string name="apps_popup_pick_group_title">Choose a group</string>
     <string name="apps_popup_already_here">Already in this group</string>
     <string name="apps_popup_add_failed">Could not add: %1$s</string>
     <string name="apps_popup_group_gone">That group no longer exists</string>
