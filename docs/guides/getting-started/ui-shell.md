@@ -2,7 +2,7 @@
 title: "主界面壳层"
 type: guide
 status: active
-updated: 2026-08-21
+updated: 2026-08-23
 summary: "MainActivity / SettingsActivity 顶栏、底栏、竖屏锁定、可折叠搜索与内容区布局说明"
 ---
 
@@ -66,26 +66,26 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 
 | Tab | 顶栏下方内容 |
 |-----|----------------|
-| 存档 | `LauncherFragment` — 分组 RecyclerView |
+| 存档 | `LauncherFragment` — 顶栏 `menu_search` 可折叠搜索 + 分组 RecyclerView |
 | 时间线 | `TimelineFragment` — 筛选 Chip、可折叠搜索、热力图、列表 |
 | 应用 | `AppsFragment` — `apps_filter_header`：用户 Tab + 系统/用户图标筛选 + 搜索（`layout_apps_filter_row`，32dp 图标）；下方 Tag 行（单行滚动 + 展开/收起） |
 | 选应用 / 忽略应用 | `SelectAppFragment`、`IgnoreAppsFragment` — 同上筛选/搜索模式 |
 
 ### 可折叠搜索
 
-时间线、应用 Tab 及选应用/忽略应用 BottomSheet 共用一套搜索 UI：
+时间线、存档 Tab、应用 Tab 及选应用/忽略应用 BottomSheet 共用一套搜索 UI：
 
 | 项 | 说明 |
 |----|------|
-| 触发控件 | 筛选行右侧 `AppCompatImageButton`（`Widget.AppSnapshot.FilterRowIcon` 32dp / `FilterToolbarIcon` 44dp）；`scaleType=fitCenter` + `filter_row_icon_inset` 保证图标居中 |
+| 触发控件 | 筛选行右侧 `AppCompatImageButton`（`Widget.AppSnapshot.FilterRowIcon` 32dp / `FilterToolbarIcon` 44dp）；`scaleType=fitCenter` + `filter_row_icon_inset` 保证图标居中。存档 Tab 无筛选行：`menu_launcher` 最左 `menu_search` 用 `actionLayout`（`action_archive_search.xml` / `FilterToolbarIcon`），`onCreateMenu` 只 `rebindToggle` |
 | 默认 | 仅显示搜索图标 |
 | 展开 | 下方显示 `layout_search_field`（Dense Outlined，14sp），自动弹出键盘 |
-| 收起 | 点击行内 ✕；过滤词保留，图标在有过滤时变主题色 |
-| 动画 | `CollapsibleSearchController`（`ImageView`）+ `AutoTransition`（180ms）；应用 Tab 动画容器为 `apps_filter_header` |
+| 收起 | 点击行内 ✕（存档为顶栏关闭图标）；过滤词保留，图标在有过滤时变主题色 |
+| 动画 | `CollapsibleSearchController`（`ImageView`）+ `AutoTransition`（180ms）；应用 Tab 动画容器为 `apps_filter_header`；存档为 Fragment 根 `LinearLayout` |
 | 样式 | `Widget.AppSnapshot.SearchField` |
 | 水平间距 | 左 `@dimen/filter_horizontal_padding`（12dp）；右 `@dimen/filter_section_inset_end`（8dp） |
 
-实现：`CollapsibleSearchController`；应用列表通过 `AppsListComponent` 回调 `getSearchFieldBinding` / `getSearchToggle` / `getSearchTransitionHost` 接入。
+实现：`CollapsibleSearchController`；应用列表通过 `AppsListComponent` 回调 `getSearchFieldBinding` / `getSearchToggle` / `getSearchTransitionHost` 接入。存档 Tab 见 [存档 Tab 搜索](../../systems/snapshot/ARCHIVE_SEARCH.md)。
 
 ### 应用 Tab 筛选区（`apps_filter_header`）
 
@@ -151,6 +151,7 @@ LinearLayout (@id/settings_root)
 | `layout/layout_apps_filter_row.xml` | 应用 Tab 用户 Tab + 图标筛选 + 搜索（单行） |
 | `layout/layout_tags_filter.xml` | 应用 Tab 标签 Chip 行 + 展开按钮 |
 | `layout/layout_search_field.xml` | 共享搜索输入布局 |
+| `layout/action_archive_search.xml` | 存档顶栏 `menu_search` 的 `actionLayout` |
 | `layout/activity_settings.xml` | 设置页顶栏 + 列表 |
 | `main/settings/SettingsActivity.kt` | 设置页 Activity |
 | `AndroidManifest.xml` | Activity `screenOrientation="portrait"` |

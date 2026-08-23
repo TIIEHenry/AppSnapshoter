@@ -1,25 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/main_tab_background">
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/groups_recycler_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:padding="@dimen/archive_list_padding" />
+    android:background="@color/main_tab_background"
+    android:orientation="vertical">
 
     <include
-        android:id="@+id/sticky_set_header"
-        layout="@layout/item_group_set"
+        android:id="@+id/search_field"
+        layout="@layout/layout_search_field"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        android:layout_marginStart="@dimen/archive_list_padding"
-        android:layout_marginTop="@dimen/archive_list_padding"
-        android:layout_marginEnd="@dimen/archive_list_padding"
-        android:layout_marginBottom="0dp"
+        android:layout_marginStart="@dimen/filter_horizontal_padding"
+        android:layout_marginTop="@dimen/filter_row_padding_vertical"
+        android:layout_marginEnd="@dimen/filter_section_inset_end"
+        android:layout_marginBottom="@dimen/filter_row_padding_vertical"
         android:visibility="gone" />
-</FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/groups_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="@dimen/archive_list_padding" />
+
+        <include
+            android:id="@+id/sticky_set_header"
+            layout="@layout/item_group_set"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:layout_marginStart="@dimen/archive_list_padding"
+            android:layout_marginTop="@dimen/archive_list_padding"
+            android:layout_marginEnd="@dimen/archive_list_padding"
+            android:layout_marginBottom="0dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/search_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:padding="24dp"
+            android:text="@string/archive_search_empty"
+            android:textColor="?android:textColorSecondary"
+            android:textSize="16sp"
+            android:visibility="gone" />
+    </FrameLayout>
+</LinearLayout>

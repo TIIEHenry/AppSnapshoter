@@ -13,6 +13,7 @@ import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.databinding.ItemGroupSetBinding
 import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
+import tiiehenry.android.app.snapshot.ui.widget.TextHighlight
 
 object GroupSetHeaderBinder {
 
@@ -22,10 +23,12 @@ object GroupSetHeaderBinder {
         snapshotViewModel: SnapshotViewModel,
         fragmentManager: FragmentManager,
         opaqueBackdrop: Int? = null,
+        collapseEnabled: Boolean = true,
+        searchQuery: String = "",
     ) {
         val set = item.set
         val accent = item.accentColor
-        binding.setTitle.text = item.name
+        binding.setTitle.text = TextHighlight.highlight(binding.root.context, item.name, searchQuery.trim())
         binding.setCount.text = binding.root.context.getString(
             R.string.group_set_count_format,
             item.groupCount,
@@ -41,6 +44,7 @@ object GroupSetHeaderBinder {
         applyPressableStrokeBackground(binding, fill, accent)
 
         binding.root.setOnClickListener {
+            if (!collapseEnabled) return@setOnClickListener
             snapshotViewModel.setGroupSetCollapsed(set.id, collapsed = item.expanded)
         }
         binding.root.setOnLongClickListener {

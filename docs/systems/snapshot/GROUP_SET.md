@@ -109,7 +109,7 @@ summary: "以父目录组织多个分组：存档 Tab 上同一集连续成块�
 | 成员关系 | **路径派生**：分组 `path` 的直接父目录 == 集 `path` 则为该集成员 | 与用户心智、Syncthing、刷新扫盘一致；不另存 ID 列表当真源 |
 | 操作单元 | 快照/恢复/shot 配置仍在 `SnapGroup` | 集只是组织层 |
 | 列表形态 | 同一 RecyclerView 的密封列表；集是 **连续块** | 禁止卡片套卡片、禁止三层嵌套 RV |
-| 存档列表 SSOT | Repository 投影 `archiveList`；**凡改变列表形状的写都走 mutex 投影** | 禁止 Adapter/Fragment 本地增删 `GroupCard`；禁止 `submitList(groupList)` |
+| 存档列表 SSOT | Repository 投影 `archiveList`；**凡改变列表形状的写都走 mutex 投影** | 禁止 Adapter/Fragment 本地增删 `GroupCard`；禁止 `submitList(groupList)`。筛选（搜索）是另一份展示形状，只经 `LauncherViewModel.displayedArchiveList`，见 [存档 Tab 搜索](ARCHIVE_SEARCH.md) |
 | 顶层顺序 | **只写** `archiveRoots`；本机集登记 == 其中的 `s:` 项 | 删除平行的 `group_sets_order`；不另存 set ID 集合 |
 | `groups` | 本机全部 SnapGroup ID **登记表**；List 顺序无 UI 语义 | 禁止新代码依赖 `groups` 的排列顺序；时间线 / `resolveGroup` / 标签用扁平 `groupList` |
 | 集折叠 | 交互：点 Header 标题折展。实现：repository 改 `isCollapsed` 再投影 | **禁止**抄 `GroupActionsController` 本地 visibility；与 `SnapGroup.isCollapsed` 是两条轴 |
@@ -443,9 +443,11 @@ sealed class ArchiveListItem {
 }
 ```
 
-示意不完整。完整字段见 `ArchiveListItem.kt`（`SetHeader.name` / `accentColor`、`GroupCard.accentColor`、`EmptySetHint`）。`collapsed` / `expanded` 必须在投影时快照，见 [折展性能](group-set-expand-perf.md)。
+示意不完整。完整字段见 `ArchiveListItem.kt`（`SetHeader.name` / `accentColor`、`GroupCard.accentColor` / `name` / `appsFingerprint`、`EmptySetHint`）。`collapsed` / `expanded` / `appsFingerprint` 必须在投影时快照，见 [折展性能](group-set-expand-perf.md)。
 
-`AppDataRepository` 的 `archiveList: LiveData<List<ArchiveListItem>>` 是存档 Tab SSOT。全量路径：`reloadGroupsLocked` 覆盖锁内工作集 `loadedGroups` / `loadedSets` → `postValue(groupList, groupSetList)` → `reprojectArchiveListLocked()` 只 `archiveList.postValue`。mutex 内禁止读 `*.value`。`groupList` 保持扁平，供时间线 / 主线程 `resolveGroup` / 标签。详见 [折展性能](group-set-expand-perf.md)。
+`AppDataRepository` 的 `archiveList: LiveData<List<ArchiveListItem>>` 是存档 Tab **结构** SSOT。全量路径：`reloadGroupsLocked` 覆盖锁内工作集 `loadedGroups` / `loadedSets` → `postValue(groupList, groupSetList)` → `reprojectArchiveListLocked()` 只 `archiveList.postValue`。mutex 内禁止读 `*.value`。`groupList` 保持扁平，供时间线 / 主线程 `resolveGroup` / 标签。详见 [折展性能](group-set-expand-perf.md)。
+
+筛选形状只经 `LauncherViewModel.displayedArchiveList`（无查询 = 原样 `archiveList`，有查询 = `ArchiveSearchFilter` 物化）。`LauncherFragment` 观察展示列表，不把 raw `archiveList` 直接 `submitList`。底栏快跳仍读未过滤 `archiveList`。见 [存档 Tab 搜索](ARCHIVE_SEARCH.md)。
 
 **禁止**：UI 自己 join 两份列表；`LauncherFragment` 排序回调 `submitList(groupList)`；「`groupSetList` 或 `ArchiveUiState`」二选一的含糊出口。
 
@@ -592,7 +594,7 @@ DiffUtil：`SetHeader` 以 `set.id` 为 identity；`GroupCard` 以 `group.id` �
 | `res/layout/popup_group_set_jump.xml` | 新增 | 菜单容器 |
 | `res/layout/item_group_set_jump.xml` | 新增 | 菜单行：名称 + 数量 |
 | `main/launch/ArchiveListItem.kt` | 新增 | 密封列表项 |
-| `main/launch/LauncherFragment.kt` | 修改 | **只**观察 `archiveList`；`submitList { tryConsumeNavigate() }`；禁止 observe 里立刻 `indexOfFirst`；挂载吸顶 overlay |
+| `main/launch/LauncherFragment.kt` | 修改 | 观察 `displayedArchiveList`（无查询即 `archiveList`）；`submitList` commit 后、且 query 空白才 `tryConsumeNavigate`；禁止 observe 里立刻 `indexOfFirst`；挂载吸顶 overlay |
 | `main/launch/GroupsAdapter.kt` | 修改 | 多 viewType；只 bind 投影结果；**禁止**本地增删 GroupCard；复用组内 Adapter |
 | `main/launch/groupset/GroupSetHeaderBinder.kt` | 新增 | 列表项与吸顶条共用 Header 绑定 |
 | `main/launch/groupset/GroupSetStickyHeader.kt` | 新增 | 滚动时钉住当前集 Header，下一块顶上来时推走 |
@@ -712,6 +714,7 @@ UI：添加集、折叠成块、在集内添加分组、排序两级、时间线
 - [添加分组后列表不刷新](add-group-refresh.md) — 落地后数据流改为 `archiveList` → `submitList`，不再观察 `groupList` 驱动存档页
 - [分组 body 三态可见性](group-body-visibility.md) — GroupCard 内部仍走 `renderBody`；集折叠不得用该三态藏子卡片
 - [分组集折展性能](group-set-expand-perf.md) — 折展只内存再投影，禁止 `reloadGroupsLocked`
+- [存档 Tab 搜索](ARCHIVE_SEARCH.md) — 筛选形状只经 `displayedArchiveList`，不改 `archiveList` / 不写折叠换命中
 - [主界面壳层](../../guides/getting-started/ui-shell.md) — 存档 Tab 为 `LauncherFragment`；底栏长按快跳挂在 `bottom_nav_archive`
 - 拖选协议参考（另一仓库）：`/home/clarence/Projects/Agents/Singular/android/ui/shared/.../popup/PopupPickerTouchSession.kt`、`AnchoredActionListPopup.kt`；规范 `docs/architecture/ui-interaction/popup/README.md` §6.1
 - [术语表](../../glossary.md)

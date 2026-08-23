@@ -25,6 +25,7 @@ import tiiehenry.android.app.snapshot.group.SetMembershipModeResult
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
 import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
+import tiiehenry.android.app.snapshot.main.launch.archiveAppsFingerprint
 import tiiehenry.android.app.snapshot.main.launch.batch.RestoreRecordStore
 import tiiehenry.android.app.snapshot.utils.AppIconUtils
 import tiiehenry.android.snapshot.app.IAppManager
@@ -245,6 +246,8 @@ class AppDataRepository private constructor() {
                         setId = item.setId,
                         accentColor = accent,
                         collapsed = group.isCollapsed,
+                        name = group.name,
+                        appsFingerprint = archiveAppsFingerprint(group),
                     )
                 }
                 is ArchiveListProjector.DraftItem.EmptySetHint -> {

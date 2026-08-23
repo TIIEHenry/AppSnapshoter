@@ -14,7 +14,7 @@ import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
 
 class CollapsibleSearchController(
-    private val toggle: ImageView,
+    toggle: ImageView,
     private val searchField: LayoutSearchFieldBinding,
     private val transitionHost: ViewGroup,
     private val onQueryChanged: (String) -> Unit,
@@ -24,6 +24,16 @@ class CollapsibleSearchController(
     var expanded = false
         private set
 
+    private var toggle: ImageView = toggle
+
+    private val toggleClickListener = View.OnClickListener {
+        if (expanded) {
+            collapse()
+        } else {
+            expand()
+        }
+    }
+
     init {
         searchField.searchInput.hint = hint
         searchField.searchInputLayout.setupSearchQueryListener { query ->
@@ -31,20 +41,26 @@ class CollapsibleSearchController(
             updateToggleState()
         }
 
-        toggle.setOnClickListener {
-            if (expanded) {
-                collapse()
-            } else {
-                expand()
-            }
-        }
+        attachToggleClick()
 
         if (initialQuery.isNotBlank()) {
             searchField.searchInput.setText(initialQuery)
             expand(showKeyboard = false)
         } else {
-            updateToggleState()
+            syncToggleAppearance()
         }
+    }
+
+    /**
+     * Menu 重建时只换开关图标。不重绑输入监听，非空 query 也不强迫 [expand]。
+     */
+    fun rebindToggle(newToggle: ImageView) {
+        if (toggle !== newToggle) {
+            toggle.setOnClickListener(null)
+            toggle = newToggle
+        }
+        attachToggleClick()
+        syncToggleAppearance()
     }
 
     fun expand(showKeyboard: Boolean = true) {
@@ -52,8 +68,7 @@ class CollapsibleSearchController(
         expanded = true
         animateTransition {
             searchField.root.visibility = View.VISIBLE
-            toggle.setImageResource(R.drawable.ic_close)
-            toggle.contentDescription = toggle.context.getString(R.string.timeline_search_close)
+            applyToggleIcons()
         }
         updateToggleState()
         if (showKeyboard) {
@@ -66,8 +81,7 @@ class CollapsibleSearchController(
         expanded = false
         animateTransition {
             searchField.root.visibility = View.GONE
-            toggle.setImageResource(R.drawable.ic_search)
-            toggle.contentDescription = toggle.context.getString(R.string.timeline_search_toggle)
+            applyToggleIcons()
         }
         hideIme(searchField.searchInput)
         searchField.searchInput.clearFocus()
@@ -75,6 +89,25 @@ class CollapsibleSearchController(
     }
 
     fun currentQuery(): String = searchField.searchInputLayout.searchQuery()
+
+    private fun attachToggleClick() {
+        toggle.setOnClickListener(toggleClickListener)
+    }
+
+    private fun syncToggleAppearance() {
+        applyToggleIcons()
+        updateToggleState()
+    }
+
+    private fun applyToggleIcons() {
+        if (expanded) {
+            toggle.setImageResource(R.drawable.ic_close)
+            toggle.contentDescription = toggle.context.getString(R.string.timeline_search_close)
+        } else {
+            toggle.setImageResource(R.drawable.ic_search)
+            toggle.contentDescription = toggle.context.getString(R.string.timeline_search_toggle)
+        }
+    }
 
     private fun updateToggleState() {
         val hasQuery = currentQuery().isNotBlank()
