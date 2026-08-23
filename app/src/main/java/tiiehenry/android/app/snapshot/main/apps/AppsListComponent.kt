@@ -80,6 +80,10 @@ class AppsListComponent<VB : ViewBinding>(
     fun onViewCreated(viewLifecycleOwner: LifecycleOwner) {
         viewModel.groupsProvider = { snapshotViewModel.groupList.value ?: emptyList() }
 
+        snapshotViewModel.groupList.observe(viewLifecycleOwner) {
+            viewModel.refreshMembershipFilter()
+        }
+
         // 设置 RecyclerView
         val recyclerView = callbacks.getRecyclerView(binding)
         recyclerView.layoutManager = LinearLayoutManager(fragment.requireContext())

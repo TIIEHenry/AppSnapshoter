@@ -109,6 +109,10 @@ class AppsViewModel : ViewModel() {
 
     fun getMembershipFilter(): MembershipFilter = membershipFilter
 
+    fun refreshMembershipFilter() {
+        applyFilter()
+    }
+
     /**
      * 还原搜索、系统/用户、用户 Tab、标签与分组筛选到默认状态。
      */
