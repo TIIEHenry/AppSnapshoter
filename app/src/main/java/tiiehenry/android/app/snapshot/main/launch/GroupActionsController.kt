@@ -43,10 +43,10 @@ class GroupActionsController(
 
     fun setupActions(group: SnapGroup, groupsAdapter: GroupsAdapter, groupViewHolder: GroupsAdapter.GroupViewHolder) {
         archiver = GroupBatchArchiver(binding.root.context, viewModel.viewModelScope, snapshotViewModel) { g ->
-            onRefresh(g)
+            notifyRefreshed(g)
         }
         restorer = GroupBatchRestorer(binding.root.context, viewModel.viewModelScope, snapshotViewModel) { g ->
-            onRefresh(g)
+            notifyRefreshed(g)
         }
 
         // 标题点击 - 有应用时折叠/展开；空组始终显示加号，不切换折叠。
@@ -63,7 +63,7 @@ class GroupActionsController(
         binding.groupTitle.setOnLongClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
             GroupSettingFragment.newInstance(group) {
-                onRefresh(resolveGroup(group))
+                notifyRefreshed(resolveGroup(group))
             }.show(fragmentManager, "GroupConfigFragment")
             true
         }
@@ -88,7 +88,7 @@ class GroupActionsController(
                     app.appManager,
                     reload = true
                 )
-                withContext(Dispatchers.Main) { onRefresh(resolveGroup(current)) }
+                withContext(Dispatchers.Main) { notifyRefreshed(resolveGroup(current)) }
             }
         }
         binding.btnRefresh.setOnLongClickListener {
@@ -103,7 +103,7 @@ class GroupActionsController(
             val targetGroupId = group.id
             SelectAppFragment.newInstance(targetGroupId) { appInfos ->
                 snapshotViewModel.addAppsToGroup(targetGroupId, appInfos) { result ->
-                    onRefresh(resolveGroup(group))
+                    notifyRefreshed(resolveGroup(group))
                     handleAddAppsResult(targetGroupId, result)
                 }
             }.show(fragmentManager, "SelectAppFragment")
@@ -126,7 +126,7 @@ class GroupActionsController(
         binding.btnTune.setOnClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
             GroupConfigFragment.newInstance(group) {
-                onRefresh(resolveGroup(group))
+                notifyRefreshed(resolveGroup(group))
             }.show(fragmentManager, "GroupShotConfigFragment")
         }
 
@@ -194,10 +194,17 @@ class GroupActionsController(
                     groupViewHolder.toggleSortMode(group, adapter)
                 }
             }
-            onRefresh(resolveGroup(group))
+            notifyRefreshed(resolveGroup(group))
             true
         }
         popup.show()
+    }
+
+    private fun notifyRefreshed(group: SnapGroup) {
+        onRefresh(group)
+        if (viewModel.isSearching) {
+            viewModel.rematerializeDisplayed()
+        }
     }
 
     fun updateButtonVisibility(show: Boolean, isEmpty: Boolean = false) {
@@ -280,7 +287,7 @@ class GroupActionsController(
         fun moveNext(index: Int) {
             if (index >= entries.size) {
                 val target = snapshotViewModel.resolveGroup(targetGroupId)
-                if (target != null) onRefresh(target)
+                if (target != null) notifyRefreshed(target)
                 return
             }
             val (pkg, fromId) = entries[index]

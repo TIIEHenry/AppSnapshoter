@@ -4,7 +4,8 @@ import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
 
 /**
- * 存档 Tab 密封列表项。Adapter 只吃此类型；列表形状只来自 repository 投影。
+ * 存档 Tab 密封列表项。Adapter 只吃此类型。
+ * 结构形状来自 repository `archiveList`；展示形状可来自搜索 Filter（[LauncherViewModel.displayedArchiveList]）。
  */
 sealed class ArchiveListItem {
     data class SetHeader(

@@ -44,7 +44,7 @@ summary: "全局文档导航索引，按角色和主题组织所有文档入口"
 | [快照系统](systems/snapshot/INDEX.md) | 备份/恢复核心流程 | provider, io-* |
 | [分组集](systems/snapshot/GROUP_SET.md) | 父目录组织多个分组；`archiveList` 连续成块 | app/launch/ |
 | [分组集折展性能](systems/snapshot/group-set-expand-perf.md) | 折展/一键折叠只内存再投影；mutex 内 `loaded*` | app/launch/ |
-| [存档 Tab 搜索](systems/snapshot/ARCHIVE_SEARCH.md) | 主页按集名/组名/应用过滤（实施中） | app/launch/ |
+| [存档 Tab 搜索](systems/snapshot/ARCHIVE_SEARCH.md) | 主页按集名/组名/应用过滤（已落地） | app/launch/ |
 | [Group 批量恢复](systems/snapshot/GROUP_BATCH_RESTORE.md) | 分组批量恢复方案（待实施） | app/launch/ |
 | [多用户适配](systems/snapshot/multi-user-adaptation.md) | 多用户场景适配现状与已知问题 | app, provider |
 | [压缩系统](systems/compression/INDEX.md) | TAR 打包 + ZSTD 压缩管线 | io-tar, io-zstd, io-nativefs |

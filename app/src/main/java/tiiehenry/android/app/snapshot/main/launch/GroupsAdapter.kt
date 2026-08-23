@@ -47,6 +47,16 @@ class GroupsAdapter(
         }
     }
 
+    /** 提交过滤列表前退出组内拖拽排序，避免半截 drag 写子集顺序。 */
+    fun exitActiveSortModes(recyclerView: RecyclerView) {
+        for (i in 0 until recyclerView.childCount) {
+            val holder = recyclerView.getChildViewHolder(recyclerView.getChildAt(i))
+            if (holder is GroupViewHolder) {
+                holder.exitSortModeIfActive()
+            }
+        }
+    }
+
     companion object {
         private const val BATCH_RUNNING_PAYLOAD = "batch_running"
         private const val PAYLOAD_HIGHLIGHT = "highlight"
@@ -267,6 +277,13 @@ class GroupsAdapter(
             if (!::actionsController.isInitialized) return
             actionsController.setBatchRunning(running)
             (binding.groupRecyclerView.adapter as? GroupItemAdapter)?.setBatchRunning(running)
+        }
+
+        fun exitSortModeIfActive() {
+            if (!isSortMode) return
+            val group = boundGroup ?: return
+            val adapter = itemAdapter ?: return
+            toggleSortMode(group, adapter)
         }
 
         fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {

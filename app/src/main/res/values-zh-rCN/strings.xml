@@ -50,6 +50,8 @@
     <string name="timeline_search_hint">搜索应用或分组…</string>
     <string name="timeline_search_toggle">搜索</string>
     <string name="timeline_search_close">关闭搜索</string>
+    <string name="archive_search_hint">搜索分组或应用…</string>
+    <string name="archive_search_empty">无匹配的分组或应用</string>
     <string name="timeline_empty">该时间范围内没有备份快照</string>
     <string name="timeline_empty_hint">前往归档页创建或查看备份</string>
     <string name="timeline_go_archive">去归档页</string>

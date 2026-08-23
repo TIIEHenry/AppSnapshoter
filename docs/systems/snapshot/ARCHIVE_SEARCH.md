@@ -1,14 +1,14 @@
 ---
 title: "存档 Tab 搜索"
 type: system
-status: draft
+status: implemented
 updated: 2026-08-23
 summary: "存档主页按分组集名、分组名、应用名/包名过滤列表；视图层投影，不改 archiveList SSOT，不写折叠状态"
 ---
 
 # 存档 Tab 搜索设计文档
 
-> 版本：v1.1 · 日期：2026-08-23 · 状态：draft（Grok 审查：Approve with changes，must-fix 已并入）  
+> 版本：v1.1 · 日期：2026-08-23 · 状态：implemented（Phase 1–3 已落地）  
 > 关联：存档 Tab（`LauncherFragment`）、`archiveList` SSOT、[分组集](GROUP_SET.md)、[折展性能](group-set-expand-perf.md)、[可折叠搜索](../../guides/getting-started/ui-shell.md#可折叠搜索)
 
 ## 文档索引
@@ -396,24 +396,24 @@ navigateToGroup / navigateToGroupSet 到达
 
 ### Phase 1 — 纯函数与单测
 
-- [ ] `ArchiveSearchFilter` + `ArchiveSearchFilterTest`（先红后绿）
-- [ ] `GroupCard.visiblePackages`；`materializeArchiveList` 默认 `null`
+- [x] `ArchiveSearchFilter` + `ArchiveSearchFilterTest`（先红后绿）
+- [x] `GroupCard.visiblePackages`；`materializeArchiveList` 默认 `null`
 
 ### Phase 2 — 展示与 Adapter
 
-- [ ] ViewHolder `displayCollapsed`；无查询手势仍写 MMKV；`scrollToPackage` 走同一字段
-- [ ] 全量 `applySorting` 后再截 `visiblePackages`
-- [ ] Adapter 级 `searchQuery` payload（组标题 / Header / 应用名）
-- [ ] `GroupSetHeaderBinder.collapseEnabled`；sticky 传入同一值
-- [ ] `CollapsibleSearchController.rebindToggle`
+- [x] ViewHolder `displayCollapsed`；无查询手势仍写 MMKV；`scrollToPackage` 走同一字段
+- [x] 全量 `applySorting` 后再截 `visiblePackages`
+- [x] Adapter 级 `searchQuery` payload（组标题 / Header / 应用名）
+- [x] `GroupSetHeaderBinder.collapseEnabled`；sticky 传入同一值
+- [x] `CollapsibleSearchController.rebindToggle`
 
 ### Phase 3 — 接入存档 Tab
 
-- [ ] `LauncherViewModel`：`deriveMembers` + `displayedArchiveList`
-- [ ] `fragment_launcher` + `menu_search`；`onCreateMenu` 只重绑 toggle
-- [ ] 空态；pending navigate 只在空白 query 的完整列表 commit 后 consume
-- [ ] 有查询时 `menu_collapse_all` no-op
-- [ ] 同步 GROUP_SET / 折展性能 / ui-shell / 本页状态改为 implemented
+- [x] `LauncherViewModel`：`deriveMembers` + `displayedArchiveList`
+- [x] `fragment_launcher` + `menu_search`；`onCreateMenu` 只重绑 toggle
+- [x] 空态；pending navigate 只在空白 query 的完整列表 commit 后 consume
+- [x] 有查询时 `menu_collapse_all` no-op
+- [x] 同步 GROUP_SET / 折展性能 / ui-shell / 本页状态改为 implemented
 
 Phase 1 可单独合入。**不要**把 Phase 2 做成「全局 bind 只吃 `GroupCard.collapsed`」——那会弄坏现网组折展。
 

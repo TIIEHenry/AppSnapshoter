@@ -445,7 +445,9 @@ sealed class ArchiveListItem {
 
 示意不完整。完整字段见 `ArchiveListItem.kt`（`SetHeader.name` / `accentColor`、`GroupCard.accentColor`、`EmptySetHint`）。`collapsed` / `expanded` 必须在投影时快照，见 [折展性能](group-set-expand-perf.md)。
 
-`AppDataRepository` 的 `archiveList: LiveData<List<ArchiveListItem>>` 是存档 Tab SSOT。全量路径：`reloadGroupsLocked` 覆盖锁内工作集 `loadedGroups` / `loadedSets` → `postValue(groupList, groupSetList)` → `reprojectArchiveListLocked()` 只 `archiveList.postValue`。mutex 内禁止读 `*.value`。`groupList` 保持扁平，供时间线 / 主线程 `resolveGroup` / 标签。详见 [折展性能](group-set-expand-perf.md)。
+`AppDataRepository` 的 `archiveList: LiveData<List<ArchiveListItem>>` 是存档 Tab **结构** SSOT。全量路径：`reloadGroupsLocked` 覆盖锁内工作集 `loadedGroups` / `loadedSets` → `postValue(groupList, groupSetList)` → `reprojectArchiveListLocked()` 只 `archiveList.postValue`。mutex 内禁止读 `*.value`。`groupList` 保持扁平，供时间线 / 主线程 `resolveGroup` / 标签。详见 [折展性能](group-set-expand-perf.md)。
+
+筛选形状只经 `LauncherViewModel.displayedArchiveList`（无查询 = 原样 `archiveList`，有查询 = `ArchiveSearchFilter` 物化）。`LauncherFragment` 观察展示列表，不把 raw `archiveList` 直接 `submitList`。底栏快跳仍读未过滤 `archiveList`。见 [存档 Tab 搜索](ARCHIVE_SEARCH.md)。
 
 **禁止**：UI 自己 join 两份列表；`LauncherFragment` 排序回调 `submitList(groupList)`；「`groupSetList` 或 `ArchiveUiState`」二选一的含糊出口。
 
@@ -592,7 +594,7 @@ DiffUtil：`SetHeader` 以 `set.id` 为 identity；`GroupCard` 以 `group.id` �
 | `res/layout/popup_group_set_jump.xml` | 新增 | 菜单容器 |
 | `res/layout/item_group_set_jump.xml` | 新增 | 菜单行：名称 + 数量 |
 | `main/launch/ArchiveListItem.kt` | 新增 | 密封列表项 |
-| `main/launch/LauncherFragment.kt` | 修改 | **只**观察 `archiveList`；`submitList { tryConsumeNavigate() }`；禁止 observe 里立刻 `indexOfFirst`；挂载吸顶 overlay |
+| `main/launch/LauncherFragment.kt` | 修改 | 观察 `displayedArchiveList`（无查询即 `archiveList`）；`submitList` commit 后、且 query 空白才 `tryConsumeNavigate`；禁止 observe 里立刻 `indexOfFirst`；挂载吸顶 overlay |
 | `main/launch/GroupsAdapter.kt` | 修改 | 多 viewType；只 bind 投影结果；**禁止**本地增删 GroupCard；复用组内 Adapter |
 | `main/launch/groupset/GroupSetHeaderBinder.kt` | 新增 | 列表项与吸顶条共用 Header 绑定 |
 | `main/launch/groupset/GroupSetStickyHeader.kt` | 新增 | 滚动时钉住当前集 Header，下一块顶上来时推走 |

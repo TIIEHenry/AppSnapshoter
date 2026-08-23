@@ -176,7 +176,7 @@ setGroupSetCollapsed / collapseAllArchive
 
 不做：`loadApps`、`discoverGroups`、`ensureArchiveRootsMigrated`、写出纠偏后的 `archiveRoots`、`postValue(groupList/groupSetList)`。纠偏属于全量加载；折展时 roots 与成员不变。
 
-`requestNavigateToGroup` 为露出卡片而 `setGroupSetCollapsed(false)` 的路径自动变快。组级 `group.isCollapsed = false` 仍走 `renderBody` / `scrollToPackage`，**不要**改成再投影。消费协议不变：仍等 `submitList` commit 再 `indexOfFirst`。
+`requestNavigateToGroup` 为露出卡片而 `setGroupSetCollapsed(false)` 的路径自动变快。组级 `group.isCollapsed = false` 仍走 `displayCollapsed` / `renderBody` / `scrollToPackage`，**不要**改成再投影。搜索命中用 ViewHolder `displayCollapsed` 覆盖展示，不得为露出命中再投影 `archiveList` 或改组/集 MMKV。消费协议不变：仍等未过滤 `archiveList` 的 `submitList` commit 再 `indexOfFirst`。见 [存档 Tab 搜索](ARCHIVE_SEARCH.md)。
 
 ### Phase B — 展开绑定（out of scope）
 

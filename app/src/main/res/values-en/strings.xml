@@ -50,6 +50,8 @@
     <string name="timeline_search_hint">Search apps or groups…</string>
     <string name="timeline_search_toggle">Search</string>
     <string name="timeline_search_close">Close search</string>
+    <string name="archive_search_hint">Search groups or apps…</string>
+    <string name="archive_search_empty">No matching groups or apps</string>
     <string name="timeline_empty">No backup snapshots in this time range</string>
     <string name="timeline_empty_hint">Go to Archive to create or view backups</string>
     <string name="timeline_go_archive">Go to Archive</string>

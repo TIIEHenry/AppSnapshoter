@@ -8,6 +8,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.core.view.MenuProvider
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
@@ -26,6 +27,7 @@ import tiiehenry.android.app.snapshot.main.MainActivity
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
 import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetStickyHeader
 import tiiehenry.android.app.snapshot.main.launch.groupsort.GroupSortBottomSheet
+import tiiehenry.android.app.snapshot.ui.widget.CollapsibleSearchController
 
 class LauncherFragment : Fragment() {
 
@@ -37,6 +39,7 @@ class LauncherFragment : Fragment() {
     }
     private lateinit var groupsAdapter: GroupsAdapter
     private var stickySetHeader: GroupSetStickyHeader? = null
+    private var searchController: CollapsibleSearchController? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,6 +52,12 @@ class LauncherFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        viewModel.bindArchiveSources(
+            snapshotViewModel.archiveList,
+            snapshotViewModel.groupList,
+            snapshotViewModel.groupSetList,
+        )
 
         binding.groupsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.groupsRecyclerView.updatePadding(
@@ -65,12 +74,12 @@ class LauncherFragment : Fragment() {
             childFragmentManager,
         ).also { it.attach() }
 
-        snapshotViewModel.archiveList.observe(viewLifecycleOwner) { items ->
-            Log.d("LauncherFragment", "archiveList changed size=${items.size}")
-            groupsAdapter.submitList(items) {
-                stickySetHeader?.update()
-                tryConsumeNavigate()
-            }
+        viewModel.searchQuery.observe(viewLifecycleOwner) { query ->
+            groupsAdapter.updateSearchQuery(query.trim())
+        }
+
+        viewModel.displayedArchiveList.observe(viewLifecycleOwner) { items ->
+            submitDisplayedList(items)
         }
 
         snapshotViewModel.isBatchRunning.observe(viewLifecycleOwner) { running ->
@@ -78,26 +87,30 @@ class LauncherFragment : Fragment() {
         }
 
         snapshotViewModel.navigateToGroup.observe(viewLifecycleOwner) {
-            tryConsumeNavigate()
+            onNavigatePending()
         }
         snapshotViewModel.navigateToGroupSet.observe(viewLifecycleOwner) {
-            tryConsumeNavigate()
+            onNavigatePending()
         }
 
         requireActivity().addMenuProvider(object : MenuProvider {
             override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
                 menuInflater.inflate(R.menu.menu_launcher, menu)
+                bindSearchToggle(menu)
             }
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                 return when (menuItem.itemId) {
+                    R.id.menu_search -> true
                     R.id.menu_add_group -> {
                         AddGroupBottomSheet.newInstance()
                             .show(childFragmentManager, AddGroupBottomSheet.TAG)
                         true
                     }
                     R.id.menu_collapse_all -> {
-                        snapshotViewModel.collapseAllArchive()
+                        if (viewModel.searchQuery.value.orEmpty().isBlank()) {
+                            snapshotViewModel.collapseAllArchive()
+                        }
                         true
                     }
                     R.id.menu_sort_groups -> {
@@ -111,7 +124,69 @@ class LauncherFragment : Fragment() {
     }
 
     /**
-     * 仅在 [ListAdapter.submitList] commit 后读 currentList；禁止 observe 里立刻 indexOfFirst。
+     * MenuProvider 挂 RESUMED：进设置会拆 menu。只重绑 toggle，禁止再 new Controller。
+     */
+    private fun bindSearchToggle(menu: Menu) {
+        val actionView = menu.findItem(R.id.menu_search)?.actionView ?: return
+        val toggle = (actionView as? ImageView)
+            ?: actionView.findViewById(R.id.btn_archive_search)
+            ?: return
+        val existing = searchController
+        if (existing == null) {
+            searchController = CollapsibleSearchController(
+                toggle = toggle,
+                searchField = binding.searchField,
+                transitionHost = binding.root,
+                onQueryChanged = { query -> viewModel.searchQuery.value = query },
+                hint = getString(R.string.archive_search_hint),
+                initialQuery = viewModel.searchQuery.value.orEmpty(),
+            )
+        } else {
+            existing.rebindToggle(toggle)
+        }
+    }
+
+    private fun submitDisplayedList(items: List<ArchiveListItem>) {
+        val query = viewModel.searchQuery.value.orEmpty().trim()
+        groupsAdapter.updateSearchQuery(query)
+        if (query.isNotEmpty()) {
+            groupsAdapter.exitActiveSortModes(binding.groupsRecyclerView)
+        }
+        val empty = query.isNotEmpty() && items.isEmpty()
+        binding.searchEmpty.visibility = if (empty) View.VISIBLE else View.GONE
+        binding.groupsRecyclerView.visibility = if (empty) View.GONE else View.VISIBLE
+        Log.d("LauncherFragment", "displayedArchiveList size=${items.size} queryBlank=${query.isEmpty()}")
+        groupsAdapter.submitList(items) {
+            stickySetHeader?.update()
+            val archive = snapshotViewModel.archiveList.value
+            val canConsume = viewModel.searchQuery.value.orEmpty().isBlank() &&
+                archive != null &&
+                items === archive
+            if (canConsume) {
+                tryConsumeNavigate()
+            }
+        }
+    }
+
+    /**
+     * 有 pending 且 query 非空：只 clearSearch，本拍不 consume。
+     * tryConsumeNavigate 仅当 query 空白且本次 commit 是未过滤 archiveList。
+     */
+    private fun onNavigatePending() {
+        val hasPending = snapshotViewModel.navigateToGroup.value != null ||
+            snapshotViewModel.navigateToGroupSet.value != null
+        if (!hasPending) return
+        if (viewModel.searchQuery.value.orEmpty().isNotBlank()) {
+            viewModel.clearSearch()
+            binding.searchField.searchInput.setText("")
+            searchController?.collapse()
+            return
+        }
+        tryConsumeNavigate()
+    }
+
+    /**
+     * 仅在 [androidx.recyclerview.widget.ListAdapter.submitList] commit 后读 currentList；禁止 observe 里立刻 indexOfFirst。
      */
     private fun tryConsumeNavigate() {
         val setId = snapshotViewModel.navigateToGroupSet.value
@@ -161,6 +236,7 @@ class LauncherFragment : Fragment() {
     override fun onDestroyView() {
         stickySetHeader?.detach()
         stickySetHeader = null
+        searchController = null
         super.onDestroyView()
         _binding = null
     }
