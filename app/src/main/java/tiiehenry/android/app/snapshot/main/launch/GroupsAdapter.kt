@@ -381,6 +381,7 @@ class GroupsAdapter(
      * DiffUtil：折叠相关字段只比投影快照（[ArchiveListItem.SetHeader.expanded]、
      * [ArchiveListItem.GroupCard.collapsed]），禁止读 [SnapGroup.isCollapsed] /
      * [tiiehenry.android.app.snapshot.group.SnapGroupSet.isCollapsed] live getter。
+     * [ArchiveListItem.GroupCard.visiblePackages] 变化视为内容变化。
      */
     private class ArchiveDiffCallback : DiffUtil.ItemCallback<ArchiveListItem>() {
         override fun areItemsTheSame(oldItem: ArchiveListItem, newItem: ArchiveListItem): Boolean {
@@ -412,6 +413,7 @@ class GroupsAdapter(
                     if (oldItem.collapsed != newItem.collapsed) return false
                     if (oldItem.setId != newItem.setId) return false
                     if (oldItem.accentColor != newItem.accentColor) return false
+                    if (oldItem.visiblePackages != newItem.visiblePackages) return false
                     val oldPkgs = o.apps.map { it.appInfo.packageName }
                     val newPkgs = n.apps.map { it.appInfo.packageName }
                     oldPkgs == newPkgs

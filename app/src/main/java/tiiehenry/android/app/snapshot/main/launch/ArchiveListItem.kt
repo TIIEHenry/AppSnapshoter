@@ -24,6 +24,8 @@ sealed class ArchiveListItem {
         val accentColor: Int? = null,
         /** 投影时快照，对齐 [SetHeader.expanded]；DiffUtil 禁止读 [SnapGroup.isCollapsed] */
         val collapsed: Boolean,
+        /** null = 组内全部应用；非 null = 网格只显示这些包名 */
+        val visiblePackages: Set<String>? = null,
     ) : ArchiveListItem()
 
     /** 空集展开后的「在此添加分组」行 */
