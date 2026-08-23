@@ -29,6 +29,17 @@ data class AppGroupMembership(
     }
 }
 
+data class JoinTargetCard(
+    val group: SnapGroup,
+    val setId: String?,
+    val userId: Int,
+)
+
+data class AppsPopupGroupRow(
+    val group: SnapGroup,
+    val exclusive: Boolean,
+)
+
 /**
  * 独占归属纯查询。调用方不得对多 owner 使用 firstOrNull 当唯一真相。
  */
@@ -141,4 +152,18 @@ object GroupMembershipResolver {
         buildExclusiveOwnerIndex(groups)
             .filterValues { it.size >= 2 }
             .keys
+
+    fun membershipRows(membership: AppGroupMembership): List<AppsPopupGroupRow> =
+        membership.exclusiveGroups.map { AppsPopupGroupRow(it, exclusive = true) } +
+            membership.sharedGroups.map { AppsPopupGroupRow(it, exclusive = false) }
+
+    fun independentJoinTargets(
+        cards: List<JoinTargetCard>,
+        packageName: String,
+        userId: Int,
+    ): List<SnapGroup> =
+        cards.filter { it.setId == null }
+            .filter { it.userId == userId }
+            .filter { !containsPackage(it.group, packageName) }
+            .map { it.group }
 }
