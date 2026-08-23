@@ -717,4 +717,5 @@ UI：添加集、折叠成块、在集内添加分组、排序两级、时间线
 - [存档 Tab 搜索](ARCHIVE_SEARCH.md) — 筛选形状只经 `displayedArchiveList`，不改 `archiveList` / 不写折叠换命中
 - [主界面壳层](../../guides/getting-started/ui-shell.md) — 存档 Tab 为 `LauncherFragment`；底栏长按快跳挂在 `bottom_nav_archive`
 - 拖选协议参考（另一仓库）：`/home/clarence/Projects/Agents/Singular/android/ui/shared/.../popup/PopupPickerTouchSession.kt`、`AnchoredActionListPopup.kt`；规范 `docs/architecture/ui-interaction/popup/README.md` §6.1
+- [应用 Tab Item 长按 Popup](APPS_TAB_ITEM_POPUP.md) — 「独立组」= `GroupCard.setId == null`；应用 Tab 加入 v1 只认这类组
 - [术语表](../../glossary.md)

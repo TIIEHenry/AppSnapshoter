@@ -580,6 +580,7 @@ sequenceDiagram
 
 ## 相关文档
 
+- [应用 Tab Item 长按 Popup](APPS_TAB_ITEM_POPUP.md) — 应用 Tab 新加入入口；add/move 仍走本方案不变量
 - [快照系统索引](INDEX.md)
 - [添加应用后刷新不及时](add-app-refresh-stale-group.md) — 写后 `reloadGroupsLocked` 约定
 - [分组集](GROUP_SET.md) — 分组组织容器；本方案不改集模型
