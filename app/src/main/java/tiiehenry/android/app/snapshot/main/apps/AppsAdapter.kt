@@ -2,6 +2,7 @@ package tiiehenry.android.app.snapshot.main.apps
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -14,7 +15,7 @@ import tiiehenry.android.app.snapshot.group.AppGroupMembership
 class AppsAdapter(
     private val membershipIndexProvider: () -> Map<String, AppGroupMembership>,
     private val onItemClick: (AppInfo) -> Unit,
-    private val onItemLongClick: (AppInfo, AppGroupMembership) -> Unit,
+    private val onItemLongClick: (View, AppInfo, AppGroupMembership) -> Unit,
 ) : ListAdapter<AppInfo, AppsAdapter.ViewHolder>(AppDiffCallback()) {
 
     private var membershipIndex: Map<String, AppGroupMembership> = emptyMap()
@@ -41,7 +42,7 @@ class AppsAdapter(
     class ViewHolder(
         private val binding: ItemAppListBinding,
         private val onItemClick: (AppInfo) -> Unit,
-        private val onItemLongClick: (AppInfo, AppGroupMembership) -> Unit,
+        private val onItemLongClick: (View, AppInfo, AppGroupMembership) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
 
         @SuppressLint("SetTextI18n")
@@ -61,7 +62,7 @@ class AppsAdapter(
 
             binding.root.setOnClickListener { onItemClick(appInfo) }
             binding.root.setOnLongClickListener {
-                onItemLongClick(appInfo, membership)
+                onItemLongClick(binding.root, appInfo, membership)
                 true
             }
         }

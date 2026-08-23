@@ -18,6 +18,7 @@ import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
 class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
 
     private lateinit var appsAdapter: AppsAdapter
+    private var appsPopup: AppsItemPopupMenu? = null
 
     override fun createBinding(inflater: LayoutInflater, container: ViewGroup?): FragmentAppsBinding {
         return FragmentAppsBinding.inflate(inflater, container, false)
@@ -52,6 +53,16 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
         binding.appsFilterHeader
 
     override fun setupRecyclerViewAdapter(binding: FragmentAppsBinding) {
+        appsPopup = AppsItemPopupMenu(
+            context = requireContext(),
+            fragmentManager = parentFragmentManager,
+            snapshotViewModel = snapshotViewModel,
+            onNavigateToGroup = { groupId, packageName ->
+                snapshotViewModel.requestNavigateToGroup(groupId, packageName)
+                (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
+            },
+            onUninstall = { },
+        )
         appsAdapter = AppsAdapter(
             membershipIndexProvider = {
                 GroupMembershipResolver.buildMembershipIndex(
@@ -62,15 +73,8 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
                 val fragment = AppConfigFragment.newInstance(appInfo.packageName, appInfo.userId)
                 fragment.show(parentFragmentManager, fragment.tag)
             },
-            onItemLongClick = { appInfo, membership ->
-                AppMembershipDialog.show(
-                    requireContext(),
-                    appInfo,
-                    membership,
-                ) { group ->
-                    snapshotViewModel.requestNavigateToGroup(group.id, appInfo.packageName)
-                    (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
-                }
+            onItemLongClick = { anchor, appInfo, membership ->
+                appsPopup?.show(anchor, appInfo, membership)
             },
         )
         binding.appsRecyclerView.adapter = appsAdapter
@@ -94,5 +98,11 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
 
     override fun onFilteredAppsChanged(apps: List<AppInfo>) {
         appsAdapter.submitList(apps)
+    }
+
+    override fun onDestroyView() {
+        appsPopup?.dismiss()
+        appsPopup = null
+        super.onDestroyView()
     }
 }
