@@ -32,6 +32,8 @@ class SnapshotViewModel : ViewModel() {
     val appsList: MutableLiveData<Map<UserInfoHide, List<AppInfo>>> get() = repository.appsList
     /** 应用 catalog 加载态；见 [AppDataRepository.isAppsLoading]。 */
     val isAppsLoading: MutableLiveData<Boolean> get() = repository.isAppsLoading
+    /** 是否已成功拉取过用户列表；见 [AppDataRepository.isAppsCatalogLoaded]。 */
+    val isAppsCatalogLoaded: MutableLiveData<Boolean> get() = repository.isAppsCatalogLoaded
 
     /** Event: timeline / apps 跳转存档 Tab 的分组 */
     val navigateToGroup = MutableLiveData<String?>(null)
@@ -77,6 +79,13 @@ class SnapshotViewModel : ViewModel() {
     fun loadGroups() {
         val (context, fileSystem, appManager) = appDeps()
         repository.scheduleLoadGroups(context, fileSystem, appManager)
+    }
+
+    fun loadApps() {
+        repository.scheduleLoadApps(
+            fileSystem = { SnapshotApp.getInstance().fileSystem },
+            appManager = { SnapshotApp.getInstance().appManager },
+        )
     }
 
     fun addGroup(

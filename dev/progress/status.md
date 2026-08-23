@@ -2,13 +2,13 @@
 title: "当前开发状态"
 type: progress
 status: active
-updated: 2026-08-21
-summary: "分组集折展性能 Phase A 已落地；架构加固计划仍在下一步"
+updated: 2026-08-23
+summary: "应用 catalog 用 isAppsCatalogLoaded 区分未拉取与空表；架构加固计划仍在下一步"
 ---
 
 # 当前开发状态
 
-> 最后更新：2026-08-21
+> 最后更新：2026-08-23
 
 ## 当前阶段
 
@@ -29,7 +29,7 @@ summary: "分组集折展性能 Phase A 已落地；架构加固计划仍在下�
 - [x] 主界面 UI 焕新（Fluent 2 主题、紧凑顶栏、悬浮毛玻璃底栏、可折叠搜索）
 - [x] 应用 Tab 筛选行图标化（系统/用户切换 + 标签展开/收起）
 - [x] 崩溃修复批次（标签 LayoutParams、AppTag NPE、JNI 泄漏、Root 服务空指针、Timeline 观察者泄漏等）
-- [x] 应用 catalog loading SSOT（`isAppsLoading`；应用 Tab / 选择应用 BottomSheet）
+- [x] 应用 catalog loading SSOT（`isAppsLoading` + `isAppsCatalogLoaded`；未拉取保持 loading；可见时有限次退避重试）
 - [x] 分组 body 三态可见性（空组优先加号；有应用才折/展）
 - [x] 分组集（`archiveList` 投影、集折叠块、两级排序、底栏长按快跳含拖选）
 - [x] 分组集强调色（预设 + 自定义；投影快照刷新）

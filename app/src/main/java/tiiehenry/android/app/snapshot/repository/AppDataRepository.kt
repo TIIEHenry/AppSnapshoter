@@ -57,6 +57,7 @@ class AppDataRepository private constructor() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val loadGroupsMutex = Mutex()
+    private val loadAppsMutex = Mutex()
 
     /**
      * [loadGroupsMutex] 内分组/集列表的唯一读源。LiveData 只 [MutableLiveData.postValue]，禁止锁内读 `*.value`。
@@ -78,6 +79,13 @@ class AppDataRepository private constructor() {
      */
     val isAppsLoading = MutableLiveData(false)
 
+    /**
+     * 是否已成功拉取过用户列表。与 [appsList] 初值 `emptyMap()` 区分「尚未加载」。
+     */
+    @Volatile
+    private var appsCatalogLoaded: Boolean = false
+    val isAppsCatalogLoaded = MutableLiveData(false)
+
     fun loadData(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
         scope.launch {
             isAppsLoading.postValue(true)
@@ -89,6 +97,21 @@ class AppDataRepository private constructor() {
     fun scheduleLoadGroups(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
         scope.launch {
             loadGroups(context, fileSystem, appManager)
+        }
+    }
+
+    fun scheduleLoadApps(
+        fileSystem: () -> IFileSystem,
+        appManager: () -> IAppManager,
+    ) {
+        scope.launch {
+            isAppsLoading.postValue(true)
+            try {
+                loadApps(fileSystem(), appManager())
+            } catch (e: Exception) {
+                Log.e(TAG, "scheduleLoadApps failed", e)
+                isAppsLoading.postValue(false)
+            }
         }
     }
 
@@ -233,48 +256,67 @@ class AppDataRepository private constructor() {
     }
 
     suspend fun loadApps(fileSystem: IFileSystem, appManager: IAppManager) {
-        Log.i(TAG, "loadApps")
-        isAppsLoading.postValue(true)
-        try {
-            val appsMap = withContext(Dispatchers.IO) {
-                val appsMap = mutableMapOf<UserInfoHide, List<AppInfo>>()
-                val userInfos = appManager.users ?: listOf()
+        loadAppsMutex.withLock {
+            Log.i(TAG, "loadApps")
+            isAppsLoading.postValue(true)
+            var succeeded = false
+            try {
+                val appsMap = withContext(Dispatchers.IO) {
+                    val appsMap = mutableMapOf<UserInfoHide, List<AppInfo>>()
+                    val userInfos = appManager.users ?: listOf()
 
-                Log.i(TAG, "loadApps: userInfos $userInfos")
-                for (userInfo in userInfos) {
-                    val userId = userInfo.id
-                    try {
-                        val packageNames = appManager.getInstalledPackages(0, userId) ?: emptyList()
-                        val apps = packageNames.mapNotNull { packageName ->
-                            try {
-                                val packageInfo = appManager.getPackageInfo(packageName, 0, userId)
-                                AppInfo(
-                                    fs = fileSystem,
-                                    appManager = appManager,
-                                    packageName = packageName,
-                                    userId = userId,
-                                    versionName = packageInfo?.versionName,
-                                    versionCode = packageInfo?.longVersionCode ?: 0
-                                )
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                null
-                            }
-                        }
-                        appsMap[userInfo] = apps
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to load apps for user $userId", e)
+                    Log.i(TAG, "loadApps: userInfos $userInfos")
+                    if (userInfos.isEmpty()) {
+                        return@withContext null
                     }
+                    for (userInfo in userInfos) {
+                        val userId = userInfo.id
+                        try {
+                            val packageNames = appManager.getInstalledPackages(0, userId) ?: emptyList()
+                            val apps = packageNames.mapNotNull { packageName ->
+                                try {
+                                    val packageInfo = appManager.getPackageInfo(packageName, 0, userId)
+                                    AppInfo(
+                                        fs = fileSystem,
+                                        appManager = appManager,
+                                        packageName = packageName,
+                                        userId = userId,
+                                        versionName = packageInfo?.versionName,
+                                        versionCode = packageInfo?.longVersionCode ?: 0
+                                    )
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    null
+                                }
+                            }
+                            appsMap[userInfo] = apps
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to load apps for user $userId", e)
+                        }
+                    }
+                    appsMap
                 }
-                appsMap
+                if (appsMap != null) {
+                    appsList.postValue(appsMap)
+                    markAppsCatalogLoaded()
+                    succeeded = true
+                } else {
+                    Log.e(TAG, "loadApps: no users, catalog not ready")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                if (!succeeded && !appsCatalogLoaded) {
+                    Log.w(TAG, "loadApps: catalog still unloaded")
+                }
+                isAppsLoading.postValue(false)
             }
-            appsList.postValue(appsMap)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            appsList.postValue(emptyMap())
-        } finally {
-            isAppsLoading.postValue(false)
         }
+    }
+
+    private fun markAppsCatalogLoaded() {
+        appsCatalogLoaded = true
+        isAppsCatalogLoaded.postValue(true)
     }
 
     fun addGroup(

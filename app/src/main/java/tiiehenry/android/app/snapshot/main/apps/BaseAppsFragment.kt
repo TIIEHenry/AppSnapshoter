@@ -111,6 +111,13 @@ abstract class BaseAppsFragment<VB : ViewBinding> : Fragment(), AppsListComponen
         appsListComponent.onViewCreated(viewLifecycleOwner)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::appsListComponent.isInitialized) {
+            appsListComponent.onResume()
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

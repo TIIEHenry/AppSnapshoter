@@ -118,6 +118,8 @@ class MainActivity : AppCompatActivity() {
         // 先检查权限，检查通过后再加载数据
         if (savedInstanceState == null) {
             showProviderCheckDialog()
+        } else {
+            ensureAppsCatalogLoaded()
         }
     }
 
@@ -262,6 +264,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return null
+    }
+
+    private fun ensureAppsCatalogLoaded() {
+        val viewModel = SnapshotApp.getViewModel()
+        if (viewModel.isAppsCatalogLoaded.value == true) return
+        if (viewModel.isAppsLoading.value == true) return
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    providers.appManager
+                    providers.fileSystem
+                }
+                if (viewModel.isAppsCatalogLoaded.value != true) {
+                    viewModel.loadData()
+                }
+            } catch (e: Exception) {
+                providers.bindRootService()
+            }
+        }
     }
 
     private fun showProviderCheckDialog() {

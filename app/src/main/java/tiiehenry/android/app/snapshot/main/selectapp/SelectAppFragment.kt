@@ -98,6 +98,13 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
         appsListComponent.onViewCreated(viewLifecycleOwner)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::appsListComponent.isInitialized) {
+            appsListComponent.onResume()
+        }
+    }
+
     override fun getRecyclerView(binding: FragmentSelectAppBinding): RecyclerView = binding.appsRecyclerView
 
     override fun getUserTabLayout(binding: FragmentSelectAppBinding): TabLayout =

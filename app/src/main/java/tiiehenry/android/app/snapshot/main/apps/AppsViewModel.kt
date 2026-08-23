@@ -4,6 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppFilterType
 import tiiehenry.android.app.snapshot.app.AppInfo
@@ -22,6 +23,7 @@ class AppsViewModel : ViewModel() {
     private var currentUserId: Int= 0
     private var selectedTagIds: Set<String> = emptySet()
     private var membershipFilter: MembershipFilter = MembershipFilter.ALL
+    private val filterGeneration = AtomicInteger(0)
 
     enum class MembershipFilter {
         ALL,
@@ -119,15 +121,12 @@ class AppsViewModel : ViewModel() {
     }
 
     private fun applyFilter() {
+        val generation = filterGeneration.incrementAndGet()
         viewModelScope.launch {
-            // 获取当前用户的应用列表
             var result = getAppsForCurrentUser()
-
-            // 按标签过滤（使用缓存的标签）
             result = filterAppsByTagsWithCache(result, selectedTagIds)
             result = filterByMembership(result)
-
-            // 按搜索词和类型过滤
+            if (generation != filterGeneration.get()) return@launch
             filteredAppList.value =
                 AppFilterHelper.filterApps(result, currentQuery, currentFilterType)
         }

@@ -12,7 +12,11 @@ import androidx.viewbinding.ViewBinding
 import android.widget.ImageButton
 import android.widget.ImageView
 import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
@@ -34,8 +38,9 @@ import tiiehenry.android.snapshot.app.UserInfoHide
  *
  * 封装用户 Tab、过滤、标签、搜索等公共逻辑，可被 Fragment / BottomSheet 复用。
  *
- * Loading 不变量：`showLoading = isAppsLoading || isLocalProcessing`。
- * [SnapshotViewModel.isAppsLoading] 为 catalog 拉取 SSOT；[appsList] 观察者只做数据绑定，
+ * Loading 不变量：`showLoading = !catalogLoaded || isAppsLoading || isLocalProcessing`。
+ * [SnapshotViewModel.isAppsCatalogLoaded] 区分「尚未拉取」与「已加载空表」；
+ * [SnapshotViewModel.isAppsLoading] 为 catalog 拉取中；[appsList] 观察者只做数据绑定，
  * 禁止用其排放直接开关 loading（与 Timeline 的 `isQuerying` 模式一致）。
  */
 class AppsListComponent<VB : ViewBinding>(
@@ -50,6 +55,10 @@ class AppsListComponent<VB : ViewBinding>(
     private var userList: List<UserInfoHide> = emptyList()
     private var searchController: CollapsibleSearchController? = null
     private var isLocalProcessing = false
+    private var bindJob: Job? = null
+    private var bindGeneration = 0
+    private var ensureJob: Job? = null
+    private var ensureAttempts = 0
 
     interface Callbacks<VB : ViewBinding> {
         fun getRecyclerView(binding: VB): RecyclerView
@@ -69,8 +78,6 @@ class AppsListComponent<VB : ViewBinding>(
     }
 
     fun onViewCreated(viewLifecycleOwner: LifecycleOwner) {
-        // 注入依赖
-        viewModel.fileSystem = SnapshotApp.getInstance().fileSystem
         viewModel.groupsProvider = { snapshotViewModel.groupList.value ?: emptyList() }
 
         // 设置 RecyclerView
@@ -89,38 +96,25 @@ class AppsListComponent<VB : ViewBinding>(
         // 设置 Tags Filter
         setupTagsFilter()
 
-        // 设置用户Tab
-        userList = appManager.users
-        setupUserTabs()
+        updateLoadingUi()
 
         snapshotViewModel.isAppsLoading.observe(viewLifecycleOwner) {
             updateLoadingUi()
         }
+        snapshotViewModel.isAppsCatalogLoaded.observe(viewLifecycleOwner) { loaded ->
+            updateLoadingUi()
+            if (loaded == true) {
+                ensureAttempts = 0
+            }
+        }
 
         // 观察全局ViewModel的appList（只做数据绑定，不驱动 loading）
         snapshotViewModel.appsList.observe(viewLifecycleOwner) { apps ->
-            isLocalProcessing = true
-            updateLoadingUi()
-            fragment.lifecycleScope.launch(Dispatchers.Default) {
-                // 过滤已忽略的应用并排序
-                val filteredAppsMap = apps.mapValues {
-                    if (callbacks.filterIgnoredApps) {
-                        IgnoreAppsConfig.filterIgnoredApps(it.value)
-                    } else {
-                        it.value
-                    }.sortedBy { app -> app.label.lowercase() }
-                }
-                // 重置标签过滤状态并使用新的setAppsMap方法
-                viewModel.clearTagFilter()
-                viewModel.setAppsMap(filteredAppsMap)
-                withContext(Dispatchers.Main) {
-                    // 更新标签过滤器
-                    updateTagsFilter()
-                    isLocalProcessing = false
-                    updateLoadingUi()
-                }
-            }
+            bindCatalog(apps)
         }
+
+        resolveRuntimeDeps(viewLifecycleOwner)
+        startCatalogEnsureLoop(resetAttempts = false)
 
         // 观察过滤后的列表
         viewModel.filteredAppList.observe(viewLifecycleOwner) { apps ->
@@ -137,14 +131,107 @@ class AppsListComponent<VB : ViewBinding>(
         )
     }
 
+    fun onResume() {
+        startCatalogEnsureLoop(resetAttempts = true)
+    }
+
+    private fun resolveRuntimeDeps(viewLifecycleOwner: LifecycleOwner) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val (fs, users) = withContext(Dispatchers.IO) {
+                val fs = runCatching { SnapshotApp.getInstance().fileSystem }.getOrNull()
+                val users = runCatching { appManager.users.orEmpty() }.getOrElse { emptyList() }
+                fs to users
+            }
+            viewModel.fileSystem = fs
+            applyUserTabs(users)
+        }
+    }
+
+    private fun startCatalogEnsureLoop(resetAttempts: Boolean) {
+        if (resetAttempts) {
+            ensureAttempts = 0
+        }
+        if (ensureJob?.isActive == true && !resetAttempts) return
+        ensureJob?.cancel()
+        ensureJob = fragment.viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                if (snapshotViewModel.isAppsCatalogLoaded.value == true) return@launch
+                val loading = snapshotViewModel.isAppsLoading.value == true
+                if (AppsCatalogUi.shouldRequestCatalog(
+                        catalogLoaded = false,
+                        isAppsLoading = loading,
+                        attemptsUsed = ensureAttempts,
+                    )
+                ) {
+                    snapshotViewModel.loadApps()
+                    ensureAttempts++
+                } else if (ensureAttempts >= AppsCatalogUi.MAX_VISIBLE_ATTEMPTS && !loading) {
+                    return@launch
+                }
+                delay(AppsCatalogUi.retryDelayMs(ensureAttempts))
+            }
+        }
+    }
+
+    private fun bindCatalog(apps: Map<UserInfoHide, List<AppInfo>>) {
+        if (!AppsCatalogUi.shouldBindCatalog(apps)) {
+            updateLoadingUi()
+            return
+        }
+        bindJob?.cancel()
+        val generation = ++bindGeneration
+        isLocalProcessing = true
+        updateLoadingUi()
+        bindJob = fragment.viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+            try {
+                val filteredAppsMap = apps.mapValues {
+                    if (callbacks.filterIgnoredApps) {
+                        IgnoreAppsConfig.filterIgnoredApps(it.value)
+                    } else {
+                        it.value
+                    }.sortedBy { app -> app.label.lowercase() }
+                }
+                viewModel.clearTagFilter()
+                viewModel.setAppsMap(filteredAppsMap)
+                withContext(Dispatchers.Main) {
+                    if (generation != bindGeneration) return@withContext
+                    applyUserTabs(apps.keys.toList())
+                    updateTagsFilter()
+                    isLocalProcessing = false
+                    updateLoadingUi()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                withContext(Dispatchers.Main.immediate) {
+                    if (generation != bindGeneration || fragment.view == null) return@withContext
+                    isLocalProcessing = false
+                    updateLoadingUi()
+                }
+            }
+        }
+    }
+
+    private fun applyUserTabs(users: List<UserInfoHide>) {
+        if (users.isEmpty()) return
+        if (userList.map { it.id } == users.map { it.id }) return
+        userList = users
+        setupUserTabs()
+    }
+
     private fun updateLoadingUi() {
         callbacks.onAppsLoadingStateChanged(
-            snapshotViewModel.isAppsLoading.value == true || isLocalProcessing
+            AppsCatalogUi.shouldShowLoading(
+                catalogLoaded = snapshotViewModel.isAppsCatalogLoaded.value == true,
+                isAppsLoading = snapshotViewModel.isAppsLoading.value == true,
+                isLocalProcessing = isLocalProcessing,
+            )
         )
     }
 
     private fun setupUserTabs() {
         val tabLayout = callbacks.getUserTabLayout(binding)
+        tabLayout.clearOnTabSelectedListeners()
         tabLayout.removeAllTabs()
 
         val tabs = userList.map { userInfo ->
