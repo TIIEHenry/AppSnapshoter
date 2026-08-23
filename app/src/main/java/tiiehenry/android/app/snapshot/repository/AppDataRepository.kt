@@ -22,6 +22,7 @@ import tiiehenry.android.app.snapshot.group.GroupSetColors
 import tiiehenry.android.app.snapshot.group.MoveAppResult
 import tiiehenry.android.app.snapshot.group.PackageOpGuard
 import tiiehenry.android.app.snapshot.group.SetMembershipModeResult
+import tiiehenry.android.app.snapshot.group.UninstallAppResult
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
 import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
@@ -112,6 +113,29 @@ class AppDataRepository private constructor() {
             } catch (e: Exception) {
                 Log.e(TAG, "scheduleLoadApps failed", e)
                 isAppsLoading.postValue(false)
+            }
+        }
+    }
+
+    fun uninstallInstalledApp(
+        fileSystem: () -> IFileSystem,
+        appManager: () -> IAppManager,
+        packageName: String,
+        userId: Int,
+        onComplete: (UninstallAppResult) -> Unit,
+    ) {
+        scope.launch {
+            if (packageOpGuard.isGlobalBatchRunning() || packageOpGuard.isBusy()) {
+                withContext(Dispatchers.Main) { onComplete(UninstallAppResult.Busy) }
+                return@launch
+            }
+            val ok = appManager().uninstallApk(packageName, userId)
+            if (ok) {
+                isAppsLoading.postValue(true)
+                loadApps(fileSystem(), appManager())
+                withContext(Dispatchers.Main) { onComplete(UninstallAppResult.Success) }
+            } else {
+                withContext(Dispatchers.Main) { onComplete(UninstallAppResult.Failed) }
             }
         }
     }

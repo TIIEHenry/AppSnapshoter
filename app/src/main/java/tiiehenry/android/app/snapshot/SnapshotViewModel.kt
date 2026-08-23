@@ -88,6 +88,20 @@ class SnapshotViewModel : ViewModel() {
         )
     }
 
+    fun uninstallApp(
+        packageName: String,
+        userId: Int,
+        onComplete: (tiiehenry.android.app.snapshot.group.UninstallAppResult) -> Unit,
+    ) {
+        repository.uninstallInstalledApp(
+            fileSystem = { SnapshotApp.getInstance().fileSystem },
+            appManager = { SnapshotApp.getInstance().appManager },
+            packageName = packageName,
+            userId = userId,
+            onComplete = onComplete,
+        )
+    }
+
     fun addGroup(
         name: String,
         path: String,

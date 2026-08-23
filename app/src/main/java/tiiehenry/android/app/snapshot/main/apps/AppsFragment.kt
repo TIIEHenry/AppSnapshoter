@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.Toast
 import com.google.android.material.tabs.TabLayout
 import androidx.recyclerview.widget.RecyclerView
 import tiiehenry.android.app.snapshot.R
@@ -13,6 +14,7 @@ import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.databinding.FragmentAppsBinding
 import tiiehenry.android.app.snapshot.databinding.LayoutSearchFieldBinding
 import tiiehenry.android.app.snapshot.group.GroupMembershipResolver
+import tiiehenry.android.app.snapshot.group.UninstallAppResult
 import tiiehenry.android.app.snapshot.ui.widget.TagsFilterLayout
 
 class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
@@ -61,7 +63,24 @@ class AppsFragment : BaseAppsFragment<FragmentAppsBinding>() {
                 snapshotViewModel.requestNavigateToGroup(groupId, packageName)
                 (requireActivity() as MainActivity).selectBottomNavTab(R.id.launcherFragment)
             },
-            onUninstall = { },
+            onUninstall = { appInfo ->
+                snapshotViewModel.uninstallApp(appInfo.packageName, appInfo.userId) { result ->
+                    val ctx = context ?: return@uninstallApp
+                    when (result) {
+                        UninstallAppResult.Success -> Unit
+                        UninstallAppResult.Busy -> Toast.makeText(
+                            ctx,
+                            R.string.batch_operation_in_progress,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        UninstallAppResult.Failed -> Toast.makeText(
+                            ctx,
+                            R.string.apps_popup_uninstall_failed,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+            },
         )
         appsAdapter = AppsAdapter(
             membershipIndexProvider = {
