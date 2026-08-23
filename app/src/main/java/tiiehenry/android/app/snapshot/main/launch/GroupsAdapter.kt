@@ -204,7 +204,9 @@ class GroupsAdapter(
             val inSet = card.setId != null
             val accentColor = card.accentColor
             val groupChanged = boundGroup != null && boundGroup?.id != group.id
-            if (groupChanged && isSortMode) {
+            // Recycled holders keep isSortMode; childCount walk cannot see them.
+            // Non-blank query must detach ItemTouchHelper before refresh() submits a subset.
+            if (shouldExitSortModeOnBind(groupsAdapter.searchQuery, groupChanged, isSortMode)) {
                 itemAdapter?.let { stopDragSortMode(it) }
                 isSortMode = false
             }
@@ -287,6 +289,9 @@ class GroupsAdapter(
         }
 
         fun toggleSortMode(group: SnapGroup, adapter: GroupItemAdapter) {
+            if (!isSortMode && ::groupsAdapter.isInitialized && groupsAdapter.searchQuery.isNotBlank()) {
+                return
+            }
             isSortMode = !isSortMode
             boundGroup = group
             if (isSortMode) {
@@ -509,6 +514,16 @@ class GroupsAdapter(
 
 internal fun archiveDisplayCollapsed(searchQuery: String, groupIsCollapsed: Boolean): Boolean =
     if (searchQuery.isBlank()) groupIsCollapsed else false
+
+/** Recycled holders keep isSortMode; bind must not wait for attached children. */
+internal fun shouldExitSortModeOnBind(
+    searchQuery: String,
+    groupChanged: Boolean,
+    isSortMode: Boolean,
+): Boolean {
+    if (!isSortMode) return false
+    return searchQuery.isNotBlank() || groupChanged
+}
 
 internal fun filterVisibleApps(
     sorted: List<ArchivedApp>,
