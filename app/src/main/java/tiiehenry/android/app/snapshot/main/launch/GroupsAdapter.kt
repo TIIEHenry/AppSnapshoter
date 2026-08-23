@@ -19,6 +19,7 @@ import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.main.launch.addgroup.AddGroupBottomSheet
 import tiiehenry.android.app.snapshot.main.launch.groupset.GroupSetHeaderBinder
+import tiiehenry.android.app.snapshot.ui.widget.TextHighlight
 import java.nio.file.Paths
 
 class GroupsAdapter(
@@ -34,8 +35,21 @@ class GroupsAdapter(
             notifyItemRangeChanged(0, itemCount, BATCH_RUNNING_PAYLOAD)
         }
 
+    var searchQuery: String = ""
+
+    fun updateSearchQuery(query: String) {
+        if (searchQuery == query) return
+        searchQuery = query
+        currentList.forEachIndexed { index, item ->
+            if (item is ArchiveListItem.SetHeader || item is ArchiveListItem.GroupCard) {
+                notifyItemChanged(index, PAYLOAD_HIGHLIGHT)
+            }
+        }
+    }
+
     companion object {
         private const val BATCH_RUNNING_PAYLOAD = "batch_running"
+        private const val PAYLOAD_HIGHLIGHT = "highlight"
         private const val VIEW_TYPE_SET = 1
         private const val VIEW_TYPE_GROUP = 2
         private const val VIEW_TYPE_EMPTY_HINT = 3
@@ -74,24 +88,38 @@ class GroupsAdapter(
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            super.onBindViewHolder(holder, position, payloads)
+            return
+        }
+        var handled = false
         if (payloads.contains(BATCH_RUNNING_PAYLOAD) && holder is GroupViewHolder) {
             holder.applyBatchRunningState(isBatchRunning)
-        } else {
+            handled = true
+        }
+        if (payloads.contains(PAYLOAD_HIGHLIGHT)) {
+            applyHighlightPayload(holder, getItem(position))
+            handled = true
+        }
+        if (!handled) {
             super.onBindViewHolder(holder, position, payloads)
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = getItem(position)) {
-            is ArchiveListItem.SetHeader -> (holder as SetHeaderViewHolder).bind(item)
+            is ArchiveListItem.SetHeader -> (holder as SetHeaderViewHolder).bind(this, item)
             is ArchiveListItem.EmptySetHint -> (holder as EmptySetHintViewHolder).bind(item)
-            is ArchiveListItem.GroupCard ->
-                (holder as GroupViewHolder).bind(
-                    this,
-                    item.group,
-                    inSet = item.setId != null,
-                    accentColor = item.accentColor,
-                )
+            is ArchiveListItem.GroupCard -> (holder as GroupViewHolder).bind(this, item)
+        }
+    }
+
+    private fun applyHighlightPayload(holder: RecyclerView.ViewHolder, item: ArchiveListItem) {
+        when {
+            holder is SetHeaderViewHolder && item is ArchiveListItem.SetHeader ->
+                holder.bind(this, item)
+            holder is GroupViewHolder && item is ArchiveListItem.GroupCard ->
+                holder.bindHighlight()
         }
     }
 
@@ -118,8 +146,15 @@ class GroupsAdapter(
         private val fragmentManager: FragmentManager,
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: ArchiveListItem.SetHeader) {
-            GroupSetHeaderBinder.bind(binding, item, snapshotViewModel, fragmentManager)
+        fun bind(adapter: GroupsAdapter, item: ArchiveListItem.SetHeader) {
+            GroupSetHeaderBinder.bind(
+                binding,
+                item,
+                snapshotViewModel,
+                fragmentManager,
+                collapseEnabled = adapter.searchQuery.isBlank(),
+                searchQuery = adapter.searchQuery,
+            )
         }
     }
 
@@ -133,8 +168,11 @@ class GroupsAdapter(
         var isSortMode = false
         private var itemTouchHelper: ItemTouchHelper? = null
         private lateinit var actionsController: GroupActionsController
+        private lateinit var groupsAdapter: GroupsAdapter
         private var boundGroup: SnapGroup? = null
         private var itemAdapter: GroupItemAdapter? = null
+        private var visiblePackages: Set<String>? = null
+        private var displayCollapsed: Boolean = false
         private val gridSpan = binding.root.resources.getInteger(R.integer.group_app_grid_span)
         private val gridMaxRows = binding.root.resources.getInteger(R.integer.group_app_grid_max_rows)
 
@@ -150,17 +188,21 @@ class GroupsAdapter(
 
         fun bind(
             groupsAdapter: GroupsAdapter,
-            group: SnapGroup,
-            inSet: Boolean,
-            accentColor: Int?,
+            card: ArchiveListItem.GroupCard,
         ) {
+            val group = card.group
+            val inSet = card.setId != null
+            val accentColor = card.accentColor
             val groupChanged = boundGroup != null && boundGroup?.id != group.id
             if (groupChanged && isSortMode) {
                 itemAdapter?.let { stopDragSortMode(it) }
                 isSortMode = false
             }
+            this.groupsAdapter = groupsAdapter
             boundGroup = group
-            binding.groupTitle.text = group.name
+            visiblePackages = card.visiblePackages
+            displayCollapsed = archiveDisplayCollapsed(groupsAdapter.searchQuery, group.isCollapsed)
+            applyGroupTitleHighlight(group)
             if (inSet && accentColor != null) {
                 binding.setMembershipRail.visibility = View.VISIBLE
                 binding.setMembershipRail.setBackgroundColor(accentColor)
@@ -234,7 +276,7 @@ class GroupsAdapter(
                 startDragSortMode(adapter, group)
                 binding.groupTitle.text = binding.root.context.getString(R.string.group_sort_mode_title, group.name)
             } else {
-                binding.groupTitle.text = group.name
+                applyGroupTitleHighlight(group)
                 stopDragSortMode(adapter)
             }
             syncChromeVisibility()
@@ -282,19 +324,32 @@ class GroupsAdapter(
 
         fun refresh(group: SnapGroup, recyclerView: RecyclerView) {
             boundGroup = group
-            binding.groupTitle.text = group.name
+            applyGroupTitleHighlight(group)
             val sortedApps = synchronized(group.apps) {
                 applySorting(group.apps, group.config.sortConfig, group)
             }
+            val displayed = filterVisibleApps(sortedApps, visiblePackages)
             val adapter = recyclerView.adapter as GroupItemAdapter
             adapter.group = group
-            syncInnerGridScrolling(sortedApps.size)
-            adapter.submitList(sortedApps)
+            syncInnerGridScrolling(displayed.size)
+            adapter.submitList(displayed)
             renderBody(group)
             syncChromeVisibility()
         }
 
-        fun updateCollapseState(@Suppress("UNUSED_PARAMETER") isCollapsed: Boolean) {
+        fun bindHighlight() {
+            val group = boundGroup ?: return
+            if (::groupsAdapter.isInitialized) {
+                displayCollapsed = archiveDisplayCollapsed(groupsAdapter.searchQuery, group.isCollapsed)
+            }
+            applyGroupTitleHighlight(group)
+            itemAdapter?.updateHighlight()
+            renderBody(group)
+            syncChromeVisibility()
+        }
+
+        fun updateCollapseState(isCollapsed: Boolean) {
+            displayCollapsed = isCollapsed
             val group = boundGroup ?: return
             renderBody(group)
             syncChromeVisibility()
@@ -303,7 +358,8 @@ class GroupsAdapter(
         /** 展开分组并滚到指定包名（用于应用 Tab / 时间线跳转）。 */
         fun scrollToPackage(packageName: String) {
             val group = boundGroup ?: return
-            if (group.isCollapsed) {
+            val persistCollapse = !::groupsAdapter.isInitialized || groupsAdapter.searchQuery.isBlank()
+            if (persistCollapse && group.isCollapsed) {
                 group.isCollapsed = false
                 updateCollapseState(false)
             }
@@ -319,9 +375,10 @@ class GroupsAdapter(
 
         /**
          * 分组 body 三态互斥投影：
-         * - 空组 → 仅 empty_layout（忽略 isCollapsed，始终加号）
+         * - 空组 → 仅 empty_layout（忽略 displayCollapsed，始终加号）
          * - 有应用且折叠 → 仅 expand_group
          * - 有应用且展开 → 仅 app_layout
+         * 折叠看 [displayCollapsed]，不直接读 live getter / [ArchiveListItem.GroupCard.collapsed]。
          */
         private fun renderBody(group: SnapGroup) {
             binding.progressBar.visibility = View.GONE
@@ -333,7 +390,7 @@ class GroupsAdapter(
                     binding.appLayout.visibility = View.GONE
                     binding.groupRecyclerView.visibility = View.GONE
                 }
-                group.isCollapsed -> {
+                displayCollapsed -> {
                     binding.expandGroup.visibility = View.VISIBLE
                     binding.emptyLayout.visibility = View.GONE
                     binding.appLayout.visibility = View.GONE
@@ -374,6 +431,15 @@ class GroupsAdapter(
                 SortConfig.SORT_TYPE_INSTALL_TIME_DESC -> apps.sortedByDescending { it.appInfo.packageInfo?.firstInstallTime ?: 0L }
                 else -> apps.toList()
             }
+        }
+
+        private fun applyGroupTitleHighlight(group: SnapGroup) {
+            if (isSortMode) {
+                binding.groupTitle.text = binding.root.context.getString(R.string.group_sort_mode_title, group.name)
+                return
+            }
+            val query = if (::groupsAdapter.isInitialized) groupsAdapter.searchQuery.trim() else ""
+            binding.groupTitle.text = TextHighlight.highlight(binding.root.context, group.name, query)
         }
     }
 
@@ -423,3 +489,13 @@ class GroupsAdapter(
         }
     }
 }
+
+internal fun archiveDisplayCollapsed(searchQuery: String, groupIsCollapsed: Boolean): Boolean =
+    if (searchQuery.isBlank()) groupIsCollapsed else false
+
+internal fun filterVisibleApps(
+    sorted: List<ArchivedApp>,
+    visiblePackages: Set<String>?,
+): List<ArchivedApp> =
+    visiblePackages?.let { pkgs -> sorted.filter { it.appInfo.packageName in pkgs } } ?: sorted
+

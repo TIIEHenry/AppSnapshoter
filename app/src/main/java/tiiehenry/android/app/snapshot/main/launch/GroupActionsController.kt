@@ -49,10 +49,12 @@ class GroupActionsController(
             onRefresh(g)
         }
 
-        // 标题点击 - 有应用时折叠/展开；空组始终显示加号，不切换折叠
+        // 标题点击 - 有应用时折叠/展开；空组始终显示加号，不切换折叠。
+        // 有查询时不写 MMKV、不改 displayCollapsed。
         binding.groupTitle.setOnClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
             if (synchronized(group.apps) { group.apps.isEmpty() }) return@setOnClickListener
+            if (groupsAdapter.searchQuery.isNotBlank()) return@setOnClickListener
             group.isCollapsed = !group.isCollapsed
             groupViewHolder.updateCollapseState(group.isCollapsed)
         }
@@ -69,6 +71,7 @@ class GroupActionsController(
         // 展开按钮
         binding.expandGroup.setOnClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
+            if (groupsAdapter.searchQuery.isNotBlank()) return@setOnClickListener
             group.isCollapsed = false
             groupViewHolder.updateCollapseState(group.isCollapsed)
         }

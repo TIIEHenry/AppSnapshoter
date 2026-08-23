@@ -24,6 +24,7 @@ import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.popup.ArchiveItemAdapter
 import tiiehenry.android.app.snapshot.main.launch.group.item.PackageStatus
 import tiiehenry.android.app.snapshot.main.launch.popup.ArchiveItemPopupMenu
+import tiiehenry.android.app.snapshot.ui.widget.TextHighlight
 import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 
 /**
@@ -52,6 +53,22 @@ class GroupItemAdapter(
         notifyDataSetChanged()
     }
 
+    fun updateHighlight() {
+        if (itemCount > 0) {
+            notifyItemRangeChanged(0, itemCount, PAYLOAD_HIGHLIGHT)
+        }
+    }
+
+    fun searchQuery(): String = groupsAdapter.searchQuery
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(PAYLOAD_HIGHLIGHT)) {
+            holder.bindHighlight(getItem(position))
+            return
+        }
+        super.onBindViewHolder(holder, position, payloads)
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding, groupsHolder, viewModel, snapshotViewModel, onItemUpdated, this) { batchRunning }
@@ -78,9 +95,14 @@ class GroupItemAdapter(
 
         private val group get() = adapter.group
 
+        fun bindHighlight(item: ArchivedApp) {
+            val query = adapter.searchQuery().trim()
+            binding.appName.text = TextHighlight.highlight(binding.root.context, item.appInfo.label, query)
+        }
+
         fun bind(item: ArchivedApp) {
             val appInfo = item.appInfo
-            binding.appName.text = appInfo.label
+            bindHighlight(item)
             loadAppIcon(appInfo)
             updateCurrent(item)
             setupClickListeners(item)
@@ -391,6 +413,10 @@ class GroupItemAdapter(
                 }
             })
         }
+    }
+
+    companion object {
+        private const val PAYLOAD_HIGHLIGHT = "highlight"
     }
 
     private class ItemDiffCallback : DiffUtil.ItemCallback<ArchivedApp>() {
