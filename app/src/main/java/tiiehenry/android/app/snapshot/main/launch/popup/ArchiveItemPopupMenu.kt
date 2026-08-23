@@ -2,11 +2,8 @@ package tiiehenry.android.app.snapshot.main.launch.popup
 
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.net.Uri
-import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,6 +20,7 @@ import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.databinding.LayoutPopupMenuBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.utils.AppDetailsLauncher
 import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 
 /**
@@ -158,7 +156,7 @@ class ArchiveItemPopupMenu(
         // 信息按钮
         popupBinding.btnInfo.setOnClickListener {
             if (isAppInstalled) {
-                openAppSettings(item.appInfo.packageName)
+                AppDetailsLauncher.open(context, item.appInfo.packageName)
             }
             popupWindow.dismiss()
         }
@@ -245,25 +243,6 @@ class ArchiveItemPopupMenu(
             R.string.archive_rename_hint,
             Toast.LENGTH_LONG
         ).show()
-    }
-
-    /**
-     * 打开应用设置页面
-     */
-    private fun openAppSettings(packageName: String) {
-        try {
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-            val uri = Uri.fromParts("package", packageName, null)
-            intent.data = uri
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            try {
-                val fallbackIntent = Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
-                context.startActivity(fallbackIntent)
-            } catch (ex: Exception) {
-                Toast.makeText(context, R.string.archive_cannot_open_app_details, Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 
     /**
