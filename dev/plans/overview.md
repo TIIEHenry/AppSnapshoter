@@ -2,7 +2,7 @@
 title: "实施计划总览"
 type: plan
 status: active
-updated: 2026-08-21
+updated: 2026-08-23
 summary: "所有实施阶段概览、里程碑和当前焦点"
 ---
 
@@ -21,6 +21,7 @@ summary: "所有实施阶段概览、里程碑和当前焦点"
 | 分组集 | implemented | [2026-08-group-set](2026-08-group-set.md) | 父目录组织多个分组；存档 Tab 连续成块（[设计](../../docs/systems/snapshot/GROUP_SET.md)） |
 | 分组集折展性能 | implemented | [2026-08-group-set-expand-perf](2026-08-group-set-expand-perf.md) | 折展/一键折叠改走内存再投影（[方案](../../docs/systems/snapshot/group-set-expand-perf.md)） |
 | 分组应用归属 | implemented | [2026-08-group-membership](2026-08-group-membership.md) | Phase 1 已落地；Phase 2 体验可选（[设计](../../docs/systems/snapshot/GROUP_MEMBERSHIP.md)） |
+| 应用 Tab Item Popup | implemented | [2026-08-23-apps-tab-item-popup](2026-08-23-apps-tab-item-popup.md) | 长按 popup：归属组 + 加入独立组 / 详情 / 卸载（[方案](../../docs/systems/snapshot/APPS_TAB_ITEM_POPUP.md)） |
 
 ## 当前焦点
 

@@ -2,7 +2,7 @@
 title: "app 模块"
 type: module
 status: active
-updated: 2026-08-21
+updated: 2026-08-23
 summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragments、ViewModels、配置管理；Fluent 2 主界面壳层；中英双语 i18n"
 ---
 
@@ -20,7 +20,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 | 类 | 职责 |
 |---|------|
 | `SnapshotApp` | Application 入口，初始化 MMKV → ProvidersImpl → Root 检查 → 绑定服务 |
-| `SnapshotViewModel` | 全局单例 ViewModel；`groupList` / `appsList` / `isAppsLoading` 来自 `AppDataRepository` LiveData；数据变更委托 repository 进程级协程（不用 `viewModelScope`） |
+| `SnapshotViewModel` | 全局单例 ViewModel；`groupList` / `appsList` / `isAppsLoading` / `isAppsCatalogLoaded` 来自 `AppDataRepository` LiveData；数据变更委托 repository 进程级协程（不用 `viewModelScope`） |
 | `SingletonViewModelFactory` | 将 `SnapshotApp` 预创建的 `SnapshotViewModel` 注入 `activityViewModels()` |
 
 ### `app` — 应用模型与过滤
@@ -75,8 +75,8 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `main.apps` — 应用列表 Tab
 | 类 | 职责 |
 |---|------|
-| `AppsFragment`, `BaseAppsFragment` | 应用列表 Fragment |
-| `AppsAdapter`, `AppsListComponent` | 列表适配和组件；loading = `isAppsLoading \|\| isLocalProcessing`，`appsList` 只做数据绑定（与 Timeline `isQuerying` 同模式） |
+| `AppsFragment`, `BaseAppsFragment` | 应用列表 Fragment；长按 `AppsItemPopupMenu` 见 [应用 Tab Item 长按 Popup](../../systems/snapshot/APPS_TAB_ITEM_POPUP.md) |
+| `AppsAdapter`, `AppsListComponent`, `AppsItemPopupMenu`, `AppsPopupGroupAdapter` | 列表与 popup；`groupList` 变化重跑 membership 筛选 |
 | `AppsViewModel` | 多维过滤 ViewModel（搜索、类型、标签、用户 ID） |
 
 ### `main.selectapp` — 应用选择
@@ -109,7 +109,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `repository` — 数据仓库
 | 类 | 职责 |
 |---|------|
-| `AppDataRepository` | 单例仓库；`scope`（`SupervisorJob + IO`）执行 `loadGroups` / `addGroup` / `deleteGroup`；`loadGroupsMutex` 防并发 stale；`groupList` / `appsList` / `isAppsLoading` LiveData。`isAppsLoading` 为已安装应用 catalog 加载 SSOT：`loadData` 在 `loadGroups` 前即置 true（含分组加载窗口），`loadApps` finally 置 false；UI 禁止用 `appsList` 排放驱动 loading |
+| `AppDataRepository` | 单例仓库；`scope`（`SupervisorJob + IO`）执行 `loadGroups` / `addGroup` / `deleteGroup`；`loadGroupsMutex` 防并发 stale；`groupList` / `appsList` / `isAppsLoading` / `isAppsCatalogLoaded` LiveData。`isAppsLoading` 为拉取中；`isAppsCatalogLoaded` 为已成功拿到用户列表（与 `appsList` 初值 `emptyMap()` 区分「尚未加载」）。`loadData` 在 `loadGroups` 前即置 loading true；`loadApps` 在用户列表为空时不标记 loaded（Root 未就绪/IPC 失败），UI 保持 loading 并可 `scheduleLoadApps` 重试。UI 禁止用 `appsList` 排放驱动 loading |
 
 ### `glide` — 图片加载
 | 类 | 职责 |
