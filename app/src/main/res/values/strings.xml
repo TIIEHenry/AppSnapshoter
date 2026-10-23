@@ -478,6 +478,14 @@
     <string name="instance_name_taken">已有同名实例</string>
     <string name="instance_account_invalid">账号不能超过 80 个字</string>
     <string name="instance_account_taken">这个账号已经有固定实例</string>
+    <string name="instance_bound">绑定 %1$s</string>
+    <string name="instance_external_invalid">外部绑定不能超过 80 个字</string>
+    <string name="instance_external_taken">这个外部账号已经绑定了别的实例</string>
+    <string name="instance_confirm_title">确认切换实例</string>
+    <string name="instance_confirm_action">确认覆盖当前数据</string>
+    <string name="instance_confirm_cancelled">已取消切换</string>
+    <string name="instance_confirm_notification">用「%1$s」覆盖 %2$s 的当前数据</string>
+    <string name="instance_confirm_message">将用实例「%2$s」（%3$s）覆盖 %1$s 的当前数据。正在使用的数据不会自动写回其他实例。</string>
     <string name="instance_note_invalid">备注不能超过 200 个字</string>
     <string name="instance_not_installed">应用未安装，不能备份或恢复实例</string>
     <string name="instance_missing">找不到这个实例</string>
@@ -485,4 +493,16 @@
     <string name="instance_restore_failed">恢复实例失败</string>
     <string name="instance_progress_save">正在备份到实例</string>
     <string name="instance_progress_restore">正在恢复「%1$s」</string>
+
+    <string name="external_service_title">对外实例服务</string>
+    <string name="external_service_description">其他应用需在这里同意后，才能列出或切换实例。可管控全部已分组应用，或只允许白名单。</string>
+    <string name="external_service_enabled">允许外部调用</string>
+    <string name="external_target_all">全部已分组应用</string>
+    <string name="external_target_whitelist">仅白名单</string>
+    <string name="external_whitelist_hint">每行一个目标应用包名</string>
+    <string name="external_callers">已同意：\n%1$s\n\n待同意：\n%2$s</string>
+    <string name="external_approve_pending">同意待处理的调用方</string>
+    <string name="external_revoke_all">撤销全部调用方</string>
+    <string name="external_mcp">本机 MCP</string>
+    <string name="external_mcp_token">MCP 令牌（只显示这一次）：%1$s</string>
 </resources>

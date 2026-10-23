@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.databinding.ActivitySettingsBinding
+import tiiehenry.android.app.snapshot.external.ExternalAccessFragment
 import tiiehenry.android.app.snapshot.databinding.ItemSettingBinding
 
 /**
@@ -87,6 +88,13 @@ class SettingsActivity : AppCompatActivity() {
                 onClick = {
                     // 以 BottomSheet 样式显示忽略应用页面
                     IgnoreAppsFragment().show(supportFragmentManager, "ignore_apps")
+                }
+            ),
+            SettingItem(
+                title = getString(R.string.external_service_title),
+                description = getString(R.string.external_service_description),
+                onClick = {
+                    ExternalAccessFragment().show(supportFragmentManager, "external_instances")
                 }
             ),
             SettingItem(

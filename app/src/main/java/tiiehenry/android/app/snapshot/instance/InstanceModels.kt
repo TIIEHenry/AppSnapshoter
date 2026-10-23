@@ -10,12 +10,14 @@ data class AppInstance(
     val note: String,
     val createdAt: Long,
     val updatedAt: Long,
+    val externalId: String = "",
 )
 
 data class InstanceInfo(
     val name: String,
     val account: String,
     val note: String,
+    val externalId: String = "",
 )
 
 class InstanceException(message: String) : Exception(message)
@@ -46,6 +48,7 @@ object InstanceNames {
         noteRaw: String,
         existing: List<AppInstance>,
         exceptId: String?,
+        externalIdRaw: String = "",
     ): InstanceInfoCheck {
         val name = normalize(nameRaw, max = 40, required = true)
             ?: return InstanceInfoCheck.NameInvalid
@@ -53,12 +56,17 @@ object InstanceNames {
             ?: return InstanceInfoCheck.AccountInvalid
         val note = normalize(noteRaw, max = 200, required = false)
             ?: return InstanceInfoCheck.NoteInvalid
+        val externalId = normalize(externalIdRaw, max = 80, required = false)
+            ?: return InstanceInfoCheck.ExternalInvalid
         val others = existing.filter { it.id != exceptId }
         if (others.any { it.name == name }) return InstanceInfoCheck.NameTaken
         if (account.isNotEmpty() && others.any { it.account == account }) {
             return InstanceInfoCheck.AccountTaken
         }
-        return InstanceInfoCheck.Ok(InstanceInfo(name, account, note))
+        if (externalId.isNotEmpty() && others.any { it.externalId == externalId }) {
+            return InstanceInfoCheck.ExternalTaken
+        }
+        return InstanceInfoCheck.Ok(InstanceInfo(name, account, note, externalId))
     }
 
     private fun normalize(raw: String, max: Int, required: Boolean): String? {
@@ -77,6 +85,8 @@ sealed class InstanceInfoCheck {
     data object NoteInvalid : InstanceInfoCheck()
     data object NameTaken : InstanceInfoCheck()
     data object AccountTaken : InstanceInfoCheck()
+    data object ExternalInvalid : InstanceInfoCheck()
+    data object ExternalTaken : InstanceInfoCheck()
 }
 
 object InstanceMeta {
@@ -87,6 +97,7 @@ object InstanceMeta {
                 "name" to instance.name,
                 "account" to instance.account,
                 "note" to instance.note,
+                "externalId" to instance.externalId,
                 "createdAt" to instance.createdAt,
                 "updatedAt" to instance.updatedAt,
             )
@@ -104,6 +115,7 @@ object InstanceMeta {
             name = name,
             account = obj.getString("account").orEmpty(),
             note = obj.getString("note").orEmpty(),
+            externalId = obj.getString("externalId").orEmpty(),
             createdAt = obj.getLongValue("createdAt"),
             updatedAt = obj.getLongValue("updatedAt"),
         )

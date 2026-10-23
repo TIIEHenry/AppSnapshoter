@@ -478,6 +478,14 @@
     <string name="instance_name_taken">An instance with this name already exists</string>
     <string name="instance_account_invalid">Account cannot be longer than 80 characters</string>
     <string name="instance_account_taken">This account already has a fixed instance</string>
+    <string name="instance_bound">Bound %1$s</string>
+    <string name="instance_external_invalid">The external binding cannot be longer than 80 characters</string>
+    <string name="instance_external_taken">This external account is already bound to another instance</string>
+    <string name="instance_confirm_title">Confirm instance switch</string>
+    <string name="instance_confirm_action">Replace current data</string>
+    <string name="instance_confirm_cancelled">Switch cancelled</string>
+    <string name="instance_confirm_notification">Replace %2$s with %1$s</string>
+    <string name="instance_confirm_message">Replace the current data of %1$s with instance %2$s (%3$s). Data in use is not written back to another instance.</string>
     <string name="instance_note_invalid">Note cannot be longer than 200 characters</string>
     <string name="instance_not_installed">The app is not installed, so this instance cannot be backed up or restored</string>
     <string name="instance_missing">That instance is missing</string>
@@ -485,4 +493,16 @@
     <string name="instance_restore_failed">Could not restore the instance</string>
     <string name="instance_progress_save">Backing up into the instance</string>
     <string name="instance_progress_restore">Restoring %1$s</string>
+
+    <string name="external_service_title">External instance service</string>
+    <string name="external_service_description">Other apps can list or switch instances only after they are approved here. Manage every grouped app, or only a whitelist.</string>
+    <string name="external_service_enabled">Allow external calls</string>
+    <string name="external_target_all">All grouped apps</string>
+    <string name="external_target_whitelist">Whitelist only</string>
+    <string name="external_whitelist_hint">One target package name per line</string>
+    <string name="external_callers">Approved:\n%1$s\n\nWaiting:\n%2$s</string>
+    <string name="external_approve_pending">Approve waiting callers</string>
+    <string name="external_revoke_all">Revoke all callers</string>
+    <string name="external_mcp">Local MCP</string>
+    <string name="external_mcp_token">MCP token (shown once): %1$s</string>
 </resources>

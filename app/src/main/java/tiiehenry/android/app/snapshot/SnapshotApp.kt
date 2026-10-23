@@ -6,6 +6,7 @@ import android.os.Environment
 import android.util.Log
 import com.tencent.mmkv.MMKV
 import com.topjohnwu.superuser.Shell
+import tiiehenry.android.app.snapshot.external.ExternalRuntime
 import tiiehenry.android.app.snapshot.utils.AppShell
 import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 import tiiehenry.android.snapshot.app.IAppManager
@@ -68,6 +69,7 @@ class SnapshotApp : Application() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        ExternalRuntime.refresh(this)
     }
 
     /**

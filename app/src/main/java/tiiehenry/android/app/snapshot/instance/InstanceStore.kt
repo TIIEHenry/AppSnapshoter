@@ -40,8 +40,10 @@ class InstanceStore(
     private val packageName = archivedApp.appInfo.packageName
     private val userId = archivedApp.appInfo.userId
 
-    suspend fun create(name: String, account: String, note: String): String = guarded {
-        val info = requireInfo(name, account, note, exceptId = null)
+    fun list() = catalog.list()
+
+    suspend fun create(name: String, account: String, note: String, externalId: String = ""): String = guarded {
+        val info = requireInfo(name, account, note, exceptId = null, externalId = externalId)
         backup(existing = null, info = info)
         context.getString(R.string.instance_created, info.name)
     }
@@ -51,18 +53,29 @@ class InstanceStore(
             ?: throw InstanceException(context.getString(R.string.instance_missing))
         backup(
             existing = current,
-            info = InstanceInfo(current.name, current.account, current.note),
+            info = InstanceInfo(current.name, current.account, current.note, current.externalId),
         )
         context.getString(R.string.instance_updated, current.name)
     }
 
-    suspend fun edit(id: String, name: String, account: String, note: String): String = guarded {
+    suspend fun edit(
+        id: String,
+        name: String,
+        account: String,
+        note: String,
+        externalId: String = "",
+    ): String = guarded {
         val current = catalog.read(id)
             ?: throw InstanceException(context.getString(R.string.instance_missing))
-        val info = requireInfo(name, account, note, exceptId = id)
+        val info = requireInfo(name, account, note, exceptId = id, externalId = externalId)
         catalog.writeCommitted(
             catalog.slotPath(id),
-            current.copy(name = info.name, account = info.account, note = info.note),
+            current.copy(
+                name = info.name,
+                account = info.account,
+                note = info.note,
+                externalId = info.externalId,
+            ),
         )
         context.getString(R.string.instance_edited, info.name)
     }
@@ -104,6 +117,7 @@ class InstanceStore(
             name = info.name,
             account = info.account,
             note = info.note,
+            externalId = info.externalId,
             createdAt = existing?.createdAt ?: now,
             updatedAt = now,
         )
@@ -252,8 +266,14 @@ class InstanceStore(
         }
     }
 
-    private fun requireInfo(name: String, account: String, note: String, exceptId: String?): InstanceInfo {
-        return when (val check = InstanceNames.check(name, account, note, catalog.list(), exceptId)) {
+    private fun requireInfo(
+        name: String,
+        account: String,
+        note: String,
+        exceptId: String?,
+        externalId: String = "",
+    ): InstanceInfo {
+        return when (val check = InstanceNames.check(name, account, note, catalog.list(), exceptId, externalId)) {
             is InstanceInfoCheck.Ok -> check.info
             InstanceInfoCheck.NameInvalid ->
                 throw InstanceException(context.getString(R.string.instance_name_invalid))
@@ -265,6 +285,10 @@ class InstanceStore(
                 throw InstanceException(context.getString(R.string.instance_name_taken))
             InstanceInfoCheck.AccountTaken ->
                 throw InstanceException(context.getString(R.string.instance_account_taken))
+            InstanceInfoCheck.ExternalInvalid ->
+                throw InstanceException(context.getString(R.string.instance_external_invalid))
+            InstanceInfoCheck.ExternalTaken ->
+                throw InstanceException(context.getString(R.string.instance_external_taken))
         }
     }
 

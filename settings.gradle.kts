@@ -25,6 +25,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "AppSnapShotor"
 include(":app")
+include(":instance-sdk")
 include(":api")
 include(":hiddenapi")
 include(":systemapi")

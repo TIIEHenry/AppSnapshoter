@@ -126,7 +126,7 @@ class InstanceSheet : BottomSheetDialogFragment() {
                 if (existing == null) {
                     runOp { create(name, account, note) }
                 } else {
-                    runOp { edit(existing.id, name, account, note) }
+                    runOp { edit(existing.id, name, account, note, existing.externalId) }
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -230,13 +230,16 @@ private class InstanceRowAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val instance = items[position]
+        val context = holder.binding.root.context
         holder.binding.instanceName.text = instance.name
         val whenText = timeFormat.format(Date(instance.updatedAt))
-        holder.binding.instanceDetail.text = if (instance.account.isEmpty()) {
-            whenText
-        } else {
-            "${instance.account} · $whenText"
+        val bits = mutableListOf<String>()
+        if (instance.account.isNotEmpty()) bits += instance.account
+        if (instance.externalId.isNotEmpty()) {
+            bits += context.getString(R.string.instance_bound, instance.externalId)
         }
+        bits += whenText
+        holder.binding.instanceDetail.text = bits.joinToString(" · ")
         holder.binding.root.setOnClickListener { onClick(instance) }
     }
 

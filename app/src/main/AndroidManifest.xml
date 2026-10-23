@@ -15,6 +15,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <permission
+        android:name="tiiehenry.android.app.snapshot.permission.CONTROL_INSTANCES"
+        android:protectionLevel="normal" />
+
+    <uses-permission android:name="tiiehenry.android.app.snapshot.permission.CONTROL_INSTANCES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".SnapshotApp"
         android:allowBackup="true"
@@ -37,6 +44,31 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".external.InstanceControlService"
+            android:exported="true"
+            android:permission="tiiehenry.android.app.snapshot.permission.CONTROL_INSTANCES">
+            <intent-filter>
+                <action android:name="tiiehenry.android.snapshot.instance.CONTROL" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".external.InstanceAppFunctionService"
+            android:exported="true"
+            android:permission="tiiehenry.android.app.snapshot.permission.CONTROL_INSTANCES">
+            <intent-filter>
+                <action android:name="android.app.appfunctions.AppFunctionService" />
+            </intent-filter>
+        </service>
+        <provider
+            android:name=".external.InstanceProvider"
+            android:authorities="tiiehenry.android.app.snapshot.instances"
+            android:exported="true"
+            android:permission="tiiehenry.android.app.snapshot.permission.CONTROL_INSTANCES" />
+        <activity
+            android:name=".external.InstanceConfirmActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppSnapshot" />
         <activity
             android:name=".main.settings.SettingsActivity"
             android:exported="false"

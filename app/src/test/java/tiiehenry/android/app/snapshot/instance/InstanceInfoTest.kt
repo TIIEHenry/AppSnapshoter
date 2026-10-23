@@ -37,6 +37,10 @@ class InstanceInfoTest {
         )
         val same = InstanceNames.check("工作", "alice", "备注", existing, "id1")
         assertTrue(same is InstanceInfoCheck.Ok)
+        val bound = listOf(instance("id1", "工作", "alice").copy(externalId = "acct-1"))
+        assertTrue(
+            InstanceNames.check("生活", "bob", "", bound, null, "acct-1") is InstanceInfoCheck.ExternalTaken
+        )
     }
 
     @Test

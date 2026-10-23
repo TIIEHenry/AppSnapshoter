@@ -66,6 +66,7 @@ kotlin {
 
 dependencies {
     implementation(project(":api"))
+    implementation(project(":instance-sdk"))
 
     // Provider implementations
     implementation(project(":provider"))
