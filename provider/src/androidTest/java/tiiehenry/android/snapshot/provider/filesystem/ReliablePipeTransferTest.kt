@@ -2,6 +2,15 @@ package tiiehenry.android.snapshot.provider.filesystem
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import android.content.ComponentName
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.Binder
+import android.os.IBinder
+import android.os.Parcel
+import android.os.ParcelFileDescriptor
+import android.os.Process
 import com.topjohnwu.superuser.nio.FileSystemManager
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -17,6 +26,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.lang.reflect.Proxy
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
 /** Only touches temporary files in the test application's cache; no root binding is used. */
@@ -200,6 +210,158 @@ class ReliablePipeTransferTest {
             assertFalse(fs.cleanDir(File(directory, "absent").path))
         } finally {
             directory.deleteRecursively()
+        }
+    }
+
+
+    @Test(timeout = 12_000)
+    fun remoteDescriptorRoundTripClosesBothProcessesCopies() {
+        val testContext = InstrumentationRegistry.getInstrumentation().context
+        val directory = File(testContext.cacheDir, "remote-success-${System.nanoTime()}").apply { mkdirs() }
+        val source = File(directory, "source").apply { mkdirs() }
+        val payload = "tar restored in another ordinary process"
+        File(source, "payload.txt").writeText(payload)
+        val archive = File(directory, "archive.tar")
+        val restored = File(directory, "restored")
+        var inputFd: FileDescriptor? = null
+        var outputFd: FileDescriptor? = null
+        try {
+            assertEquals(0, TarJNI.callCli(null, File(directory, "stdout").path,
+                File(directory, "stderr").path,
+                arrayOf("tar", "-cpf", archive.path, "-C", source.path, ".")))
+            withRemoteTar(testContext) { remote ->
+                assertNotEquals(Process.myPid(), remotePid(remote))
+                ReliablePipeTransfer().use { pipe ->
+                    runBlocking {
+                        pipe.transfer(
+                            produce = { output ->
+                                outputFd = (output as FileOutputStream).fd
+                                archive.inputStream().use { it.copyTo(output) }
+                                repeat(16) { output.write(ByteArray(128 * 1024)) }
+                            },
+                            consume = { input ->
+                                inputFd = input.fileDescriptor
+                                check(extractRemote(remote, input, restored))
+                            }
+                        )
+                    }
+                }
+            }
+            assertEquals(payload, File(restored, "payload.txt").readText())
+            assertFalse(inputFd!!.valid())
+            assertFalse(outputFd!!.valid())
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test(timeout = 12_000)
+    fun remoteProducerFailureReturnsAfterTransferredDescriptorIsClosed() {
+        val testContext = InstrumentationRegistry.getInstrumentation().context
+        val directory = File(testContext.cacheDir, "remote-failure-${System.nanoTime()}").apply { mkdirs() }
+        val received = CountDownLatch(1)
+        var inputFd: FileDescriptor? = null
+        var outputFd: FileDescriptor? = null
+        var remoteReturned = false
+        try {
+            withRemoteTar(testContext) { remote ->
+                assertNotEquals(Process.myPid(), remotePid(remote))
+                val error = runCatching {
+                    ReliablePipeTransfer().use { pipe ->
+                        runBlocking {
+                            pipe.transfer(
+                                produce = { output ->
+                                    outputFd = (output as FileOutputStream).fd
+                                    check(received.await(3, TimeUnit.SECONDS))
+                                    output.write(ByteArray(128) { 65 })
+                                    Thread.sleep(100)
+                                    throw IOException("source failed after remote received its FD")
+                                },
+                                consume = { input ->
+                                    inputFd = input.fileDescriptor
+                                    val success = extractRemote(remote, input, File(directory, "restored")) {
+                                        received.countDown()
+                                    }
+                                    remoteReturned = true
+                                    check(!success)
+                                }
+                            )
+                        }
+                    }
+                }.exceptionOrNull()
+                assertNotNull(error)
+            }
+            assertEquals(0L, received.count)
+            assertTrue("Remote native extraction must return before the transfer finishes", remoteReturned)
+            assertFalse(inputFd!!.valid())
+            assertFalse(outputFd!!.valid())
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    private fun <T> withRemoteTar(testContext: Context, action: (IBinder) -> T): T {
+        val connected = CompletableFuture<IBinder>()
+        val connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                connected.complete(service)
+            }
+            override fun onServiceDisconnected(name: ComponentName) {
+                connected.completeExceptionally(IOException("Test tar service disconnected"))
+            }
+        }
+        check(testContext.bindService(Intent(testContext, TarPipeTestService::class.java),
+            connection, Context.BIND_AUTO_CREATE))
+        return try {
+            action(connected.get(3, TimeUnit.SECONDS))
+        } finally {
+            testContext.unbindService(connection)
+        }
+    }
+
+    private fun remotePid(remote: IBinder): Int {
+        val request = Parcel.obtain()
+        val response = Parcel.obtain()
+        return try {
+            request.writeInterfaceToken(TarPipeTestService.TOKEN)
+            check(remote.transact(TarPipeTestService.PID, request, response, 0))
+            response.readException()
+            response.readInt()
+        } finally {
+            request.recycle()
+            response.recycle()
+        }
+    }
+
+    private fun extractRemote(
+        remote: IBinder,
+        input: ParcelFileDescriptor,
+        target: File,
+        received: () -> Unit = {}
+    ): Boolean {
+        val notification = object : Binder() {
+            override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+                if (code != TarPipeTestService.READY) return super.onTransact(code, data, reply, flags)
+                data.enforceInterface(TarPipeTestService.TOKEN)
+                received()
+                return true
+            }
+        }
+        val request = Parcel.obtain()
+        val response = Parcel.obtain()
+        return try {
+            request.writeInterfaceToken(TarPipeTestService.TOKEN)
+            request.writeParcelable(input, 0)
+            request.writeString(target.path)
+            request.writeStrongBinder(notification)
+            check(remote.transact(TarPipeTestService.EXTRACT, request, response, 0))
+            response.readException()
+            val success = response.readInt() != 0
+            check(response.readInt() == 1) { "Remote process retained its input descriptor" }
+            success
+        } finally {
+            request.recycle()
+            response.recycle()
         }
     }
 

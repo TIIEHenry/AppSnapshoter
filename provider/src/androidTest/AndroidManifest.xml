@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <service
+            android:name="tiiehenry.android.snapshot.provider.filesystem.TarPipeTestService"
+            android:exported="false"
+            android:process=":tar_pipe_test" />
+    </application>
+</manifest>

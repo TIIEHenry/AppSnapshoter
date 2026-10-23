@@ -2,7 +2,6 @@
 #include <android/log.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
-#include <sys/syscall.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -53,8 +52,9 @@ int runTar(JNIEnv *env, jstring inputPath, int inputFd, jstring outputPath,
     }
 
     // Capture inherited descriptors before fork; /proc enumeration and JNI
-    // calls must stay in the parent. This is also the fallback on older kernels
-    // without close_range. The tar child needs only standard descriptors.
+    // calls must stay in the parent. Do not use close_range: older Android
+    // zygote seccomp policies can kill the child with SIGSYS rather than return
+    // ENOSYS. The tar child needs only standard descriptors.
     std::vector<int> inherited;
     DIR *directory = opendir("/proc/self/fd");
     if (directory == nullptr) {
@@ -88,11 +88,7 @@ int runTar(JNIEnv *env, jstring inputPath, int inputFd, jstring outputPath,
         }
         // In particular, never retain a pipe writer inherited from another
         // operation: it would prevent EOF after the producer fails.
-        bool closed = false;
-#ifdef __NR_close_range
-        closed = syscall(__NR_close_range, 3u, ~0u, 0u) == 0;
-#endif
-        if (!closed) for (int fd : inherited) close(fd);
+        for (int fd : inherited) close(fd);
         _exit(main(argc, argv.data()));
     }
     close(outFd);
