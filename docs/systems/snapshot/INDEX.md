@@ -2,7 +2,7 @@
 title: "快照系统"
 type: system
 status: active
-updated: 2026-09-12
+updated: 2026-10-23
 summary: "应用备份/恢复核心流程，包含快照创建、存档管理、APK 安装和恢复"
 ---
 
@@ -35,6 +35,8 @@ sequenceDiagram
 ```
 
 **落盘目录**：`ArchiveMaker` 写入当前卡片的 `ArchivedApp.packageDir`，不用 `group.rootPath + packageName` 重算。同一包在 Shared / vias / System 等多组时，备份只进你点的那张卡。备份后弹层会强制 `reloadArchives`；网格 Diff 指纹含最新档名，避免「磁盘有档、列表不刷新」。
+
+**成功边界**：压缩文件与必需元数据均落盘、校验通过后，才允许执行备份后卸载与保留策略。JSON 写入失败必须使快照失败，不能仅记录日志后继续。删除存档失败时保留共享 APK。
 
 **关键类**：
 - `SnapshotCreator` (`app/.../makearchive/SnapshotCreator.kt`) — 编排快照创建流程
@@ -69,7 +71,11 @@ sequenceDiagram
 - `ApkInstaller` (`app/.../archive/restore/ApkInstaller.kt`) — APK 安装（session 或 shell）
 - `DataRestorer` (`app/.../archive/restore/DataRestorer.kt`) — 数据文件恢复
 - `PermissionRestorer` (`app/.../archive/restore/PermissionRestorer.kt`) — 权限和 SSAID 恢复
-- `ZstdDecompressor` — 两阶段管线（ZSTD 解压 → FIFO → extractTar）
+- `ZstdDecompressor` — 两阶段管线（ZSTD 解压 → 匿名管道 → `extractTarFromFd`）
+
+**恢复预检**：以 `meta-info.json` 声明的清单为准，恢复前核对数据项描述、压缩文件、大小、校验值和所需共享 APK。缺少声明项时拒绝恢复，不能把加载时跳过的文件视为未备份。选择性恢复只替换选中目录，不因选择 OBB、media 或额外项目而整包清除内部数据。
+
+**额外普通文件**：数据项使用 `source_file` 标记文件来源，缺省为 `false` 以兼容已有目录快照。普通文件先解压到独立暂存目录，再移动到原目标文件；不得把目标父目录交给会清空目录的解压入口。
 
 ### APK 智能去重
 
@@ -115,6 +121,7 @@ sequenceDiagram
 
 - [压缩管线](../../architecture/compression-pipeline.md)
 - [Root 服务架构](../../architecture/root-service.md)
+- [快照安全操作顺序](../../../dev/decisions/002-snapshot-operation-safety.md)
 
 ## 相关文档
 

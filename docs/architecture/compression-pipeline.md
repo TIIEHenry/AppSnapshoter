@@ -2,15 +2,15 @@
 title: "压缩管线架构"
 type: architecture
 status: active
-updated: 2026-06-17
-summary: "TAR+ZSTD 流式压缩管线，FIFO 管道 + 并行流拷贝 + 进度追踪"
+updated: 2026-10-23
+summary: "TAR+ZSTD 流式压缩；压缩使用 FIFO，恢复使用带错误通道的匿名管道"
 ---
 
 # 压缩管线架构
 
 ## 概述
 
-压缩管线将应用数据打包压缩为 `.tar.zst` 格式。全链路 JNI 原生实现，通过 FIFO 管道流式处理，零中间文件。
+压缩管线将应用数据打包压缩为 `.tar.zst` 格式。TAR 与 ZSTD 的核心算法使用 JNI；压缩经 FIFO 流式传输，恢复经匿名管道传输，均不生成中间 TAR 文件。
 
 ## ZSTD 压缩流程（主路径）
 
@@ -44,9 +44,11 @@ graph LR
 ### ZSTD 解压流程（`ZstdDecompressor`）
 
 ```
-阶段 1: ZstdInputStream 解压 → FlowableStreamParallelCopier → FIFO
-阶段 2: FileSystemImpl.extractTar() 从 FIFO 读取 → 写入目标目录
+阶段 1: 打开压缩源文件 → ZstdInputStream → 匿名管道写端
+阶段 2: extractTarFromFd() 经 AIDL 传递读端 → JNI dup2 到 stdin → GNU tar
 ```
+
+恢复不再依赖 FIFO 两端阻塞 `open()` 的配对时序。源文件在启动消费端前打开；任一阶段失败都关闭管道并向上层传播失败，避免错误被吞掉后无限等待另一阶段。描述符由各进程按所有权关闭，tar 子进程结束后必须回收。目标目录的 root 清理失败时中止恢复，不能继续混合新旧文件。
 
 ### TAR 打包流程（`TarCompressor`）
 
@@ -75,6 +77,7 @@ graph LR
 - `fork()` 子进程执行 GNU tar
 - `dup2()` 重定向 STDIN/STDOUT/STDERR
 - 支持 FIFO 输入（管道接收数据流）
+- 支持已有文件描述符输入，供 ZSTD 恢复的匿名管道使用
 - `prctl(PR_SET_PDEATHSIG)` 防止孤儿进程
 
 ### ZSTD 压缩
@@ -110,6 +113,8 @@ FileCompressor (IFileCompressor.Stub)
 │   └─ .tar → TarDecompressor
 └─ checkFileValid() → 大小 + MD5 校验
 ```
+
+单源 TAR 打包区分源类型：目录使用 `-C <目录> .`；普通文件使用 `-C <父目录> -- <文件名>`。普通文件的目标替换与暂存目录由 app 恢复层管理。
 
 ## FIFO 管道使用
 

@@ -2,7 +2,7 @@
 title: "架构决策记录索引"
 type: index
 status: active
-updated: 2026-06-17
+updated: 2026-10-23
 summary: "所有 ADR 的导航索引"
 ---
 
@@ -15,6 +15,7 @@ summary: "所有 ADR 的导航索引"
 | 编号 | 标题 | 状态 | 日期 |
 |------|------|------|------|
 | [001](001-two-layer-doc-system.md) | 采用两层文档系统 | accepted | 2026-06-17 |
+| [002](002-snapshot-operation-safety.md) | 快照破坏性操作的安全顺序 | active | 2026-10-23 |
 
 ## 编号规则
 
