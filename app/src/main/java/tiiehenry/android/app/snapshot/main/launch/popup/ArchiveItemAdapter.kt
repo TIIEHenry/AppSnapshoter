@@ -12,6 +12,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -26,9 +28,11 @@ import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
 import tiiehenry.android.app.snapshot.archive.bean.MetaDataItem
+import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.databinding.ItemArchiveBinding
 import tiiehenry.android.app.snapshot.utils.ArchiveRenameHelper
 import java.text.SimpleDateFormat
+import java.io.File
 import java.util.Date
 import java.util.Locale
 
@@ -391,7 +395,6 @@ class ArchiveItemAdapter(
                     try {
                         item.metaInfo.setLocked(newLockState)
                         MetaInfoHelper.writeToArchive(item.metaInfo, item.path, true)
-                        true
                     } catch (e: Exception) {
                         e.printStackTrace()
                         false
@@ -424,7 +427,23 @@ class ArchiveItemAdapter(
                 return
             }
 
-            val allRestoreOptions = buildRestoreOptions(item)
+            val owner = binding.root.findViewTreeLifecycleOwner() ?: return
+            owner.lifecycleScope.launch {
+                val allRestoreOptions = withContext(Dispatchers.IO) {
+                    buildRestoreOptions(item)
+                }
+                if (!binding.root.isAttachedToWindow ||
+                    !owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+                ) return@launch
+                showAdvancedRestoreOptions(item, context, allRestoreOptions)
+            }
+        }
+
+        private fun showAdvancedRestoreOptions(
+            item: ArchiveItem,
+            context: Context,
+            allRestoreOptions: List<Pair<MetaDataItem, String?>>,
+        ) {
 
             if (allRestoreOptions.isEmpty()) {
                 Toast.makeText(context, R.string.archive_no_restorable_data, Toast.LENGTH_SHORT).show()
@@ -444,7 +463,7 @@ class ArchiveItemAdapter(
                     if (selectedTypes.isEmpty()) {
                         Toast.makeText(context, R.string.archive_select_at_least_one, Toast.LENGTH_SHORT).show()
                     } else {
-                        onAdvancedRestoreClick.invoke(item, selectedTypes)
+                        onAdvancedRestoreClick?.invoke(item, selectedTypes)
                     }
                 }
                 .setNegativeButton(R.string.cancel, null)
@@ -457,7 +476,15 @@ class ArchiveItemAdapter(
         private fun buildRestoreOptions(item: ArchiveItem): MutableList<Pair<MetaDataItem, String?>> {
             val allRestoreOptions = mutableListOf<Pair<MetaDataItem, String?>>()
 
-            item.dataItems.forEach { dataItem ->
+            val sharedApk = File(item.path).parent?.let { packageDir ->
+                MetaInfoHelper.readSharedApkDataItem(item.metaInfo, packageDir)
+            }
+            val apkItem = sharedApk ?: item.dataItems.firstOrNull {
+                it.name == CompressItems.COMPRESS_ITEM_APK
+            }
+            apkItem?.let { allRestoreOptions.add(Pair(it, null)) }
+
+            item.dataItems.filter { it.name != CompressItems.COMPRESS_ITEM_APK }.forEach { dataItem ->
                 allRestoreOptions.add(Pair(dataItem, null))
             }
 
