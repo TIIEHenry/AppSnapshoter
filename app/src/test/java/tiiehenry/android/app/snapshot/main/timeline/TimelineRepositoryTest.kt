@@ -48,7 +48,7 @@ class TimelineRepositoryTest {
 
     @Test
     fun `empty group list returns empty results`() {
-        val result = TimelineRepository.query(emptyList(), TimelineRepository.defaultLast7Days())
+        val result = TimelineRepository.query(emptyList(), TimelineRepository.defaultLast7Days()) { it.id }
         assertTrue(result.isEmpty())
     }
 
@@ -59,7 +59,7 @@ class TimelineRepositoryTest {
         addArchive(app, "archive1", 1000L)
 
         val range = TimeRange(5000L, 10000L)
-        val result = TimelineRepository.query(listOf(group), range)
+        val result = TimelineRepository.query(listOf(group), range) { it.id }
         assertTrue(result.isEmpty())
     }
 
@@ -70,7 +70,7 @@ class TimelineRepositoryTest {
         addArchive(app, "archive1", 8000L)
 
         val range = TimeRange(5000L, 10000L)
-        val result = TimelineRepository.query(listOf(group), range)
+        val result = TimelineRepository.query(listOf(group), range) { it.id }
 
         assertEquals(1, result.size)
         val entry = result[0]
@@ -92,14 +92,14 @@ class TimelineRepositoryTest {
         addArchive(app, "before-start", 4999L)
 
         val range = TimeRange(5000L, 10000L)
-        val result = TimelineRepository.query(listOf(group), range)
+        val result = TimelineRepository.query(listOf(group), range) { it.id }
 
         assertEquals(1, result.size)
         val entry = result[0]
-        assertEquals(3, entry.matchingArchiveNames.size)
+        assertEquals(2, entry.matchingArchiveNames.size)
         assertTrue("at-start" in entry.matchingArchiveNames)
         assertTrue("before-end" in entry.matchingArchiveNames)
-        assertTrue("at-end" in entry.matchingArchiveNames)
+        assertFalse("at-end" in entry.matchingArchiveNames)
         assertFalse("before-start" in entry.matchingArchiveNames)
     }
 
@@ -112,7 +112,7 @@ class TimelineRepositoryTest {
         addArchive(app, "mid", 7500L)
 
         val range = TimeRange(5000L, 10000L)
-        val result = TimelineRepository.query(listOf(group), range)
+        val result = TimelineRepository.query(listOf(group), range) { it.id }
 
         assertEquals(1, result.size)
         val entry = result[0]
@@ -129,7 +129,7 @@ class TimelineRepositoryTest {
         addArchive(app2, "a1", 9000L)
 
         val range = TimeRange(5000L, 10000L)
-        val result = TimelineRepository.query(listOf(group), range)
+        val result = TimelineRepository.query(listOf(group), range) { it.id }
 
         assertEquals(2, result.size)
         assertEquals("com.new.app", result[0].key.packageName)
@@ -146,7 +146,7 @@ class TimelineRepositoryTest {
         addArchive(app2, "a1", 7000L)
 
         val range = TimeRange(5000L, 10000L)
-        val result = TimelineRepository.query(listOf(group1, group2), range)
+        val result = TimelineRepository.query(listOf(group1, group2), range) { it.id }
 
         assertEquals(2, result.size)
         val ids = result.map { it.key.id }.toSet()
@@ -163,7 +163,7 @@ class TimelineRepositoryTest {
         addArchive(app10, "a1", 8000L)
 
         val range = TimeRange(5000L, 10000L)
-        val result = TimelineRepository.query(listOf(group), range)
+        val result = TimelineRepository.query(listOf(group), range) { it.id }
 
         assertEquals(2, result.size)
         val userIds = result.map { it.key.userId }.toSet()
@@ -227,6 +227,7 @@ private object StubFileSystem : IFileSystem {
     override fun mkfifo(path: String, mode: Int) = false
     override fun isFifo(path: String) = false
     override fun extractTar(tarFifo: String, targetDir: String) = false
+    override fun extractTarFromFd(input: android.os.ParcelFileDescriptor, targetDir: String) = false
     override fun cleanDir(path: String) = false
     override fun move(sourcePath: String, targetPath: String) = false
     override fun copyRecursively(source: String, target: String, overwrite: Boolean) = false

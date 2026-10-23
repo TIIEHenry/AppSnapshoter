@@ -58,11 +58,21 @@ class GroupConfig(val groupId: String) {
      * 从文件加载配置
      */
     fun load() {
-        shotConfig = loadConfigFromFile(shotConfigFile) { ShotConfig.fromJson(it) } ?: ShotConfig()
-        excludeConfig = loadConfigFromFile(excludeConfigFile) { ExcludeConfig.fromJson(it) } ?: ExcludeConfig()
-        actionConfig = loadConfigFromFile(actionConfigFile) { ActionConfig.fromJson(it) } ?: ActionConfig()
-        groupConfigData = loadConfigFromFile(groupConfigFile) { GroupConfigData.fromJson(it) }
-            ?: GroupConfigData()
+        applyState(GroupConfigState.load(rootPath))
+    }
+
+    /** Register an existing directory without replacing its settings with defaults. */
+    fun registerPath(path: String, name: String, userId: Int) {
+        rootPath = path
+        applyState(GroupConfigState.forRegistration(path, name, userId))
+        save()
+    }
+
+    private fun applyState(state: GroupConfigState) {
+        shotConfig = state.shot
+        excludeConfig = state.exclude
+        actionConfig = state.action
+        groupConfigData = state.group
     }
 
     /**
@@ -114,16 +124,6 @@ class GroupConfig(val groupId: String) {
      */
     fun isLocked(packageName: String): Boolean {
         return groupConfigData.lockedList.contains(packageName)
-    }
-
-    private fun <T> loadConfigFromFile(file: File, parser: (String) -> T): T? {
-        return try {
-            if (!file.exists()) return null
-            parser(file.readText())
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
     }
 
     private fun saveConfigToFile(file: File, content: String) {

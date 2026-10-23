@@ -81,6 +81,15 @@ class SnapshotViewModel : ViewModel() {
         repository.scheduleLoadGroups(context, fileSystem, appManager)
     }
 
+    fun refreshGroup(groupId: String) {
+        repository.refreshGroup(
+            context = SnapshotApp.getContext(),
+            fileSystem = { SnapshotApp.getInstance().fileSystem },
+            appManager = { SnapshotApp.getInstance().appManager },
+            groupId = groupId,
+        )
+    }
+
     fun loadApps() {
         repository.scheduleLoadApps(
             fileSystem = { SnapshotApp.getInstance().fileSystem },

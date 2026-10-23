@@ -48,6 +48,7 @@ class TimelineFragment : Fragment() {
     private var pendingExportTimeRange: TimeRange = TimelineRepository.defaultLast7Days()
 
     private var previousChipId: Int = R.id.chip_7days
+    private var updatingTimeChip = false
     private var searchController: CollapsibleSearchController? = null
 
     private val customChipFormatter = DateTimeFormatter.ofPattern("M/d", Locale.getDefault())
@@ -141,6 +142,7 @@ class TimelineFragment : Fragment() {
     private fun setupChips() {
         restorePersistedChip()
         binding.chipGroupTime.setOnCheckedStateChangeListener { _, checkedIds ->
+            if (updatingTimeChip) return@setOnCheckedStateChangeListener
             if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
             val chipId = checkedIds.first()
             if (chipId == R.id.chip_custom) {
@@ -172,7 +174,16 @@ class TimelineFragment : Fragment() {
             else -> return
         }
         previousChipId = if (chipId == R.id.chip_custom) R.id.chip_7days else chipId
-        binding.chipGroupTime.check(chipId)
+        checkTimeChip(chipId)
+    }
+
+    private fun checkTimeChip(chipId: Int) {
+        updatingTimeChip = true
+        try {
+            binding.chipGroupTime.check(chipId)
+        } finally {
+            updatingTimeChip = false
+        }
     }
 
     private fun showCustomDateRangePicker() {
@@ -181,14 +192,15 @@ class TimelineFragment : Fragment() {
             .build()
 
         picker.addOnPositiveButtonClickListener { selection ->
-            val startMillis = selection.first
-            val endMillis = selection.second
-            val endTimeExclusive = endMillis + 24 * 60 * 60 * 1000L
+            val range = TimelineDateRanges.fromPickerSelection(
+                selection.first,
+                selection.second,
+                ZoneId.systemDefault(),
+            )
             GlobalConfig.timelinePreset = TimePreset.CUSTOM.name
-            GlobalConfig.timelineCustomStart = startMillis
-            GlobalConfig.timelineCustomEnd = endTimeExclusive
+            GlobalConfig.timelineCustomStart = range.startTime
+            GlobalConfig.timelineCustomEnd = range.endTimeExclusive
             previousChipId = R.id.chip_custom
-            val range = TimeRange(startMillis, endTimeExclusive, TimePreset.CUSTOM)
             updateCustomChipLabel(range)
             timelineViewModel.setTimeRange(range)
         }
@@ -317,15 +329,12 @@ class TimelineFragment : Fragment() {
     }
 
     private fun filterToSingleDay(day: LocalDate) {
-        val zone = ZoneId.systemDefault()
-        val startMillis = day.atStartOfDay(zone).toInstant().toEpochMilli()
-        val endTimeExclusive = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val range = TimelineDateRanges.fromDates(day, day, ZoneId.systemDefault())
         GlobalConfig.timelinePreset = TimePreset.CUSTOM.name
-        GlobalConfig.timelineCustomStart = startMillis
-        GlobalConfig.timelineCustomEnd = endTimeExclusive
+        GlobalConfig.timelineCustomStart = range.startTime
+        GlobalConfig.timelineCustomEnd = range.endTimeExclusive
         previousChipId = R.id.chip_custom
-        val range = TimeRange(startMillis, endTimeExclusive, TimePreset.CUSTOM)
-        binding.chipGroupTime.check(R.id.chip_custom)
+        checkTimeChip(R.id.chip_custom)
         updateCustomChipLabel(range)
         timelineViewModel.setTimeRange(range)
     }

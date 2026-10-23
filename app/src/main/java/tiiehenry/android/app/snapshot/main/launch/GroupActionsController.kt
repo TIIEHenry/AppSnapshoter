@@ -4,11 +4,7 @@ import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
-import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.SortConfig
 import tiiehenry.android.app.snapshot.databinding.ItemGroupBinding
@@ -76,17 +72,7 @@ class GroupActionsController(
         // 刷新按钮
         binding.btnRefresh.setOnClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
-            viewModel.viewModelScope.launch {
-                val app = SnapshotApp.getInstance()
-                val current = resolveGroup(group)
-                current.loadApps(
-                    SnapshotApp.getContext(),
-                    app.fileSystem,
-                    app.appManager,
-                    reload = true
-                )
-                withContext(Dispatchers.Main) { notifyRefreshed(resolveGroup(current)) }
-            }
+            snapshotViewModel.refreshGroup(group.id)
         }
         binding.btnRefresh.setOnLongClickListener {
             if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true

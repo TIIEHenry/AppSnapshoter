@@ -12,7 +12,8 @@ object TimelineRepository {
 
     fun query(
         groupList: List<SnapGroup>,
-        range: TimeRange
+        range: TimeRange,
+        groupName: (SnapGroup) -> String = { it.name },
     ): List<TimelineEntry> {
         return groupList.flatMap { group ->
             // loadApps 会在 IO 线程 clear/add；必须先快照再遍历
@@ -28,7 +29,7 @@ object TimelineRepository {
                 TimelineEntry(
                     key = TimelineEntryKey(group.id, app.appInfo.packageName, app.appInfo.userId),
                     appLabel = app.appInfo.label,
-                    groupName = group.name,
+                    groupName = groupName(group),
                     iconFile = app.appInfo.archiveIconFile ?: app.iconFile,
                     matchingArchiveNames = matching.map { it.name },
                     matchingArchiveTimes = matching.map { it.metaInfo.makeTime }

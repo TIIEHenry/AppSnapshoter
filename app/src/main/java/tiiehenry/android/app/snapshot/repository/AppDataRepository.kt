@@ -102,6 +102,31 @@ class AppDataRepository private constructor() {
         }
     }
 
+    fun refreshGroup(
+        context: Context,
+        fileSystem: () -> IFileSystem,
+        appManager: () -> IAppManager,
+        groupId: String,
+    ) {
+        scope.launch {
+            try {
+                val fs = fileSystem()
+                val manager = appManager()
+                loadGroupsMutex.withLock {
+                    if (loadedGroups.none { it.id == groupId }) return@withLock
+                    // Scan a detached model so UI readers neither wait on its lock nor see a partial list.
+                    val group = SnapGroup(groupId)
+                    group.loadApps(context, fs, manager, true)
+                    loadedGroups = loadedGroups.map { if (it.id == groupId) group else it }
+                    groupList.postValue(loadedGroups.toList())
+                    reprojectArchiveListLocked()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "refreshGroup failed: $groupId", e)
+            }
+        }
+    }
+
     fun scheduleLoadApps(
         fileSystem: () -> IFileSystem,
         appManager: () -> IAppManager,
@@ -374,10 +399,7 @@ class AppDataRepository private constructor() {
                                 fileSystem.mkdirs(normalizedPath)
                             }
                             val group = SnapGroup(groupId)
-                            group.path = normalizedPath
-                            group.name = name
-                            group.config.groupConfigData.userId = userId
-                            group.config.save()
+                            group.config.registerPath(normalizedPath, name, userId)
 
                             GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply { add(groupId) }
 
@@ -1258,23 +1280,30 @@ class AppDataRepository private constructor() {
     ) {
         scope.launch {
             try {
-                loadGroupsMutex.withLock {
+                val removed = loadGroupsMutex.withLock {
                     val group = (loadedGroups.ifEmpty { currentGroups }).find { it.id == groupId }
-                    GlobalConfig.groups = GlobalConfig.groups.toMutableList().apply {
-                        remove(groupId)
-                    }
-                    GlobalConfig.archiveRoots = GlobalConfig.archiveRoots.filterNot {
-                        it is ArchiveRoot.Group && it.groupId == groupId
-                    }
-                    group?.let {
-                        it.config.mmkv.clearAll()
-                        if (deleteFiles) {
-                            fileSystem.delete(it.path)
+                        ?: return@withLock false
+                    val originalPath = group.path
+                    val success = removeRegisteredGroup(
+                        path = originalPath,
+                        deleteFiles = deleteFiles,
+                        exists = fileSystem::exists,
+                        delete = fileSystem::delete,
+                    ) {
+                        GlobalConfig.groups = GlobalConfig.groups.filterNot { it == groupId }
+                        GlobalConfig.archiveRoots = GlobalConfig.archiveRoots.filterNot {
+                            it is ArchiveRoot.Group && it.groupId == groupId
                         }
+                        group.config.mmkv.clearAll()
+                    }
+                    if (!success) {
+                        Log.w(TAG, "deleteGroup failed; registration retained: $originalPath")
+                        return@withLock false
                     }
                     reloadGroupsLocked(context, fileSystem, appManager)
+                    true
                 }
-                withContext(Dispatchers.Main) {
+                if (removed) withContext(Dispatchers.Main) {
                     onComplete?.invoke()
                 }
             } catch (e: Exception) {
