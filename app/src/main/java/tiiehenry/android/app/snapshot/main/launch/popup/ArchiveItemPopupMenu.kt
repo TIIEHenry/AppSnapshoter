@@ -24,6 +24,7 @@ import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.databinding.LayoutPopupMenuBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
+import tiiehenry.android.app.snapshot.instance.InstanceSheet
 import tiiehenry.android.app.snapshot.utils.AppDetailsLauncher
 import tiiehenry.android.app.snapshot.utils.AppStatusHelper
 
@@ -170,6 +171,11 @@ class ArchiveItemPopupMenu(
         // 存档按钮
         popupBinding.btnShot.setOnClickListener {
             callback.onCreateSnapshot(item)
+            popupWindow.dismiss()
+        }
+
+        popupBinding.btnInstances.setOnClickListener {
+            InstanceSheet.show(fragmentManager, group.id, item.packageDir)
             popupWindow.dismiss()
         }
 

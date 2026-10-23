@@ -448,4 +448,41 @@
     <string name="snapshot_metadata_failed">无法保存快照元数据</string>
     <string name="snapshot_uninstall_failed">快照已保存，但无法卸载应用</string>
     <string name="snapshot_payload_failed">快照数据校验失败</string>
+
+    <!-- 固定实例 -->
+    <string name="instance_open">实例</string>
+    <string name="instance_title">固定实例</string>
+    <string name="instance_hint">固定实例是单独锁定的一份备份，放在 instances 目录，不参与自动清理。只有删掉实例才会删掉这份备份。</string>
+    <string name="instance_empty">还没有固定实例。新建时先填写名字和账号，再备份当前应用。</string>
+    <string name="instance_create">新建实例</string>
+    <string name="instance_name">名称</string>
+    <string name="instance_account">账号</string>
+    <string name="instance_note">备注</string>
+    <string name="instance_edit">编辑资料</string>
+    <string name="instance_update">更新备份</string>
+    <string name="instance_update_title">更新「%1$s」？</string>
+    <string name="instance_update_message">用当前应用数据替换这份实例备份。普通存档不受影响。</string>
+    <string name="instance_restore">恢复</string>
+    <string name="instance_restore_title">恢复「%1$s」？</string>
+    <string name="instance_restore_message">用这份实例备份覆盖应用当前数据。不会自动保存现在正在用的数据。</string>
+    <string name="instance_delete">删除</string>
+    <string name="instance_delete_title">删除实例「%1$s」？</string>
+    <string name="instance_delete_message">会一并删除这份锁定备份。普通存档不受影响。</string>
+    <string name="instance_deleted">已删除实例和它的备份</string>
+    <string name="instance_delete_failed">删除实例失败</string>
+    <string name="instance_created">已创建「%1$s」并完成备份</string>
+    <string name="instance_updated">已用当前应用更新「%1$s」</string>
+    <string name="instance_edited">已更新「%1$s」的资料</string>
+    <string name="instance_restored">已恢复「%1$s」</string>
+    <string name="instance_name_invalid">名称不能为空，且不超过 40 个字</string>
+    <string name="instance_name_taken">已有同名实例</string>
+    <string name="instance_account_invalid">账号不能超过 80 个字</string>
+    <string name="instance_account_taken">这个账号已经有固定实例</string>
+    <string name="instance_note_invalid">备注不能超过 200 个字</string>
+    <string name="instance_not_installed">应用未安装，不能备份或恢复实例</string>
+    <string name="instance_missing">找不到这个实例</string>
+    <string name="instance_save_failed">备份实例失败</string>
+    <string name="instance_restore_failed">恢复实例失败</string>
+    <string name="instance_progress_save">正在备份到实例</string>
+    <string name="instance_progress_restore">正在恢复「%1$s」</string>
 </resources>

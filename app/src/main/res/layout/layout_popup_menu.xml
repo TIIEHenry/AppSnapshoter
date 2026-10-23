@@ -68,6 +68,13 @@
 
     </LinearLayout>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_instances"
+        style="@style/Widget.AppSnapshot.Button.Text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/instance_open" />
+
     <!-- 下半部分：存档列表 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/archive_list"

@@ -4,6 +4,7 @@ import android.util.Log
 import tiiehenry.android.app.snapshot.app.AppInfo
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
+import tiiehenry.android.app.snapshot.instance.InstancePaths
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.IFileType
@@ -26,7 +27,9 @@ data class ArchivedApp(val group: SnapGroup, val packageDir: String, val iconFil
         appManager: IAppManager,
         reload: Boolean
     ): LinkedHashMap<String, ArchiveItem> {
-        val archiveNames = fs.listDir(packageDir).filter { it != "apks" }
+        val archiveNames = fs.listDir(packageDir).filter {
+            it != "apks" && it != InstancePaths.ROOT_DIR
+        }
         if (reload) {
             synchronized(archives) {
                 archives.clear()

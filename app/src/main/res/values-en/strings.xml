@@ -448,4 +448,41 @@
     <string name="snapshot_metadata_failed">Could not save snapshot metadata</string>
     <string name="snapshot_uninstall_failed">Snapshot saved, but the app could not be uninstalled</string>
     <string name="snapshot_payload_failed">Snapshot data failed verification</string>
+
+    <!-- Fixed instances -->
+    <string name="instance_open">Instances</string>
+    <string name="instance_title">Fixed instances</string>
+    <string name="instance_hint">A fixed instance is a locked backup in the instances folder. Retention does not remove it. The backup is deleted only when the instance is deleted.</string>
+    <string name="instance_empty">No fixed instances yet. Create one by entering a name and account, then backing up the current app.</string>
+    <string name="instance_create">New instance</string>
+    <string name="instance_name">Name</string>
+    <string name="instance_account">Account</string>
+    <string name="instance_note">Note</string>
+    <string name="instance_edit">Edit details</string>
+    <string name="instance_update">Update backup</string>
+    <string name="instance_update_title">Update %1$s?</string>
+    <string name="instance_update_message">Replace this instance backup with the current app data. Regular archives are left as they are.</string>
+    <string name="instance_restore">Restore</string>
+    <string name="instance_restore_title">Restore %1$s?</string>
+    <string name="instance_restore_message">Replace the app\'s current data with this instance backup. The data in use now is not saved automatically.</string>
+    <string name="instance_delete">Delete</string>
+    <string name="instance_delete_title">Delete instance %1$s?</string>
+    <string name="instance_delete_message">This also deletes its locked backup. Regular archives are left as they are.</string>
+    <string name="instance_deleted">Instance and its backup deleted</string>
+    <string name="instance_delete_failed">Could not delete the instance</string>
+    <string name="instance_created">Created %1$s and finished the backup</string>
+    <string name="instance_updated">Updated %1$s from the current app</string>
+    <string name="instance_edited">Updated details for %1$s</string>
+    <string name="instance_restored">Restored %1$s</string>
+    <string name="instance_name_invalid">Name cannot be empty or longer than 40 characters</string>
+    <string name="instance_name_taken">An instance with this name already exists</string>
+    <string name="instance_account_invalid">Account cannot be longer than 80 characters</string>
+    <string name="instance_account_taken">This account already has a fixed instance</string>
+    <string name="instance_note_invalid">Note cannot be longer than 200 characters</string>
+    <string name="instance_not_installed">The app is not installed, so this instance cannot be backed up or restored</string>
+    <string name="instance_missing">That instance is missing</string>
+    <string name="instance_save_failed">Could not back up the instance</string>
+    <string name="instance_restore_failed">Could not restore the instance</string>
+    <string name="instance_progress_save">Backing up into the instance</string>
+    <string name="instance_progress_restore">Restoring %1$s</string>
 </resources>
