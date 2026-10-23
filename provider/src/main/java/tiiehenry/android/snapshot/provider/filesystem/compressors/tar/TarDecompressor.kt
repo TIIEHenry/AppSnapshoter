@@ -95,9 +95,10 @@ object TarDecompressor {
     ) {
         Log.i(TAG, "Starting stream decompress: $sourceFile to $targetDir")
         // 确保目标目录存在
-        fileSystem.mkdirs(targetDir)
-        // Clean directory before decompression
-        fileSystem.cleanDir(targetDir) // Clean directory before decompression
+        check(fileSystem.mkdirs(targetDir) || fileSystem.fileType(targetDir) == tiiehenry.android.snapshot.fs.IFileType.TYPE_DIR) {
+            "Cannot create extraction directory: $targetDir"
+        }
+        check(fileSystem.cleanDir(targetDir)) { "Cannot clear extraction directory: $targetDir" }
         val sourceSize = fileSystem.length(sourceFile)
 
         try {

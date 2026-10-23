@@ -60,6 +60,8 @@ dependencies {
     implementation(project(":io-tar"))
     implementation(project(":io-zstd"))
 
+    androidTestImplementation(libs.androidx.junit)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

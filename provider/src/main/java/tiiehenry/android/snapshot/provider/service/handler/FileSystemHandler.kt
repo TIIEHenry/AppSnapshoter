@@ -186,66 +186,54 @@ class FileSystemHandler(private val context: Context) {
         }.getOrNull()
     }
 
-    fun extractTar(tarFifo: String, targetDir: String): Boolean {
-        return runCatching {
-            if (!File(tarFifo).exists()) {
-                LogHelper.e(
-                    "FileSystemHandler",
-                    "extractTar",
-                    "Tar file does not exist: $tarFifo"
-                )
-            }
-            File(targetDir).mkdirs()
-            val stdOut =
-                File.createTempFile("tar-stdout-", ".log", context.cacheDir).absolutePath
-            val stdErr =
-                File.createTempFile("tar-stderr-", ".log", context.cacheDir).absolutePath
-            try {
-                val argv = arrayOf("tar", "-xpf", "-", "-C", "$targetDir")
-                LogHelper.i("FileSystemHandler", "extractTar", "Running command: ${argv.joinToString(" ")}")
-                if (!File(tarFifo).exists()) {
-                    LogHelper.e(
-                        "FileSystemHandler",
-                        "extractTar",
-                        "Tar file does not exist: $tarFifo"
-                    )
-                }
-                val exitCode = callTarCli(tarFifo, stdOut, stdErr, argv)
-                if (exitCode == 0) {
-                    LogHelper.i(
-                        "FileSystemHandler",
-                        "extractTar",
-                        "Successfully extracted tar to $targetDir"
-                    )
-                    true
-                } else {
-
-                    LogHelper.e(
-                        "FileSystemHandler",
-                        "extractTar",
-                        "Failed to extract tar, exit code: $exitCode"
-                    )
-                    val readText = File(stdErr).readText()
-
-                    LogHelper.e(
-                        "FileSystemHandler",
-                        "extractTar",
-                        "$readText"
-                    )
-                    false
-                }
-            } finally {
-                runCatching {
-                    File(stdOut).delete()
-                    File(stdErr).delete()
-                }
-            }
-        }.onFailure { exception ->
-            LogHelper.e(
-                "FileSystemHandler",
-                "extractTar",
-                "Failed to extract tar: ${exception.message}"
-            )
-        }.getOrNull() ?: false
+    fun extractTar(tarFile: String, targetDir: String): Boolean {
+        if (!File(tarFile).exists()) return false
+        return extractTarCommand(targetDir) { stdout, stderr, arguments ->
+            TarJNI.callCli(tarFile, stdout, stderr, arguments)
+        }
     }
+
+    fun extractTarFromFd(input: ParcelFileDescriptor, targetDir: String): Boolean = runCatching {
+        input.use { descriptor ->
+            val success = extractTarCommand(targetDir) { stdout, stderr, arguments ->
+                TarJNI.callCliWithInputFd(descriptor.fd, stdout, stderr, arguments)
+            }
+            if (success) {
+                // tar stops at the end marker, which may precede the last tar
+                // padding bytes. Drain to EOF so the zstd producer can finish
+                // and validate its frame checksum without racing a closed reader.
+                ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { stream ->
+                    val buffer = ByteArray(32 * 1024)
+                    while (stream.read(buffer) != -1) { /* discard tar padding */ }
+                    descriptor.checkError()
+                }
+            }
+            success
+        }
+    }.onFailure {
+        LogHelper.e("FileSystemHandler", "extractTarFromFd", "Failed tar stream: ${it.message}")
+    }.getOrDefault(false)
+
+    private fun extractTarCommand(
+        targetDir: String,
+        execute: (String, String, Array<String>) -> Int
+    ): Boolean = runCatching {
+        val target = File(targetDir)
+        check(target.isDirectory || target.mkdirs()) { "Cannot create extraction directory: $targetDir" }
+        val stdout = File.createTempFile("tar-stdout-", ".log", context.cacheDir)
+        val stderr = File.createTempFile("tar-stderr-", ".log", context.cacheDir)
+        try {
+            val arguments = arrayOf("tar", "-xpf", "-", "-C", targetDir)
+            val exitCode = execute(stdout.absolutePath, stderr.absolutePath, arguments)
+            if (exitCode != 0) {
+                LogHelper.e("FileSystemHandler", "extractTar", "tar exit $exitCode: ${stderr.readText()}")
+            }
+            exitCode == 0
+        } finally {
+            stdout.delete()
+            stderr.delete()
+        }
+    }.onFailure {
+        LogHelper.e("FileSystemHandler", "extractTar", "Failed to extract tar: ${it.message}")
+    }.getOrDefault(false)
 }

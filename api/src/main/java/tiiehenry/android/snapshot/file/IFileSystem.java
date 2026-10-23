@@ -60,6 +60,9 @@ public interface IFileSystem {
 
     boolean extractTar(String tarFifo, String targetDir);
 
+    /** Extract a tar stream from an already-open descriptor; the caller retains its copy. */
+    boolean extractTarFromFd(ParcelFileDescriptor input, String targetDir);
+
     boolean cleanDir(String path);
 
     // 移动/重命名操作

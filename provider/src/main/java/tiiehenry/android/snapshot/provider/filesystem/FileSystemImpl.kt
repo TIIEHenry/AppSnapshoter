@@ -6,24 +6,26 @@ import android.system.Os
 import android.system.OsConstants
 import android.util.Log
 import com.topjohnwu.superuser.nio.FileSystemManager
+import com.topjohnwu.superuser.nio.ExtendedFile
 import kotlinx.coroutines.runBlocking
 import tiiehenry.android.snapshot.file.IFileCompressor
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.IFileType
-import tiiehenry.android.snapshot.provider.service.SnapShotRootServiceClient
+import tiiehenry.android.snapshot.provider.service.ISnapShotRootService
 import java.io.File
 
- class FileSystemImpl(
-    val rootServiceClient: SnapShotRootServiceClient,
-    val fileSystemManager: FileSystemManager,
+class FileSystemImpl(
+    private val rootService: () -> ISnapShotRootService,
+    private val manager: () -> FileSystemManager,
     val context: Context
 ) :
     IFileSystem {
 
     val fileCompressor = FileCompressor(this, context)
 
-    private fun getRootService() =
-        rootServiceClient.client ?: throw IllegalStateException("Root service not connected")
+    private val fileSystemManager: FileSystemManager get() = manager()
+
+    private fun getRootService() = rootService()
 
     override fun fileType(path: String): Int {
         try {
@@ -66,11 +68,20 @@ import java.io.File
 
     override fun delete(path: String): Boolean {
         return try {
-            fileSystemManager.getFile(path).deleteRecursively()
+            deleteEntry(fileSystemManager.getFile(path))
         } catch (e: Exception) {
             e.printStackTrace()
             false
         }
+    }
+
+    private fun deleteEntry(file: ExtendedFile): Boolean {
+        // Kotlin File.deleteRecursively follows directory symlinks. Preserve
+        // remote child objects and remove links without traversing their target,
+        // including links nested below the first level.
+        if (file.isSymlink || !file.isDirectory) return file.delete()
+        val children = file.list() ?: return false
+        return children.all { deleteEntry(file.getChildFile(it)) } && file.delete()
     }
 
     override fun cleanDir(path: String): Boolean {
@@ -79,15 +90,11 @@ import java.io.File
             if (!file.exists() || !file.isDirectory) {
                 return false
             }
-            file.list()?.forEach { childName ->
-                val childFile = File(file, childName)
-                if (childFile.isDirectory) {
-                    childFile.deleteRecursively()
-                } else {
-                    childFile.delete()
-                }
+            val children = file.list() ?: return false
+            children.all { childName ->
+                val child = file.getChildFile(childName)
+                deleteEntry(child)
             }
-            true
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -163,36 +170,7 @@ import java.io.File
     }
 
     override fun openFile(path: String, mode: Int): ParcelFileDescriptor? {
-        val file = fileSystemManager.getFile(path)
-        if (mode and ParcelFileDescriptor.MODE_CREATE != 0 && !file.exists()) {
-            file.parentFile?.mkdirs()
-            file.createNewFile()
-        }
-        Log.i("FileSystemProvider", "openFile $path with mode $mode")
-        return ParcelFileDescriptor.open(file, mode)
-    }
-
-    private fun convertModeToOsFlags(mode: Int): Int {
-        var flags = 0
-        if (mode and ParcelFileDescriptor.MODE_READ_ONLY != 0) {
-            flags = flags or OsConstants.O_RDONLY
-        }
-        if (mode and ParcelFileDescriptor.MODE_WRITE_ONLY != 0) {
-            flags = flags or OsConstants.O_WRONLY
-        }
-        if (mode and ParcelFileDescriptor.MODE_READ_WRITE != 0) {
-            flags = flags or OsConstants.O_RDWR
-        }
-        if (mode and ParcelFileDescriptor.MODE_CREATE != 0) {
-            flags = flags or OsConstants.O_CREAT
-        }
-        if (mode and ParcelFileDescriptor.MODE_TRUNCATE != 0) {
-            flags = flags or OsConstants.O_TRUNC
-        }
-        if (mode and ParcelFileDescriptor.MODE_APPEND != 0) {
-            flags = flags or OsConstants.O_APPEND
-        }
-        return flags
+        return getRootService().openFile(path, mode)
     }
 
     override fun openInputStream(path: String): ParcelFileDescriptor? {
@@ -202,20 +180,13 @@ import java.io.File
     override fun openOutputStream(path: String): ParcelFileDescriptor? {
         return openFile(
             path,
-            ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_CREATE
+            ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_CREATE or
+                ParcelFileDescriptor.MODE_TRUNCATE
         )
     }
 
-    override fun createTempFile(prefix: String, suffix: String): String {
-        return try {
-            val tempFile = File.createTempFile(prefix, suffix)
-            tempFile.absolutePath
-        } catch (e: Exception) {
-            e.printStackTrace()
-            // 如果创建临时文件失败，返回一个基于时间戳的路径
-            "/tmp/${prefix}${System.currentTimeMillis()}${suffix}"
-        }
-    }
+    override fun createTempFile(prefix: String, suffix: String): String =
+        File.createTempFile(prefix, suffix, context.cacheDir).absolutePath
 
     override fun createTarArchive(
         sourceDir: String,
@@ -228,11 +199,15 @@ import java.io.File
         try {
             val rootService = getRootService()
             val sourceFile = File(sourceDir)
-            val parentDir = sourceFile.parent ?: "."
-            val dirName = sourceFile.name
-
-            // 构建正确的tar命令参数
-            val args = mutableListOf("tar", "-cpf", targetFile, "-C", sourceFile.absolutePath)
+            val sourceType = fileType(sourceDir)
+            require(sourceType == IFileType.TYPE_FILE || sourceType == IFileType.TYPE_DIR) {
+                "Unsupported archive source: $sourceDir"
+            }
+            val directory = if (sourceType == IFileType.TYPE_FILE) {
+                sourceFile.parent ?: "."
+            } else sourceFile.absolutePath
+            val member = if (sourceType == IFileType.TYPE_FILE) sourceFile.name else "."
+            val args = mutableListOf("tar", "-cpf", targetFile, "-C", directory)
 
             // 添加排除选项
             excludes.forEach { exclude ->
@@ -246,7 +221,8 @@ import java.io.File
             }
 
             // 添加要打包的文件（相对路径）
-            args.add(".")
+            args.add("--")
+            args.add(member)
 
             Log.i("FileSystemProvider", "Executing tar command: ${args.joinToString(" ")}")
             // 调用root服务执行tar命令
@@ -361,6 +337,9 @@ import java.io.File
             false
         }
     }
+
+    override fun extractTarFromFd(input: ParcelFileDescriptor, targetDir: String): Boolean =
+        getRootService().extractTarFromFd(input, targetDir)
 
     override fun move(sourcePath: String, targetPath: String): Boolean {
         return try {

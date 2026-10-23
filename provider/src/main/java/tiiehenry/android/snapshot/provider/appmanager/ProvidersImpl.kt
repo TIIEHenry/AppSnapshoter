@@ -21,8 +21,6 @@ class ProvidersImpl(
     private val appManagerProvider by lazy { AppManagerImpl(context, serviceClient) }
     private val fileSystemProvider by lazy { FileSystemProviderImpl(context, serviceClient) }
 
-    private var _fileSystem: IFileSystem? = null
-
     override fun bindRootService() {
         // 统一初始化 SnapShotRootServiceClient（只调用一次）
         serviceClient.fetchRemote(context)
@@ -48,10 +46,7 @@ class ProvidersImpl(
 
     @Throws(Exception::class)
     override fun getFileSystem(): IFileSystem {
-        _fileSystem?.let { return it }
-        val fileSystem = fileSystemProvider.provide()
-        _fileSystem = fileSystem
-        return fileSystem
+        return fileSystemProvider.provide()
     }
 
     override fun waitForConnection(): Boolean {

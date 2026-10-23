@@ -1,140 +1,128 @@
 #include <jni.h>
-#include <string>
-#include <ftw.h>
-#include <sys/stat.h>
-#include <climits>
-#include <fts.h>
 #include <android/log.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <iostream>
-#include <fstream>
-#include <asm-generic/fcntl.h>
-#include <fcntl.h>
 #include <sys/prctl.h>
+#include <sys/wait.h>
+#include <sys/syscall.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <vector>
 
 #define LOG_TAG "Tar-JNI"
-#define ALOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
-#define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define ALOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 #define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 extern int main(int argc, char **argv);
 
-extern "C" JNIEXPORT jint JNICALL
-Java_tiiehenry_android_compress_zstd_TarJNI_callCli(JNIEnv *env, jobject, jstring std_in, jstring std_out, jstring std_err, jobjectArray j_argv) {
-    const char *in_path = nullptr;
-    
-    const char *out_path = env->GetStringUTFChars(std_out, nullptr);
-    const char *err_path = env->GetStringUTFChars(std_err, nullptr);
+namespace {
+// Prepare all JNI-owned data before fork: the child must never re-enter the VM.
+int runTar(JNIEnv *env, jstring inputPath, int inputFd, jstring outputPath,
+           jstring errorPath, jobjectArray arguments) {
+    auto copyString = [env](jstring value) {
+        const char *chars = env->GetStringUTFChars(value, nullptr);
+        std::string result(chars);
+        env->ReleaseStringUTFChars(value, chars);
+        return result;
+    };
+    const std::string in = inputPath == nullptr ? "" : copyString(inputPath);
+    const std::string out = copyString(outputPath);
+    const std::string err = copyString(errorPath);
+    const jsize argc = env->GetArrayLength(arguments);
+    std::vector<char *> argv;
+    argv.reserve(argc + 1);
+    for (jsize i = 0; i < argc; ++i) {
+        auto argument = (jstring) env->GetObjectArrayElement(arguments, i);
+        argv.push_back(strdup(copyString(argument).c_str()));
+        env->DeleteLocalRef(argument);
+    }
+    argv.push_back(nullptr);
+    auto freeArguments = [&argv] { for (char *argument : argv) free(argument); };
 
-    // Save previous STDOUT/STDERR/STDIN
-    int saved_stdout = dup(STDOUT_FILENO);
-    int saved_stderr = dup(STDERR_FILENO);
-
-    int out_fd = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    int err_fd = open(err_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-
-    // Release jni strings
-    env->ReleaseStringUTFChars(std_out, out_path);
-    env->ReleaseStringUTFChars(std_err, err_path);
-
-    if (out_fd == -1 || err_fd == -1) {
+    int outFd = open(out.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    int errFd = open(err.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (outFd == -1 || errFd == -1) {
         ALOGE("Failed to open STDOUT/STDERR files.");
-        if (out_fd != -1) close(out_fd);
-        if (err_fd != -1) close(err_fd);
-        if (saved_stdout != -1) close(saved_stdout);
-        if (saved_stderr != -1) close(saved_stderr);
+        if (outFd != -1) close(outFd);
+        if (errFd != -1) close(errFd);
+        freeArguments();
         return -1;
     }
+
+    // Capture inherited descriptors before fork; /proc enumeration and JNI
+    // calls must stay in the parent. This is also the fallback on older kernels
+    // without close_range. The tar child needs only standard descriptors.
+    std::vector<int> inherited;
+    DIR *directory = opendir("/proc/self/fd");
+    if (directory == nullptr) {
+        close(outFd);
+        close(errFd);
+        freeArguments();
+        return -1;
+    }
+    while (dirent *entry = readdir(directory)) {
+        char *end = nullptr;
+        long fd = strtol(entry->d_name, &end, 10);
+        if (*end == '\0' && fd > STDERR_FILENO) inherited.push_back((int) fd);
+    }
+    closedir(directory);
 
     pid_t pid = fork();
     if (pid == 0) {
-        // Set the parent death signal to SIGTERM: if the parent process exits,
-        // the kernel will send SIGTERM to this process.
         prctl(PR_SET_PDEATHSIG, SIGTERM);
-        if (getppid() == 1) {
-            _exit(SIGTERM);
+        if (getppid() == 1) _exit(127);
+        if (dup2(outFd, STDOUT_FILENO) == -1 || dup2(errFd, STDERR_FILENO) == -1) {
+            _exit(127);
         }
-
-        // Redirect STDOUT/STDERR/STDIN
-        dup2(out_fd, STDOUT_FILENO);
-        dup2(err_fd, STDERR_FILENO);
-
-        int stdin_fd = -1;
-
-        // Handle STDIN if provided (can be a named pipe/FIFO)
-        if (std_in != nullptr) {
-          in_path = env->GetStringUTFChars(std_in, nullptr);
-          stdin_fd = open(in_path, O_RDONLY);
-          if (stdin_fd == -1) {
-            ALOGE("Failed to open STDIN file: %s", in_path);
-            env->ReleaseStringUTFChars(std_in, in_path);
-            return -1;
-          }
-          env->ReleaseStringUTFChars(std_in, in_path);
+        close(outFd);
+        close(errFd);
+        int childInput = inputFd;
+        if (inputPath != nullptr) childInput = open(in.c_str(), O_RDONLY | O_CLOEXEC);
+        if ((inputPath != nullptr || inputFd >= 0) && childInput == -1) _exit(127);
+        if (childInput >= 0) {
+            if (dup2(childInput, STDIN_FILENO) == -1) _exit(127);
+            if (childInput != STDIN_FILENO) close(childInput);
         }
-        if (stdin_fd != -1) {
-            dup2(stdin_fd, STDIN_FILENO);
-        }
-
-        // Close idle fds in child process
-        close(out_fd);
-        close(err_fd);
-        close(saved_stdout);
-        close(saved_stderr);
-
-        // Build argv
-        jsize argc = env->GetArrayLength(j_argv);
-        char **argv = (char **) malloc((argc + 1) * sizeof(char *));
-        for (int i = 0; i < argc; i++) {
-            auto arg_str = (jstring) env->GetObjectArrayElement(j_argv, i);
-            const char *arg_utf = env->GetStringUTFChars(arg_str, nullptr);
-            argv[i] = strdup(arg_utf);  // Copy then release to avoid memory leak
-            env->ReleaseStringUTFChars(arg_str, arg_utf);
-            env->DeleteLocalRef(arg_str);
-        }
-        argv[argc] = nullptr;
-
-        int result = main(argc, argv);
-
-        if (stdin_fd != -1) {
-          close(stdin_fd);
-        }
-        // Release string resources
-        for (int i = 0; i < argc; i++) {
-            free(argv[i]);
-        }
-        free(argv);
-        _exit(result);
-    } else if (pid > 0) {
-        // Close idle fds in parent process
-        close(out_fd);
-        close(err_fd);
-        close(saved_stdout);
-        close(saved_stderr);
-
-        int exit_status;
-
-        // Wait for child process to exit.
-        if (waitpid(pid, &exit_status, 0) == -1) {
-            ALOGE("Failed to get exit status.");
-            return -1;
-        }
-
-        // Get the exit code from child process
-        if (WIFEXITED(exit_status)) {
-            return WEXITSTATUS(exit_status);
-        } else {
-            return -1;
-        }
-    } else {
+        // In particular, never retain a pipe writer inherited from another
+        // operation: it would prevent EOF after the producer fails.
+        bool closed = false;
+#ifdef __NR_close_range
+        closed = syscall(__NR_close_range, 3u, ~0u, 0u) == 0;
+#endif
+        if (!closed) for (int fd : inherited) close(fd);
+        _exit(main(argc, argv.data()));
+    }
+    close(outFd);
+    close(errFd);
+    freeArguments();
+    if (pid == -1) {
         ALOGE("Failed to fork.");
-        close(out_fd);
-        close(err_fd);
-        close(saved_stdout);
-        close(saved_stderr);
         return -1;
     }
+    int status;
+    pid_t waited;
+    do {
+        waited = waitpid(pid, &status, 0);
+    } while (waited == -1 && errno == EINTR);
+    if (waited == -1 || !WIFEXITED(status)) return -1;
+    return WEXITSTATUS(status);
+}
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_tiiehenry_android_compress_zstd_TarJNI_callCli(
+        JNIEnv *env, jobject, jstring inputPath, jstring outputPath,
+        jstring errorPath, jobjectArray arguments) {
+    return runTar(env, inputPath, -1, outputPath, errorPath, arguments);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_tiiehenry_android_compress_zstd_TarJNI_callCliWithInputFd(
+        JNIEnv *env, jobject, jint inputFd, jstring outputPath,
+        jstring errorPath, jobjectArray arguments) {
+    if (inputFd < 0) return -1;
+    return runTar(env, nullptr, inputFd, outputPath, errorPath, arguments);
 }

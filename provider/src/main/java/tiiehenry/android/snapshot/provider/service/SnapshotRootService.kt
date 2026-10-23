@@ -222,5 +222,8 @@ class SnapshotRootService : RootService() {
 
         override fun extractTar(tarFifo: String, targetDir: String): Boolean =
             fileSystem.extractTar(tarFifo, targetDir)
+
+        override fun extractTarFromFd(input: ParcelFileDescriptor, targetDir: String): Boolean =
+            fileSystem.extractTarFromFd(input, targetDir)
     }
 }

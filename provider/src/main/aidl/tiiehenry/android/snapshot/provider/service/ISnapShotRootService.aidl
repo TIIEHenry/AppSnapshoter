@@ -82,4 +82,5 @@ interface ISnapShotRootService {
     ParcelFileDescriptor openFile(String path, int mode);
     String md5(String file);
     boolean extractTar(String tarFifo, String targetDir);
+    boolean extractTarFromFd(in ParcelFileDescriptor input, String targetDir);
 }
