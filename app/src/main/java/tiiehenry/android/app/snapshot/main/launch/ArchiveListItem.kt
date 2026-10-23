@@ -1,5 +1,7 @@
 package tiiehenry.android.app.snapshot.main.launch
 
+import tiiehenry.android.app.snapshot.group.ArchivedApp
+import tiiehenry.android.app.snapshot.group.GroupMembershipResolver
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
 
@@ -30,7 +32,7 @@ sealed class ArchiveListItem {
         /** 投影时组名快照，避免 DiffUtil 读 live [SnapGroup.name] */
         val name: String,
         /**
-         * 投影时 apps 包名指纹。同一 [SnapGroup] 原地改 [SnapGroup.apps] 后，
+         * 投影时 apps 指纹（包名 + 最新存档）。同一 [SnapGroup] 原地改 [SnapGroup.apps] 后，
          * DiffUtil 禁止再读 live `group.apps`（两边会是同一可变列表）。
          */
         val appsFingerprint: List<String>,
@@ -45,4 +47,18 @@ sealed class ArchiveListItem {
 
 /** 物化 [ArchiveListItem.GroupCard.appsFingerprint]；必须在读 [SnapGroup.apps] 时加锁。 */
 internal fun archiveAppsFingerprint(group: SnapGroup): List<String> =
-    synchronized(group.apps) { group.apps.map { it.appInfo.packageName } }
+    synchronized(group.apps) { group.apps.map { archivedAppListFingerprint(it) } }
+
+/** 网格项内容比较：data class 不含 [ArchivedApp.archives]，必须显式带上最新档。 */
+internal fun archivedAppListContentsTheSame(oldItem: ArchivedApp, newItem: ArchivedApp): Boolean {
+    if (oldItem.packageDir != newItem.packageDir) return false
+    if (oldItem.iconFile != newItem.iconFile) return false
+    return archivedAppListFingerprint(oldItem) == archivedAppListFingerprint(newItem)
+}
+
+internal fun archivedAppListFingerprint(item: ArchivedApp): String {
+    val pkg = GroupMembershipResolver.packageNameOf(item)
+    val latest = item.latestArchive
+    val count = synchronized(item.archives) { item.archives.size }
+    return "$pkg:$count:${latest?.name.orEmpty()}:${latest?.metaInfo?.makeTime ?: 0L}"
+}

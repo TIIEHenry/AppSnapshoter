@@ -3,6 +3,7 @@ package tiiehenry.android.app.snapshot.main.launch
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
 
 class ArchiveDisplayCollapsedTest {
@@ -75,6 +76,22 @@ class ArchiveDisplayCollapsedTest {
         val old = groupCard(group, fingerprint = listOf("com.a"), name = "Work")
         val new = groupCard(group, fingerprint = listOf("com.a"), name = "Play")
         assertFalse(archiveGroupCardContentsTheSame(old, new))
+    }
+
+    @Test
+    fun `same packageDir without archives is unchanged`() {
+        val group = SnapGroup("g1")
+        val old = ArchivedApp(group, "/data/mark.via", "/icons/mark.via.png")
+        val new = ArchivedApp(group, "/data/mark.via", "/icons/mark.via.png")
+        assertTrue(archivedAppListContentsTheSame(old, new))
+    }
+
+    @Test
+    fun `same package in another group dir is a different item`() {
+        val group = SnapGroup("g1")
+        val vias = ArchivedApp(group, "/shared/Vias/mark.via", "/shared/Vias/mark.via.png")
+        val shared = ArchivedApp(group, "/shared/mark.via", "/shared/mark.via.png")
+        assertFalse(archivedAppListContentsTheSame(vias, shared))
     }
 
     private fun groupCard(

@@ -2,7 +2,7 @@
 title: "分组应用归属与移动"
 type: system
 status: active
-updated: 2026-08-21
+updated: 2026-09-12
 summary: "独占归属由 repository+Guard 强制；共享组不参与冲突；冲突可移动；Phase 1 已落地"
 ---
 
@@ -58,6 +58,7 @@ summary: "独占归属由 repository+Guard 强制；共享组不参与冲突；�
 | 排除项 | 说明 |
 |--------|------|
 | 复制存档到多组 | 首版不提供「把历史存档拷到另一组」；共享组加入只建目标侧空壳目录（与现状 `mkdir` 一致） |
+| 快照写哪一组 | 落盘目录 = 当前卡片 `ArchivedApp.packageDir`；`ArchiveMaker` 不得用 `group.rootPath + packageName` 重算。备份后弹层强制 `reloadArchives`，网格指纹含最新档 |
 | 跨组共享同一物理存档目录 | 仍一组成员一路径；不做硬链接/符号链接统一存储 |
 | 全局「每应用唯一」硬约束 | 共享组刻意允许多成员关系 |
 | 共享组改为「仅 JSON 成员、不 mkdir」 | 仍用目录表示成员（与现网一致）；**接受**共享组「全部归档」可写出第二套历史（产品风险见 §残余风险） |
@@ -575,6 +576,7 @@ sequenceDiagram
 | `.stfolder` 误删 | 仅完全空目录当空壳 |
 | 共享组双历史 | 文档接受 |
 | 与 ArchiveMaker 并发 | packageDir Guard + mkdir 防御 |
+| 多组同包写错目录 | 快照落盘以卡片 `ArchivedApp.packageDir` 为准，禁止 `rootPath + packageName` 重算 |
 
 ---
 

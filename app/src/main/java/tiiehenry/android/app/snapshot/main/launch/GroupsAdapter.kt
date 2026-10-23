@@ -524,7 +524,7 @@ internal fun filterVisibleApps(
 
 /**
  * GroupCard 内容比较只吃投影快照（name / collapsed / fingerprint），禁止读 live apps。
- * 同一 [SnapGroup] 原地改 apps 后，新旧卡片必须靠 [ArchiveListItem.GroupCard.appsFingerprint] 才能 Diff 到。
+ * 同一 [SnapGroup] 原地改 apps 或最新存档后，新旧卡片必须靠 [ArchiveListItem.GroupCard.appsFingerprint] 才能 Diff 到。
  */
 internal fun archiveGroupCardContentsTheSame(
     oldItem: ArchiveListItem.GroupCard,

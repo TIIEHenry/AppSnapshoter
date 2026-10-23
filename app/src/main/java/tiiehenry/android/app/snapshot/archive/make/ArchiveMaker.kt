@@ -46,8 +46,14 @@ object ArchiveMaker {
     ): SnapshotTasks? {
         try {
             val rootPath = groupConfig.rootPath
-            val packageDir = Paths.get(rootPath, appInfo.packageName).absolutePathString()
+            val packageDir = snapshotWritePackageDir(archivedApp.packageDir)
             val group = archivedApp.group
+            if (snapshotWritePathMismatch(packageDir, rootPath, appInfo.packageName)) {
+                Log.w(
+                    "ArchiveMaker",
+                    "write to card packageDir=$packageDir (not $rootPath/${appInfo.packageName})"
+                )
+            }
 
             if (fileSystem.fileType(packageDir) == IFileType.TYPE_NONE) {
                 if (group.isExclusive) {
@@ -577,4 +583,20 @@ object ArchiveMaker {
         return handler
     }
 
+}
+
+/**
+ * 快照落盘目录以当前卡片 [ArchivedApp.packageDir] 为准，
+ * 禁止用 `group.rootPath + packageName` 重算（多组同包时会写到另一组）。
+ */
+internal fun snapshotWritePackageDir(cardPackageDir: String): String = cardPackageDir
+
+internal fun snapshotWritePathMismatch(
+    cardPackageDir: String,
+    groupRootPath: String,
+    packageName: String,
+): Boolean {
+    val reconstructed = Paths.get(groupRootPath, packageName).normalize().toString()
+    val card = Paths.get(cardPackageDir).normalize().toString()
+    return reconstructed != card
 }

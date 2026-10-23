@@ -2,7 +2,7 @@
 title: "快照系统"
 type: system
 status: active
-updated: 2026-08-23
+updated: 2026-09-12
 summary: "应用备份/恢复核心流程，包含快照创建、存档管理、APK 安装和恢复"
 ---
 
@@ -33,6 +33,8 @@ sequenceDiagram
     FC-->>UI: onProgress() 进度回调
     FC-->>UI: onComplete() 完成
 ```
+
+**落盘目录**：`ArchiveMaker` 写入当前卡片的 `ArchivedApp.packageDir`，不用 `group.rootPath + packageName` 重算。同一包在 Shared / vias / System 等多组时，备份只进你点的那张卡。备份后弹层会强制 `reloadArchives`；网格 Diff 指纹含最新档名，避免「磁盘有档、列表不刷新」。
 
 **关键类**：
 - `SnapshotCreator` (`app/.../makearchive/SnapshotCreator.kt`) — 编排快照创建流程

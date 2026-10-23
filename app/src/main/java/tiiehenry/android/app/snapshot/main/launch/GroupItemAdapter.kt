@@ -386,8 +386,9 @@ class GroupItemAdapter(
          * 创建应用快照
          */
         private fun createSnapshot(item: ArchivedApp) {
+            val currentGroup = snapshotViewModel.resolveGroup(group.id, group) ?: group
             val snapshotCreator = SnapshotCreator(binding.root.context, viewModel.viewModelScope)
-            snapshotCreator.createSnapshot(item, group, object : SnapshotCreator.Callback {
+            snapshotCreator.createSnapshot(item, currentGroup, object : SnapshotCreator.Callback {
                 override fun onSuccess() {
                     Toast.makeText(
                         binding.root.context,
@@ -408,7 +409,10 @@ class GroupItemAdapter(
                 }
 
                 override fun onFinish() {
-                    groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                    val refreshed = snapshotViewModel.resolveGroup(currentGroup.id, currentGroup)
+                        ?: currentGroup
+                    groupsHolder.refresh(refreshed, groupsHolder.binding.groupRecyclerView)
+                    viewModel.rematerializeDisplayed()
                     snapshotViewModel.loadGroups()
                 }
             })
@@ -425,7 +429,7 @@ class GroupItemAdapter(
         }
 
         override fun areContentsTheSame(oldItem: ArchivedApp, newItem: ArchivedApp): Boolean {
-            return oldItem == newItem
+            return archivedAppListContentsTheSame(oldItem, newItem)
         }
     }
 }

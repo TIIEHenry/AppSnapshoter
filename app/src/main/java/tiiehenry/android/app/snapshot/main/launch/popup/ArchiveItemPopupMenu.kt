@@ -12,7 +12,9 @@ import android.widget.Toast
 import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.main.launch.app.AppConfigFragment
 import tiiehenry.android.app.snapshot.archive.manage.ArchiveManager
@@ -222,15 +224,13 @@ class ArchiveItemPopupMenu(
         popupBinding.archiveList.layoutManager = LinearLayoutManager(context)
         popupBinding.archiveList.adapter = archiveAdapter
 
-        // 只在存档列表为空时重新加载
-        if (item.archives.isEmpty()) {
-            coroutineScope.launch {
-                ArchiveManager.reloadArchives(item, true)
+        archiveAdapter.submitList(ArchiveManager.getSortedArchives(item))
+        coroutineScope.launch {
+            ArchiveManager.reloadArchives(item, true)
+            withContext(Dispatchers.Main) {
+                archiveAdapter.submitList(ArchiveManager.getSortedArchives(item))
             }
         }
-
-        // 设置存档列表数据
-        archiveAdapter.submitList(ArchiveManager.getSortedArchives(item))
         return archiveAdapter
     }
 

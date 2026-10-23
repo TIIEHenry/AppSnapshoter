@@ -122,6 +122,10 @@ class SnapshotCreator(
                 val groupConfig = group.config
                 val packageName = item.appInfo.packageName
                 val userId = group.userId
+                Log.i(
+                    TAG,
+                    "createSnapshot pkg=$packageName user=$userId dir=${item.packageDir} group=${group.id}"
+                )
 
                 // 挂起应用，减少备份期间数据变更（不做 forceStop）
                 if (!AppStatusHelper.preparePackageForSnapshot(packageName, userId)) {
