@@ -36,6 +36,7 @@ internal object BatchTestStubFileSystem : IFileSystem {
     override fun mkfifo(path: String, mode: Int) = false
     override fun isFifo(path: String) = false
     override fun extractTar(tarFifo: String, targetDir: String) = false
+    override fun extractTarFromFd(input: android.os.ParcelFileDescriptor, targetDir: String) = false
     override fun cleanDir(path: String) = false
     override fun move(sourcePath: String, targetPath: String) = false
     override fun copyRecursively(source: String, target: String, overwrite: Boolean) = false
