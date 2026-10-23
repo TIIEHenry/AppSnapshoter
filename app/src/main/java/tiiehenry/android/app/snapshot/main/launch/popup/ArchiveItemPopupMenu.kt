@@ -10,6 +10,8 @@ import android.view.ViewGroup
 import android.widget.PopupWindow
 import android.widget.Toast
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,6 +78,8 @@ class ArchiveItemPopupMenu(
         callback: Callback
     ) {
         val popupBinding = LayoutPopupMenuBinding.inflate(LayoutInflater.from(context))
+        // PopupWindow has a separate view tree; pass the host lifetime to async actions.
+        popupBinding.root.setViewTreeLifecycleOwner(anchor.findViewTreeLifecycleOwner())
         val popupWindow = PopupWindow(
             popupBinding.root,
             ViewGroup.LayoutParams.WRAP_CONTENT,
