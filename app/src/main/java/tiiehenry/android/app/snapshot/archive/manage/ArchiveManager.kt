@@ -26,19 +26,10 @@ object ArchiveManager {
     suspend fun deleteArchive(item: ArchivedApp, archiveItem: ArchiveItem): Boolean {
         val fs = SnapshotApp.getInstance().fileSystem
 
-        val success = try {
-            // 删除指定的存档目录
-            fs.delete(archiveItem.path)
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-
-        // 清理相关的APK文件
-        cleanupArchivedApks(item, archiveItem)
-
-        return success
+        return deleteArchiveThenCleanup(
+            delete = { fs.delete(archiveItem.path) },
+            cleanup = { cleanupArchivedApks(item, archiveItem) }
+        )
     }
 
     /**
@@ -53,7 +44,7 @@ object ArchiveManager {
         )
         val archivedApkDir = File(archivedApkDirPath)
         val archiveFiles = archivedApkDir.listFiles {
-            it.name.startsWith("${archiveItem.metaInfo.packageInfo.size}")
+            it.name.substringBefore(".") == archiveItem.metaInfo.packageInfo.size.toString()
         }
 
         // 检查是否有其他archiveItem引用了相同的versionCode和size
@@ -152,4 +143,11 @@ object ArchiveManager {
     fun getSortedArchives(item: ArchivedApp): List<ArchiveItem> {
         return item.archives.values.toList().sortedByDescending { it.metaInfo.makeTime }
     }
+}
+
+/** A failed filesystem delete leaves its APK references intact. */
+internal fun deleteArchiveThenCleanup(delete: () -> Boolean, cleanup: () -> Unit): Boolean {
+    val deleted = try { delete() } catch (_: Exception) { false }
+    if (deleted) cleanup()
+    return deleted
 }

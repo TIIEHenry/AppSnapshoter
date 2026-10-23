@@ -443,4 +443,9 @@
     <string name="file_name_placeholder">File name</string>
     <string name="archive_name_placeholder">Archive name</string>
     <string name="error_unknown">Unknown error</string>
+    <string name="archive_validation_failed">Archive is incomplete or failed verification: %1$s</string>
+    <string name="archive_stop_failed">Could not stop %1$s. Restore cancelled.</string>
+    <string name="snapshot_metadata_failed">Could not save snapshot metadata</string>
+    <string name="snapshot_uninstall_failed">Snapshot saved, but the app could not be uninstalled</string>
+    <string name="snapshot_payload_failed">Snapshot data failed verification</string>
 </resources>

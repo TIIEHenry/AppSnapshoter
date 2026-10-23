@@ -28,9 +28,10 @@ import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.io.path.absolutePathString
-import kotlin.io.path.isRegularFile
 
 object ArchiveMaker {
 
@@ -44,6 +45,7 @@ object ArchiveMaker {
         appConfig: AppConfig,
         archiveName: String? = null
     ): SnapshotTasks? {
+        var pendingDir: String? = null
         try {
             val rootPath = groupConfig.rootPath
             val packageDir = snapshotWritePackageDir(archivedApp.packageDir)
@@ -76,9 +78,11 @@ object ArchiveMaker {
 
             // 生成存档名称
             val name = archiveName ?: generateArchiveName()
-            val archiveDir = Paths.get(packageDir, name).absolutePathString()
-
-            fileSystem.mkdirs(archiveDir)
+            val finalDir = Paths.get(packageDir, name).absolutePathString()
+            if (fileSystem.exists(finalDir)) throw IOException(finalDir)
+            val archiveDir = Paths.get(packageDir, ".snapshot-${UUID.randomUUID()}.pending").absolutePathString()
+            if (!fileSystem.mkdirs(archiveDir)) throw IOException(archiveDir)
+            pendingDir = archiveDir
             val shotConfig = if (appConfig.shotConfig.enabled) {
                 appConfig.shotConfig
             } else {
@@ -152,7 +156,8 @@ object ArchiveMaker {
                             compressLevel,
                             fileName,
                             name,
-                            archiveDir
+                            archiveDir,
+                            sourceFile = fileSystem.fileType(path) == IFileType.TYPE_FILE
                         )
                     )
                     tasks[name] = task
@@ -175,9 +180,23 @@ object ArchiveMaker {
                         //使用版本号作为文件夹名
                         //文件大小作为文件名唯一标识
                         val filePath = Paths.get(apkDataItemDir, fileName)
-                        if (filePath.isRegularFile()) {
+                        realCompressItems.add(item)
+                        val savedApk = MetaInfoHelper.readSharedApkDataItem(
+                            MetaInfo().also { meta ->
+                                meta.packageInfo = MetaPackageInfo().also {
+                                    it.versionCode = packageInfo.longVersionCode
+                                    it.size = id.toLong()
+                                }
+                            }, archivedApp.packageDir
+                        )
+                        if (savedApk != null && fileSystem.exists(filePath.absolutePathString()) &&
+                            fileSystem.length(filePath.absolutePathString()) == savedApk.targetSize &&
+                            fileSystem.md5(filePath.absolutePathString()).equals(savedApk.md5, ignoreCase = true)) {
                             continue
                         }
+                        // A failed earlier backup may leave a payload without its descriptor.
+                        if (fileSystem.exists(filePath.absolutePathString()) &&
+                            !fileSystem.delete(filePath.absolutePathString())) throw IOException(filePath.toString())
                         val compressLevel = 3// apk use static compress level 高level 压缩不了太多内存了
                         val apks = mutableListOf<String>()
                         apks.add(apkPath)
@@ -355,9 +374,10 @@ object ArchiveMaker {
                 tasks["uninstall-app"] = uninstallTask
             }
 
-            return SnapshotTasks(archiveDir, tasks)
+            return SnapshotTasks(archiveDir, tasks, finalDir)
         } catch (e: Exception) {
             e.printStackTrace()
+            pendingDir?.let { fileSystem.delete(it) }
             return null
         }
     }
@@ -420,11 +440,10 @@ object ArchiveMaker {
                     )
 
                     // 分别保存 meta-info.json（使用 compressItems）、permissions.json 和各个 data-item.json
-                    MetaInfoHelper.writeToArchive(metaInfo, File(archiveDir))
-                    MetaInfoHelper.writePermissions(
-                        permissions,
-                        File(archiveDir)
-                    )
+                    MetaInfoHelper.writePendingMetaInfo(metaInfo, File(archiveDir))
+                    if (!MetaInfoHelper.writePermissions(permissions, File(archiveDir))) {
+                        throw IOException(File(archiveDir, MetaInfoHelper.PERMISSIONS_FILE_NAME).absolutePath)
+                    }
                     state = CompressState.COMPRESS_STATE_COMPLETE
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -464,10 +483,9 @@ object ArchiveMaker {
                 try {
                     val permissions = appInfo.getPermissions(appManager)
                         .map { MetaPermission.fromAppPermission(it) }
-                    MetaInfoHelper.writePermissions(
-                        permissions,
-                        File(archiveDir)
-                    )
+                    if (!MetaInfoHelper.writePermissions(permissions, File(archiveDir))) {
+                        throw IOException(File(archiveDir, MetaInfoHelper.PERMISSIONS_FILE_NAME).absolutePath)
+                    }
                     state = CompressState.COMPRESS_STATE_COMPLETE
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -484,7 +502,7 @@ object ArchiveMaker {
     }
 
     private fun generateArchiveName(): String {
-        val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.getDefault())
         return dateFormat.format(Date())
     }
 
@@ -495,7 +513,8 @@ object ArchiveMaker {
         compressLevel: Int,
         fileName: String,
         itemType: String,
-        archiveDir: String
+        archiveDir: String,
+        sourceFile: Boolean = false
     ): ICompressCallback {
         return object : ICompressCallback.Stub() {
             var startTime = 0L
@@ -529,6 +548,7 @@ object ArchiveMaker {
                     System.currentTimeMillis(),
                     compressLevel
                 )
+                dataItem.isSourceFile = sourceFile
                 dataItems.add(dataItem)
                 MetaInfoHelper.saveDataItem(dataItem, File(archiveDir))
             }

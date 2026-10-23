@@ -33,6 +33,13 @@ public class MetaDataItem {
     @JSONField(name = "makeTime")
     private long makeTime;
 
+    @JSONField(name = "source_file")
+    private boolean sourceFile = false;
+
+    public boolean isSourceFile() { return sourceFile; }
+
+    public void setSourceFile(boolean sourceFile) { this.sourceFile = sourceFile; }
+
     // 无参构造函数
     public MetaDataItem() {
     }

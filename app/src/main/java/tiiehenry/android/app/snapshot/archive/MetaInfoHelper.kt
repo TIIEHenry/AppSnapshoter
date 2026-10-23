@@ -9,6 +9,7 @@ import tiiehenry.android.app.snapshot.utils.JsonUtils
 import tiiehenry.android.snapshot.file.IFileSystem
 import java.io.File
 import java.io.FileReader
+import java.io.IOException
 
 /**
  * MetaInfo 操作辅助类
@@ -17,8 +18,24 @@ import java.io.FileReader
 object MetaInfoHelper {
 
     const val META_INFO_FILE_NAME = "meta-info.json"
+    const val PENDING_META_INFO_FILE_NAME = "meta-info.pending.json"
     const val PERMISSIONS_FILE_NAME = "permissions.json"
     const val DATA_ITEM_FILE_EXTENSION = ".json"
+
+    /** Resolve APKs shared by all snapshots of this installed version and size. */
+    fun readSharedApkDataItem(metaInfo: MetaInfo, packageDir: String): MetaDataItem? = try {
+        readDataItemSafe(
+            "${metaInfo.packageInfo.size}$DATA_ITEM_FILE_EXTENSION",
+            File(ArchivedApks.getArchivedApkDir(packageDir, metaInfo.packageInfo.versionCode))
+        )?.also { it.name = "apk" }
+    } catch (_: Exception) {
+        null
+    }
+
+    fun writePendingMetaInfo(metaInfo: MetaInfo, archiveDir: File) {
+        val file = File(archiveDir, PENDING_META_INFO_FILE_NAME)
+        if (!JsonUtils.writeToFile(metaInfo, file, true)) throw IOException(file.absolutePath)
+    }
 
     /**
      * 保存单个 MetaDataItem 到指定目录
@@ -36,7 +53,9 @@ object MetaInfoHelper {
         val fileName = "${dataItem.name}${DATA_ITEM_FILE_EXTENSION}"
         val dataItemFile = File(archiveDir, fileName)
 
-        JsonUtils.writeToFile(dataItem, dataItemFile, prettyFormat)
+        if (!JsonUtils.writeToFile(dataItem, dataItemFile, prettyFormat)) {
+            throw IOException(dataItemFile.absolutePath)
+        }
         return fileName
     }
 

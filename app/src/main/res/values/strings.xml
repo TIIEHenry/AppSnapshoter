@@ -443,4 +443,9 @@
     <string name="file_name_placeholder">文件名</string>
     <string name="archive_name_placeholder">存档名称</string>
     <string name="error_unknown">未知错误</string>
+    <string name="archive_validation_failed">存档不完整或校验失败：%1$s</string>
+    <string name="archive_stop_failed">无法停止 %1$s，已取消恢复。</string>
+    <string name="snapshot_metadata_failed">无法保存快照元数据</string>
+    <string name="snapshot_uninstall_failed">快照已保存，但无法卸载应用</string>
+    <string name="snapshot_payload_failed">快照数据校验失败</string>
 </resources>

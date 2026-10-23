@@ -6,7 +6,6 @@ import android.util.Log
 import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
@@ -15,6 +14,13 @@ import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.archive.manage.ArchiveManager
 import tiiehenry.android.app.snapshot.archive.manage.RetentionPolicyExecutor
 import tiiehenry.android.app.snapshot.archive.make.ArchiveMaker
+import tiiehenry.android.app.snapshot.archive.make.commitSnapshot
+import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
+import tiiehenry.android.app.snapshot.archive.restore.RestorePreflight
+import tiiehenry.android.app.snapshot.config.CompressItems
+import tiiehenry.android.snapshot.fs.IFileType
+import java.nio.file.Paths
+import java.io.IOException
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.exception.ArchiveFailedException
@@ -109,6 +115,7 @@ class SnapshotCreator(
                 }
                 return@launch
             }
+            var unfinishedSnapshotDir: String? = null
             try {
                 val snapShotApp = SnapshotApp.getInstance()
                 val fs = snapShotApp.fileSystem
@@ -147,6 +154,7 @@ class SnapshotCreator(
                 )
                 var currentIndex = 0
                 if (snapshotTasks != null) {
+                    unfinishedSnapshotDir = snapshotTasks.dir
                     val tasks = snapshotTasks.tasks
                     val totalTask = tasks.size
                     fun updateIndex(index: Int) {
@@ -170,15 +178,9 @@ class SnapshotCreator(
                         }
                     }
 
-                    // 先启动 meta-info 任务
-                    val metaHandler: ITaskHandler? = tasks.remove("meta-info")
-                    val metaJob = metaHandler?.let {
-                        currentIndex++
-                        withContext(Dispatchers.Main) {
-                            updateIndex(currentIndex)
-                        }
-                        async { it.start() }
-                    }
+                    val metaHandler = tasks.remove("meta-info")
+                        ?: throw ArchiveFailedException(context.getString(R.string.snapshot_metadata_failed))
+                    val uninstallHandler = tasks.remove("uninstall-app")
                     // 执行其他任务
                     for (entry in tasks) {
                         if (isCanceled.get() || failed.get()) {
@@ -199,9 +201,8 @@ class SnapshotCreator(
                         }
                         entry.value.start()
                         if (failed.get() ||
-                            entry.value.state() == CompressState.COMPRESS_STATE_ERROR
+                            entry.value.state() != CompressState.COMPRESS_STATE_COMPLETE
                         ) {
-                            metaJob?.await()
                             failAndAbort(
                                 errorMessage.get()
                                     ?: "task ${entry.key} failed (state=${entry.value.state()})"
@@ -209,19 +210,73 @@ class SnapshotCreator(
                             return@launch
                         }
                     }
-                    metaJob?.await()
-                    if (failed.get() ||
-                        metaHandler?.state() == CompressState.COMPRESS_STATE_ERROR
-                    ) {
-                        failAndAbort(
-                            errorMessage.get()
-                                ?: "meta-info failed (state=${metaHandler?.state()})"
-                        )
+                    if (failed.get()) {
+                        failAndAbort(errorMessage.get() ?: context.getString(R.string.snapshot_payload_failed))
                         return@launch
                     }
                     if (isCanceled.get()) {
                         fs.delete(snapshotTasks.dir)
                         return@launch
+                    }
+                    var published = false
+                    fun checkCanceled() {
+                        if (isCanceled.get()) {
+                            throw ArchiveFailedException(context.getString(R.string.group_batch_archive_cancelled))
+                        }
+                    }
+                    try {
+                        commitSnapshot(
+                            writeMetadata = {
+                                checkCanceled()
+                                metaHandler.start()
+                                if (metaHandler.state() != CompressState.COMPRESS_STATE_COMPLETE) {
+                                    throw ArchiveFailedException(context.getString(R.string.snapshot_metadata_failed))
+                                }
+                            },
+                            validate = {
+                                checkCanceled()
+                                val pending = Paths.get(snapshotTasks.dir, MetaInfoHelper.PENDING_META_INFO_FILE_NAME).toString()
+                                val meta = MetaInfoHelper.read(fs, pending) ?: throw IOException(pending)
+                                RestorePreflight.prepare(
+                                    meta, snapshotTasks.dir, packageDir, null,
+                                    meta.dataItems.orEmpty().contains("${CompressItems.COMPRESS_ITEM_APK}.json"),
+                                    readItem = { name, dir -> MetaInfoHelper.readDataItem(name, dir) },
+                                    verifyFile = { data, dir ->
+                                        val path = RestorePreflight.childPath(dir, data.file)
+                                        fs.fileType(path) == IFileType.TYPE_FILE &&
+                                            fs.length(path) == data.targetSize &&
+                                            fs.md5(path).equals(data.md5, ignoreCase = true)
+                                    }
+                                )
+                            },
+                            publish = {
+                                checkCanceled()
+                                if (!fs.move(snapshotTasks.dir, snapshotTasks.finalDir)) {
+                                    throw IOException(snapshotTasks.finalDir)
+                                }
+                                val pending = Paths.get(snapshotTasks.finalDir, MetaInfoHelper.PENDING_META_INFO_FILE_NAME).toString()
+                                val manifest = Paths.get(snapshotTasks.finalDir, MetaInfoHelper.META_INFO_FILE_NAME).toString()
+                                if (!fs.move(pending, manifest)) {
+                                    fs.delete(snapshotTasks.finalDir)
+                                    throw IOException(manifest)
+                                }
+                                published = true
+                                unfinishedSnapshotDir = null
+                            },
+                            afterCommit = {
+                                checkCanceled()
+                                uninstallHandler?.let {
+                                    it.start()
+                                    if (it.state() != CompressState.COMPRESS_STATE_COMPLETE) {
+                                        throw ArchiveFailedException(context.getString(R.string.snapshot_uninstall_failed))
+                                    }
+                                }
+                            }
+                        )
+                    } catch (e: Exception) {
+                        // A failed uninstall must never delete an already committed backup.
+                        if (!published) fs.delete(snapshotTasks.dir)
+                        throw e
                     }
                     // 重新加载应用数据
                     ArchiveManager.reloadArchives(item, true)
@@ -245,6 +300,9 @@ class SnapshotCreator(
                     reportError(e)
                 }
             } finally {
+                unfinishedSnapshotDir?.let { pending ->
+                    runCatching { SnapshotApp.getInstance().fileSystem.delete(pending) }
+                }
                 if (!underGlobalBatch) {
                     guard.endPackageOp(packageDir)
                 }

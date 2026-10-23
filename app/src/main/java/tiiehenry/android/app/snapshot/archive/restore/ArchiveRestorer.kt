@@ -25,6 +25,7 @@ import tiiehenry.android.app.snapshot.main.launch.batch.RestoreRecordWriter
 import tiiehenry.android.app.snapshot.utils.ApksUtil
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
+import tiiehenry.android.snapshot.fs.IFileType
 
 /**
  * 存档恢复器 - 恢复流程编排入口
@@ -227,12 +228,6 @@ object ArchiveRestorer {
         val userId = appInfo.userId
 
         val callback = itemCallback(loadingDialog, context)
-        val dataItems = archiveItem.dataItems
-
-        withContext(Dispatchers.Main) {
-            loadingDialog.setItemMessage(context.getString(R.string.archive_clearing_app_data))
-            loadingDialog.setItemStatus("...")
-        }
         val installed = appManager.isInstalled(packageName, userId)
 
         var needInstallApk = true
@@ -256,29 +251,10 @@ object ArchiveRestorer {
                 }
             }
         }
-        if (installed) {
-            appManager.clearAppData(packageName, userId)
-        }
-        val needRestoreDataItems = dataItems.toMutableList()
-        if (needInstallApk) {
-            val apkDataItemDir = ArchivedApks.getArchivedApkDir(
-                archivedApp.packageDir,
-                archiveItem.metaInfo.packageInfo.versionCode
-            )
-            val apkDataItem = MetaInfoHelper.readDataItem(
-                "" + archiveItem.metaInfo.packageInfo.size + MetaInfoHelper.DATA_ITEM_FILE_EXTENSION,
-                apkDataItemDir
-            )
-            apkDataItem.let {
-                it.name = CompressItems.COMPRESS_ITEM_APK
-                needRestoreDataItems.remove(it)
-                needRestoreDataItems.add(0, it)
-            }
-        } else {
-            Log.i(TAG, "skip install apk")
-        }
-        Log.i(TAG, "toMutableList: $needRestoreDataItems")
-        val extraItems = archiveItem.extraItems
+        val plan = prepareRestore(context, fs, archivedApp, archiveItem, null, needInstallApk)
+        stopBeforeRestore(context, appManager, packageName, userId, installed, plan)
+        val needRestoreDataItems = plan.dataItems
+        val extraItems = plan.extraItems
 
         if (!restoreItems(
                 needRestoreDataItems,
@@ -320,19 +296,8 @@ object ArchiveRestorer {
 
         val callback = itemCallback(loadingDialog, context)
 
-        val allDataItems = archiveItem.dataItems.toMutableList()
-        val dataItems = allDataItems.filter { selectedTypes.contains(it.name) }
-
-        val selectedExtraItems =
-            archiveItem.extraItems.filterKeys { selectedTypes.contains(it.name) }
-        Log.i(TAG, "高级恢复：选中 ${selectedExtraItems.size} 个额外项目")
-
-        if (dataItems.isEmpty() && selectedExtraItems.isEmpty()) {
-            withContext(Dispatchers.Main) {
-                loadingDialog.dismissItem()
-                Toast.makeText(context, R.string.archive_no_selected_data, Toast.LENGTH_SHORT).show()
-            }
-            return
+        if (selectedTypes.isEmpty()) {
+            throw IllegalArgumentException(context.getString(R.string.archive_no_selected_data))
         }
 
         val needRestoreApk = selectedTypes.contains(CompressItems.COMPRESS_ITEM_APK)
@@ -371,34 +336,10 @@ object ArchiveRestorer {
             return
         }
 
-        if (hasDataTypes && installed) {
-            withContext(Dispatchers.Main) {
-                loadingDialog.setItemMessage(context.getString(R.string.archive_clearing_app_data))
-                loadingDialog.setItemStatus("...")
-            }
-            appManager.clearAppData(packageName, userId)
-        }
-
-        val needRestoreDataItems = dataItems.toMutableList()
-        val apkDataItem = needRestoreDataItems.find { it.name == CompressItems.COMPRESS_ITEM_APK }
-
-        if (apkDataItem != null) {
-            if (!needInstallApk) {
-                needRestoreDataItems.remove(apkDataItem)
-            } else {
-                needRestoreDataItems.remove(apkDataItem)
-                val apkDataItemDir = ArchivedApks.getArchivedApkDir(
-                    archivedApp.packageDir,
-                    archiveItem.metaInfo.packageInfo.versionCode
-                )
-                val realApkDataItem = MetaInfoHelper.readDataItem(
-                    "" + archiveItem.metaInfo.packageInfo.size + MetaInfoHelper.DATA_ITEM_FILE_EXTENSION,
-                    apkDataItemDir
-                )
-                realApkDataItem.name = CompressItems.COMPRESS_ITEM_APK
-                needRestoreDataItems.add(0, realApkDataItem)
-            }
-        }
+        val plan = prepareRestore(context, fs, archivedApp, archiveItem, selectedTypes, needInstallApk)
+        stopBeforeRestore(context, appManager, packageName, userId, installed, plan)
+        val needRestoreDataItems = plan.dataItems
+        val selectedExtraItems = plan.extraItems
 
         if (!restoreItems(
                 needRestoreDataItems,
@@ -415,7 +356,9 @@ object ArchiveRestorer {
             )
         ) return
 
-        if (needInstallApk || hasDataTypes) {
+        if (needInstallApk || selectedTypes.any {
+                it == CompressItems.COMPRESS_ITEM_USER || it == CompressItems.COMPRESS_ITEM_USER_DE
+            }) {
             PermissionRestorer.restorePermissions(loadingDialog, archiveItem, fs, appManager, packageName, userId)
         }
 
@@ -423,6 +366,44 @@ object ArchiveRestorer {
         withContext(Dispatchers.Main) {
             loadingDialog.dismissItem()
             Toast.makeText(context, R.string.archive_advanced_restore_success, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun prepareRestore(
+        context: Context,
+        fs: IFileSystem,
+        archivedApp: ArchivedApp,
+        archiveItem: ArchiveItem,
+        selectedTypes: Set<String>?,
+        needInstallApk: Boolean
+    ): PreparedRestore = try {
+        RestorePreflight.prepare(
+            archiveItem.metaInfo, archiveItem.path, archivedApp.packageDir,
+            selectedTypes, needInstallApk,
+            readItem = { name, dir -> MetaInfoHelper.readDataItem(name, dir) },
+            verifyFile = { item, dir ->
+                val path = RestorePreflight.childPath(dir, item.file)
+                fs.fileType(path) == IFileType.TYPE_FILE &&
+                    fs.length(path) == item.targetSize && fs.md5(path).equals(item.md5, ignoreCase = true)
+            }
+        )
+    } catch (e: ArchiveValidationException) {
+        throw IllegalStateException(context.getString(R.string.archive_validation_failed, e.invalidPath), e)
+    }
+
+    private fun stopBeforeRestore(
+        context: Context,
+        appManager: IAppManager,
+        packageName: String,
+        userId: Int,
+        installed: Boolean,
+        plan: PreparedRestore
+    ) {
+        // Each decompressor replaces only its selected target. pm clear would also
+        // erase USER/USER_DE and permissions when only MEDIA/OBB/extra was selected.
+        if (installed && (plan.dataItems.isNotEmpty() || plan.extraItems.isNotEmpty()) &&
+            !appManager.forceStopPackage(packageName, userId)) {
+            throw IllegalStateException(context.getString(R.string.archive_stop_failed, packageName))
         }
     }
 
