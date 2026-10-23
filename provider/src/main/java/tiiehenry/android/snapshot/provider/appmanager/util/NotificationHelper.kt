@@ -1,11 +1,13 @@
 package tiiehenry.android.snapshot.provider.appmanager.util
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.annotation.RequiresPermission
 
 /**
  * 通知工具类，提供通知相关的功能
@@ -52,6 +54,7 @@ object NotificationHelper {
     /**
      *显示通知
      */
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showNotification(context: Context, id: Int, notification: Notification) {
         getNotificationManager(context).notify(id, notification)
     }

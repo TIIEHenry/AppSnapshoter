@@ -1,5 +1,6 @@
 package tiiehenry.android.app.snapshot.main.launch.config
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -102,6 +103,8 @@ class ExtraItemAdapter(
             return oldItem.name == newItem.name && oldItem.path == newItem.path
         }
 
+        // ExcludeConfig exposes a Java List; List.equals compares ordered contents.
+        @SuppressLint("DiffUtilEquals")
         override fun areContentsTheSame(oldItem: ExtraCompressItem, newItem: ExtraCompressItem): Boolean {
             return oldItem.name == newItem.name &&
                     oldItem.path == newItem.path &&
