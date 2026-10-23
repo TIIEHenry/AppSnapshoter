@@ -15,7 +15,6 @@ class GroupRemovalTest {
         val removed = removeRegisteredGroup(
             path = registeredPath ?: defaultRoot,
             deleteFiles = true,
-            exists = directories::contains,
             delete = { path ->
                 assertEquals(originalPath, registeredPath)
                 deletedPaths += path
@@ -38,7 +37,6 @@ class GroupRemovalTest {
         val removed = removeRegisteredGroup(
             path = config.getValue("rootPath"),
             deleteFiles = true,
-            exists = { true },
             delete = { false },
             unregister = {
                 registered = false
@@ -59,7 +57,6 @@ class GroupRemovalTest {
             removeRegisteredGroup(
                 path = "/backups/group",
                 deleteFiles = true,
-                exists = { true },
                 delete = { error("storage disconnected") },
                 unregister = { registered = false },
             )
@@ -75,7 +72,6 @@ class GroupRemovalTest {
         assertTrue(removeRegisteredGroup(
             path = "/backups/group",
             deleteFiles = false,
-            exists = { error("configuration-only removal must not inspect storage") },
             delete = { error("configuration-only removal must not delete storage") },
             unregister = { registered = false },
         ))
@@ -83,15 +79,14 @@ class GroupRemovalTest {
     }
 
     @Test
-    fun `already missing directory can be unregistered`() {
+    fun `unconfirmed deletion of a missing directory retains registration`() {
         var registered = true
-        assertTrue(removeRegisteredGroup(
+        assertFalse(removeRegisteredGroup(
             path = "/backups/missing",
             deleteFiles = true,
-            exists = { false },
-            delete = { error("missing directory need not be deleted") },
+            delete = { false },
             unregister = { registered = false },
         ))
-        assertFalse(registered)
+        assertTrue(registered)
     }
 }

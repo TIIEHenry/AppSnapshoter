@@ -4,11 +4,10 @@ package tiiehenry.android.app.snapshot.repository
 internal fun removeRegisteredGroup(
     path: String,
     deleteFiles: Boolean,
-    exists: (String) -> Boolean,
     delete: (String) -> Boolean,
     unregister: () -> Unit,
 ): Boolean {
-    if (deleteFiles && exists(path) && !delete(path)) return false
+    if (deleteFiles && !delete(path)) return false
     unregister()
     return true
 }

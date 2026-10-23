@@ -1287,7 +1287,6 @@ class AppDataRepository private constructor() {
                     val success = removeRegisteredGroup(
                         path = originalPath,
                         deleteFiles = deleteFiles,
-                        exists = fileSystem::exists,
                         delete = fileSystem::delete,
                     ) {
                         GlobalConfig.groups = GlobalConfig.groups.filterNot { it == groupId }
