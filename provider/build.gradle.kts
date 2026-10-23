@@ -61,6 +61,7 @@ dependencies {
     implementation(project(":io-zstd"))
 
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
