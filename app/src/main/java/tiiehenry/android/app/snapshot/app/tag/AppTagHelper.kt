@@ -15,6 +15,19 @@ object AppTagHelper {
     // 缓存：应用包名到标签列表的映射
     private val appTagsCache = mutableMapOf<String, List<AppTag>>()
 
+    internal var groupListProvider: () -> List<SnapGroup>? = {
+        SnapshotApp.getViewModel().groupList.value
+    }
+
+    internal var fileTypeProvider: (String) -> Int = { path ->
+        SnapshotApp.getInstance().fileSystem.fileType(path)
+    }
+
+    internal fun resetProviders() {
+        groupListProvider = { SnapshotApp.getViewModel().groupList.value }
+        fileTypeProvider = { path -> SnapshotApp.getInstance().fileSystem.fileType(path) }
+    }
+
     /**
      * 清除标签缓存
      */
@@ -50,11 +63,17 @@ object AppTagHelper {
     /**
      * 检查应用是否在指定分组中
      */
-    fun isAppInGroup(appInfo: AppInfo, group: SnapGroup): Boolean {
-        // 通过检查分组路径下是否存在该应用的目录来判断
-        val fs = SnapshotApp.getInstance().fileSystem
+    fun isAppInGroup(appInfo: AppInfo, group: SnapGroup): Boolean =
+        isAppInGroup(appInfo, group, fileTypeProvider)
+
+    internal fun isAppInGroup(
+        appInfo: AppInfo,
+        group: SnapGroup,
+        fileType: (String) -> Int,
+    ): Boolean {
+        if (appInfo.userId != group.userId) return false
         val appDir = "${group.path}/${appInfo.packageName}"
-        return fs.fileType(appDir) == IFileType.TYPE_DIR
+        return fileType(appDir) == IFileType.TYPE_DIR
     }
 
     /**
@@ -92,40 +111,46 @@ object AppTagHelper {
      * @return 过滤后的应用列表
      */
     fun filterAppsByTags(apps: List<AppInfo>, selectedTagIds: Set<String>): List<AppInfo> {
+        val groupTagIds = selectedTagIds.filter { it != AppTag.TAG_XPOSED }.toSet()
+        val groups = if (groupTagIds.isEmpty()) emptyList() else groupListProvider()
+        return filterAppsByTags(apps, selectedTagIds, groups, fileTypeProvider)
+    }
+
+    fun filterAppsByTags(
+        apps: List<AppInfo>,
+        selectedTagIds: Set<String>,
+        groups: List<SnapGroup>?,
+        fileType: (String) -> Int,
+    ): List<AppInfo> {
         if (selectedTagIds.isEmpty()) {
             return apps
         }
 
-        // 分离内置标签和分组标签
-        val builtinTagIds = selectedTagIds.filter { 
-            it == AppTag.TAG_XPOSED 
+        val builtinTagIds = selectedTagIds.filter {
+            it == AppTag.TAG_XPOSED
         }.toSet()
-        
         val groupTagIds = selectedTagIds - builtinTagIds
-        
-        // 从ViewModel获取已有的分组对象，避免重复创建
-        val viewModel = SnapshotApp.getViewModel()
-        val groupsToCheck: List<SnapGroup> = groupTagIds.mapNotNull { groupTagId ->
-            val groupId = groupTagId.removePrefix("group_")
-            viewModel.groupList.value?.find { group -> group.id == groupId }
+        if (groupTagIds.isEmpty()) {
+            return apps.filter { appInfo ->
+                val appTags = getAppTags(appInfo).map { it.id }
+                builtinTagIds.all { it in appTags }
+            }
         }
 
+        val groupList = groups.orEmpty()
+        val resolvedGroups = ArrayList<SnapGroup>(groupTagIds.size)
+        var unresolved = false
+        for (groupTagId in groupTagIds) {
+            val groupId = groupTagId.removePrefix("group_")
+            val group = groupList.find { it.id == groupId }
+            if (group == null) unresolved = true else resolvedGroups.add(group)
+        }
 
         return apps.filter { appInfo ->
-            // 获取应用的标签（使用缓存）
             val appTags = getAppTags(appInfo).map { it.id }
-            
-            // 检查内置标签是否都匹配
             val builtinMatch = builtinTagIds.all { it in appTags }
-            
-            // 如果没有分组标签过滤，直接返回内置标签匹配结果
-            if (groupsToCheck.isEmpty()) {
-                builtinMatch
-            } else {
-                // 需要检查分组标签 - 这个比较耗时，只在必要时执行
-                builtinMatch && groupsToCheck.all { group ->
-                    isAppInGroup(appInfo, group)
-                }
+            builtinMatch && !unresolved && resolvedGroups.all { group ->
+                isAppInGroup(appInfo, group, fileType)
             }
         }
     }

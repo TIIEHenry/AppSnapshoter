@@ -29,7 +29,7 @@ summary: "以父目录组织多个分组：存档 Tab 上同一集连续成块�
 
 **分组集**是同一父目录下多个分组的组织容器。该父目录即分组集目录；添加分组集时扫描直接子目录，自动登记为 `SnapGroup`。快照/恢复/配置仍以分组为单元。
 
-存档 Tab 顶层由「分组集块 + 独立分组」拼接。**同一集内的分组必须连续排在一起**，默认折叠为一条 Header；展开后在 Header 下插入现有分组卡片（缩进，不再套一层卡片）。长按悬浮底栏存档 Tab 可弹出分组集菜单，点击或拖选跳到对应块。
+存档 Tab 顶层由「分组集块 + 独立分组」拼接。**同一集内的分组必须连续排在一起**，默认折叠为一条 Header；展开后在 Header 下插入现有分组卡片（缩进，不再套一层卡片）。长按底栏存档 Tab 可弹出分组集菜单，点击或拖选跳到对应块。
 
 ---
 
@@ -49,7 +49,7 @@ summary: "以父目录组织多个分组：存档 Tab 上同一集连续成块�
 3. 存档列表上 **同一集的分组连续成块**；新建集 **默认折叠**。
 4. 独立分组仍然存在，可与分组集在顶层交错，但 **不能插入某个集的内部**。
 5. 时间线、快照、恢复、分组配置的操作单元不变，仍是 `SnapGroup`。
-6. （Phase 3 可裁）长按悬浮底栏 **存档 Tab** 弹出分组集列表，点击或按住拖选即可跳到对应块。
+6. （Phase 3 可裁）长按底栏 **存档 Tab** 弹出分组集列表，点击或按住拖选即可跳到对应块。
 
 ### 非目标（v1）
 
@@ -93,7 +93,7 @@ summary: "以父目录组织多个分组：存档 Tab 上同一集连续成块�
 - `GroupSortBottomSheet` 拖拽排序（需升级为两级）
 - `AppDataRepository.scope` + `loadGroupsMutex`（添加后刷新必须走这条链路，见 [添加分组后列表不刷新](add-group-refresh.md)）
 - `SnapshotViewModel.navigateToGroup` 的 **LiveData 事件槽**（时间线 → 存档）。**不要**复用现码消费协议（立刻 `value = null` + `indexOfFirst`）
-- 悬浮底栏 `bottom_nav_archive` 现为 `setOnClickListener` 切 Tab，可在其上叠加快跳手势（短按仍切 Tab）
+- 底栏 `bottom_nav_archive` 现为 `setOnClickListener` 切 Tab，可在其上叠加快跳手势（短按仍切 Tab）
 - 分组卡片 `item_group.xml` 及 `GroupActionsController`（**仅 GroupCard 内部**三态；集 Header 折叠禁止抄这条路径）
 
 ### 不能复用的误区
@@ -174,7 +174,7 @@ ArchiveListItem
 
 ### 底栏长按快跳
 
-悬浮底栏左侧是存档 Tab（`bottom_nav_archive`，主界面「主页」项）。**长按**该按钮弹出分组集菜单，用于跳到存档列表中对应的连续块。短按行为不变：切到存档 Tab。
+底栏左侧是存档 Tab（`bottom_nav_archive`，主界面「主页」项）。**长按**该按钮弹出分组集菜单，用于跳到存档列表中对应的连续块。短按行为不变：切到存档 Tab。
 
 ```
                 ┌─────────────┐

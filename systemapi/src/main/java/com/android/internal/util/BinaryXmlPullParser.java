@@ -162,12 +162,12 @@ public final class BinaryXmlPullParser implements TypedXmlPullParser {
             mCurrentDepth--;
         }
 
-        int token;
+        final int token;
         try {
             token = peekNextExternalToken();
             consumeToken();
         } catch (EOFException e) {
-            token = END_DOCUMENT;
+            throw e;
         }
         switch (token) {
             case XmlPullParser.START_TAG:

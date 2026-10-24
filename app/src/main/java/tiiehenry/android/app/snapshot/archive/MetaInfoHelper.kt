@@ -51,6 +51,9 @@ object MetaInfoHelper {
     ): String {
         // 使用 name 字段作为文件名，确保唯一性
         val fileName = "${dataItem.name}${DATA_ITEM_FILE_EXTENSION}"
+        if (!archiveChildStaysInside(archiveDir.path, dataItem.name, DATA_ITEM_FILE_EXTENSION)) {
+            throw IOException(File(archiveDir, fileName).absolutePath)
+        }
         val dataItemFile = File(archiveDir, fileName)
 
         if (!JsonUtils.writeToFile(dataItem, dataItemFile, prettyFormat)) {

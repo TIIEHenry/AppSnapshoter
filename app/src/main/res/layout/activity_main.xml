@@ -9,7 +9,7 @@
         android:id="@+id/toolbar_header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/surface"
+        android:background="@color/background"
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -19,15 +19,9 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/toolbar_height"
-            android:background="@color/surface"
+            android:background="@color/background"
             app:backgroundTint="@null"
             app:title="@string/app_name" />
-
-        <View
-            android:id="@+id/toolbar_divider"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/toolbar_divider" />
 
     </LinearLayout>
 
@@ -47,15 +41,15 @@
         android:id="@+id/bottom_navigation_container"
         android:layout_width="@dimen/floating_nav_total_width"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/floating_nav_bottom_margin"
         android:background="@drawable/bg_floating_nav_clip"
         android:elevation="2dp"
         android:foreground="@drawable/bg_floating_nav_stroke"
-        app:blurOverlayColor="@color/floating_nav_glass_fill"
+        app:blurOverlayColor="@color/bottom_nav_glass_fill"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginBottom="@dimen/floating_nav_bottom_margin">
+        app:layout_constraintStart_toStartOf="parent">
 
         <LinearLayout
             android:id="@+id/bottom_navigation"

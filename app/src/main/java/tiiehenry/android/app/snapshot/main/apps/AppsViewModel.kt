@@ -8,8 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import tiiehenry.android.app.snapshot.app.AppFilterHelper
 import tiiehenry.android.app.snapshot.app.AppFilterType
 import tiiehenry.android.app.snapshot.app.AppInfo
-import tiiehenry.android.app.snapshot.app.tag.AppTag
 import tiiehenry.android.app.snapshot.app.tag.AppTagHelper
+import tiiehenry.android.snapshot.fs.IFileType
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.snapshot.app.UserInfoHide
 import tiiehenry.android.snapshot.file.IFileSystem
@@ -20,7 +20,8 @@ class AppsViewModel : ViewModel() {
     private var appsMap: Map<Int, List<AppInfo>> = emptyMap()
     private var currentQuery: String = ""
     private var currentFilterType: Set<AppFilterType> = setOf(AppFilterType.SYSTEM, AppFilterType.USER)
-    private var currentUserId: Int= 0
+    var currentUserId: Int = 0
+        private set
     private var selectedTagIds: Set<String> = emptySet()
     private var membershipFilter: MembershipFilter = MembershipFilter.ALL
     private val filterGeneration = AtomicInteger(0)
@@ -30,9 +31,6 @@ class AppsViewModel : ViewModel() {
         UNGROUPED_ONLY,
         GROUPED_ONLY,
     }
-
-    // 缓存每个应用的标签，避免重复计算
-    private var appTagsCache: Map<String, List<AppTag>> = emptyMap()
 
     // 依赖注入点，由 Fragment 在初始化后设置
     var fileSystem: IFileSystem? = null
@@ -53,17 +51,15 @@ class AppsViewModel : ViewModel() {
      * 获取当前用户或所有用户的应用列表
      */
     private fun getAppsForCurrentUser(): List<AppInfo> {
-        return appsMap[currentUserId] ?: emptyList()
+        return appsListedForUser(appsMap, currentUserId)
     }
 
     /**
      * 预计算所有应用的标签（只计算轻量级的内置标签）
      */
     private fun preloadAppTags() {
-        val allApps = appsMap.flatMap { it.value }.distinctBy { it.packageName  }
-        appTagsCache = allApps.associate { app ->
-            app.packageName to AppTagHelper.getAppTags(app)
-        }
+        val allApps = appsMap.flatMap { it.value }.distinctBy { it.packageName }
+        allApps.forEach { AppTagHelper.getAppTags(it) }
     }
 
     fun setFilterType(filterType: Set<AppFilterType>) {
@@ -165,49 +161,24 @@ class AppsViewModel : ViewModel() {
     }
 
     /**
-     * 使用缓存的标签进行过滤
+     * 分组标签必须逐个命中。解析不到，或用户不一致，都不留下该应用。
      */
     private fun filterAppsByTagsWithCache(
         apps: List<AppInfo>,
         selectedTagIds: Set<String>
     ): List<AppInfo> {
-        if (selectedTagIds.isEmpty()) {
-            return apps
-        }
-
-        // 分离内置标签和分组标签
-        val builtinTagIds = selectedTagIds.filter {
-            it == AppTag.TAG_XPOSED
-        }.toSet()
-
-        val groupTagIds = selectedTagIds - builtinTagIds
-
-        // 从groupsProvider获取已有的分组对象，避免重复创建
-        val groupsToCheck: List<SnapGroup> = groupTagIds.mapNotNull { groupTagId ->
-            val groupId = groupTagId.removePrefix("group_")
-            groupsProvider?.invoke()?.find { group -> group.id == groupId }
-        }
-
         val fs = fileSystem
-
-        return apps.filter { appInfo ->
-            val cacheKey = appInfo.packageName
-            val appTags = appTagsCache[cacheKey]?.map { it.id } ?: emptyList()
-
-            // 检查内置标签是否都匹配
-            val builtinMatch = builtinTagIds.all { it in appTags }
-
-            // 如果没有分组标签过滤，直接返回内置标签匹配结果
-            if (groupsToCheck.isEmpty()) {
-                builtinMatch
-            } else {
-                // 需要检查分组标签 - 这个比较耗时
-                builtinMatch && fs != null && groupsToCheck.all { group ->
-                    // 通过检查分组路径下是否存在该应用的目录来判断
-                    val appDir = "${group.path}/${appInfo.packageName}"
-                    fs.fileType(appDir) == tiiehenry.android.snapshot.fs.IFileType.TYPE_DIR
-                }
-            }
-        }
+        return AppTagHelper.filterAppsByTags(
+            apps,
+            selectedTagIds,
+            groups = groupsProvider?.invoke(),
+            fileType = { path ->
+                if (fs == null) IFileType.TYPE_NONE else fs.fileType(path)
+            },
+        )
     }
+}
+
+internal fun <T> appsListedForUser(appsByUserId: Map<Int, List<T>>, userId: Int): List<T> {
+    return appsByUserId[userId].orEmpty()
 }

@@ -61,16 +61,16 @@ internal object BatchTestStubAppManager : IAppManager {
     override fun isPackageRunning(packageName: String, userId: Int) = false
     override fun launchApp(packageName: String, userId: Int) = false
     override fun getPermissions(packageName: String, userId: Int): MutableList<AppPermission> = mutableListOf()
-    override fun setAppPermission(packageName: String, userId: Int, permission: AppPermission) {}
-    override fun setAppPermissions(packageName: String, userId: Int, permissions: MutableList<AppPermission>) {}
+    override fun setAppPermission(packageName: String, userId: Int, permission: AppPermission) = true
+    override fun setAppPermissions(packageName: String, userId: Int, permissions: MutableList<AppPermission>) = true
     override fun grantRuntimePermission(packageName: String, permName: String, user: UserHandle) {}
     override fun revokeRuntimePermission(packageName: String, permName: String, user: UserHandle) {}
     override fun getPermissionFlags(packageName: String, permName: String, user: UserHandle) = 0
     override fun updatePermissionFlags(packageName: String, permName: String, user: UserHandle, flagMask: Int, flagValues: Int) {}
     override fun getPackageUid(packageName: String, userId: Int) = 0
     override fun getUserHandle(userId: Int): UserHandle? = null
-    override fun setOpsMode(code: Int, uid: Int, packageName: String, mode: Int) {}
-    override fun resetAppOps(userId: Int, packageName: String) {}
+    override fun setOpsMode(code: Int, uid: Int, packageName: String, mode: Int) = true
+    override fun resetAppOps(userId: Int, packageName: String) = true
     override fun getPackageSsaidAsUser(packageName: String, uid: Int, userId: Int) = ""
     override fun setPackageSsaidAsUser(packageName: String, userId: Int, ssaid: String) {}
 }

@@ -2,17 +2,17 @@
 title: "当前开发状态"
 type: progress
 status: active
-updated: 2026-10-23
-summary: "快照安全修复已集成；123 项单元测试、8 项隔离设备测试、双 ABI Debug 构建和 lint 通过"
+updated: 2026-10-24
+summary: "十六路审查修复已落地；app 269 项、provider 29 项单测通过；设备验证未跑"
 ---
 
 # 当前开发状态
 
-> 最后更新：2026-10-23
+> 最后更新：2026-10-24
 
 ## 当前阶段
 
-v1.3.x 稳定性加固；本轮修复集成于 `codex/fix-snapshot-safety`。
+v1.3.x 稳定性加固；本轮修复已合入 `main`。
 
 ## 已完成功能
 
@@ -44,14 +44,15 @@ v1.3.x 稳定性加固；本轮修复集成于 `codex/fix-snapshot-safety`。
 - [x] Root 目录清理保留远程文件语义并检查结果；删除失败保留共享 APK
 - [x] ZSTD 恢复改用可靠匿名管道；JNI 描述符关闭；Root 文件服务断连后重新解析服务
 - [x] 分组刷新转 repository IO；时间线本地日期与夏令时边界；程序化 Chip 同步不弹日期选择器
+- [x] 十六路审查修复：权限/AppOps 失败传播、设置文件截断与 fallback 原子替换、实例列表按 `externalId` 隔离、实例恢复脱离页面生命周期、实例清单读取未决不回退正式槽、确认页展示失败即结束、批量存档取消收尾
 
 ## 本轮验证
 
-- 单元测试：123 项通过，0 失败、0 跳过；新增 34 项回归用例。
-- 构建：arm64-v8a / x86_64 Debug APK、provider 隔离测试 APK 均已生成。
-- 设备测试：Android 16 上 8 项全部通过，覆盖真实跨进程 Binder PFD 往返、生产端失败、tar 提前退出、padding 排空、无效 FD、普通文件归档和符号链接清理。
-- 国际化：三份 locale 各 397 项；缺项、格式参数和调用参数检查均通过。
-- 静态检查：`:app:lintDebug`、`:provider:lintDebug` 通过；保留既有警告。
+- 单元测试：`:app:testDebugUnitTest` 269 项、`:provider:testDebugUnitTest` 29 项通过，0 失败、0 跳过（`--rerun-tasks`）。
+- 本轮新增回归用例：`InstanceCatalogTest`（7 项）、`PermissionRestoreTest` 的 `false` 结果分支、实例列表隔离、`removeFromLockedList` 读失败保护。
+- 构建：本轮已通过 `:app:assembleDebug`（含 arm64-v8a / x86_64 原生库）、`:provider:compileDebugKotlin`、`:systemapi:compileDebugJavaWithJavac`。
+- 设备测试：本轮未跑。上一轮的 8 项隔离设备测试结果仍只覆盖当时的代码。
+- 静态检查：本轮未重跑 lint。
 
 设备用例直接通过 `adb shell am instrument` 执行，仅使用 `snapshot.provider.appmanager.test` 的缓存目录；测试结束后已卸载该隔离测试包。
 

@@ -376,6 +376,9 @@ public class KXmlParser implements XmlPullParser, Closeable {
                     readEndTag();
                     return type;
                 case END_DOCUMENT:
+                    if (depth > 0) {
+                        throw new XmlPullParserException(UNEXPECTED_EOF, this, null);
+                    }
                     return type;
 
                 /*

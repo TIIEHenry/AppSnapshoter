@@ -9,6 +9,7 @@ import tiiehenry.android.app.snapshot.config.CompressItems
 import tiiehenry.android.app.snapshot.config.GroupConfig
 import tiiehenry.android.app.snapshot.archive.ArchivedApks
 import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
+import tiiehenry.android.app.snapshot.archive.prepareExtraItemCompression
 import tiiehenry.android.app.snapshot.archive.bean.MetaDataItem
 import tiiehenry.android.app.snapshot.archive.bean.MetaInfo
 import tiiehenry.android.app.snapshot.archive.bean.MetaPackageInfo
@@ -133,15 +134,16 @@ object ArchiveMaker {
                     archiveDir
                 )
             tasks["meta-info"] = handler
-            // 处理额外压缩项目
-            appConfig.extraItems.filter { it.isEnabled }.forEach { extraItem ->
-                val name = extraItem.getName()
+            // 处理额外压缩项目。重名和会逃出存档目录的名称在压缩前失败。
+            val enabledExtras = appConfig.extraItems.filter { it.isEnabled }
+            prepareExtraItemCompression(archiveDir, enabledExtras.map { it.getName() }) { extraName ->
+                val extraItem = enabledExtras.first { it.getName() == extraName }
                 val path = extraItem.getPath()
                 val excludes = extraItem.getExcludePatterns()
 
                 if (fileSystem.fileType(path) != IFileType.TYPE_NONE) {
-                    val extension = compressor.fileExtension(algorithm, name, path)
-                    val fileName = "$name$extension"
+                    val extension = compressor.fileExtension(algorithm, extraName, path)
+                    val fileName = "$extraName$extension"
                     val task = compressor.compress(
                         algorithm,
                         path,
@@ -155,13 +157,13 @@ object ArchiveMaker {
                             algorithm,
                             compressLevel,
                             fileName,
-                            name,
+                            extraName,
                             archiveDir,
                             sourceFile = fileSystem.fileType(path) == IFileType.TYPE_FILE
                         )
                     )
-                    tasks[name] = task
-                    extraItemsMap["$name.json"] = path
+                    tasks[extraName] = task
+                    extraItemsMap["$extraName.json"] = path
                 }
             }
 

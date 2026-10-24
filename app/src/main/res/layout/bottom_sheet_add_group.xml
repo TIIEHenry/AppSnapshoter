@@ -28,7 +28,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_kind_group"
-            style="@style/Widget.AppSnapshot.Button.Outlined"
+            style="@style/Widget.AppSnapshot.Button.Segmented"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -36,7 +36,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_kind_set"
-            style="@style/Widget.AppSnapshot.Button.Outlined"
+            style="@style/Widget.AppSnapshot.Button.Segmented"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

@@ -7,6 +7,8 @@ package tiiehenry.android.app.snapshot.instance
 object InstancePaths {
     const val ROOT_DIR = "instances"
     const val META_FILE = "instance.json"
+    const val META_TEMP_SUFFIX = ".tmp"
+    const val META_BACKUP_SUFFIX = ".bak"
     const val COMMITTING_SUFFIX = ".committing"
     const val PREVIOUS_SUFFIX = ".previous"
 }

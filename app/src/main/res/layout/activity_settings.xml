@@ -4,28 +4,23 @@
     android:id="@+id/settings_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     android:orientation="vertical">
 
     <LinearLayout
         android:id="@+id/toolbar_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/surface"
+        android:background="@color/background"
         android:orientation="vertical">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="@dimen/toolbar_height"
-            android:background="@color/surface"
+            android:background="@color/background"
             app:backgroundTint="@null"
             app:title="@string/settings" />
-
-        <View
-            android:id="@+id/toolbar_divider"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/toolbar_divider" />
 
     </LinearLayout>
 
@@ -33,6 +28,9 @@
         android:id="@+id/settings_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp" />
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp" />
 
 </LinearLayout>

@@ -20,7 +20,21 @@ data class InstanceInfo(
     val externalId: String = "",
 )
 
-class InstanceException(message: String) : Exception(message)
+object InstanceError {
+    const val FAILED = "FAILED"
+    const val BUSY = "BUSY"
+    const val NOT_FOUND = "INSTANCE_NOT_FOUND"
+    const val VALIDATION = "VALIDATION"
+    const val DELETE_FAILED = "DELETE_FAILED"
+    const val RESTORE_FAILED = "RESTORE_FAILED"
+    const val META_WRITE_FAILED = "META_WRITE_FAILED"
+    const val SLOT_INVALID = "SLOT_INVALID"
+}
+
+class InstanceException(
+    message: String,
+    val code: String = InstanceError.FAILED,
+) : Exception(message)
 
 object InstanceNames {
     private val idPattern = Regex("^[a-zA-Z0-9_-]{1,64}$")
@@ -105,19 +119,23 @@ object InstanceMeta {
     }
 
     fun decode(json: String): AppInstance? {
-        val obj = JSON.parseObject(json) ?: return null
-        val id = obj.getString("id") ?: return null
-        val name = obj.getString("name") ?: return null
-        if (!InstanceNames.isSlotId(id)) return null
-        if (name.isEmpty()) return null
-        return AppInstance(
-            id = id,
-            name = name,
-            account = obj.getString("account").orEmpty(),
-            note = obj.getString("note").orEmpty(),
-            externalId = obj.getString("externalId").orEmpty(),
-            createdAt = obj.getLongValue("createdAt"),
-            updatedAt = obj.getLongValue("updatedAt"),
-        )
+        return try {
+            val obj = JSON.parseObject(json) ?: return null
+            val id = obj.getString("id") ?: return null
+            val name = obj.getString("name") ?: return null
+            if (!InstanceNames.isSlotId(id)) return null
+            if (name.isEmpty()) return null
+            AppInstance(
+                id = id,
+                name = name,
+                account = obj.getString("account").orEmpty(),
+                note = obj.getString("note").orEmpty(),
+                externalId = obj.getString("externalId").orEmpty(),
+                createdAt = obj.getLongValue("createdAt"),
+                updatedAt = obj.getLongValue("updatedAt"),
+            )
+        } catch (e: Exception) {
+            null
+        }
     }
 }

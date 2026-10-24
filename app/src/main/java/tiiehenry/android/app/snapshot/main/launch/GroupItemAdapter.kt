@@ -43,7 +43,11 @@ class GroupItemAdapter(
     var group: SnapGroup,
     private var batchRunning: Boolean = false,
     private val onItemUpdated: (GroupItemAdapter, ArchivedApp) -> Unit = { _, _ -> }
-) : ListAdapter<ArchivedApp, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
+) : ListAdapter<GroupAppRow, GroupItemAdapter.ViewHolder>(ItemDiffCallback()) {
+
+    fun submitApps(apps: List<ArchivedApp>) {
+        submitList(apps.map { GroupAppRow(it, captureAppCellSnapshot(it)) })
+    }
 
     var itemTouchHelper: ItemTouchHelper? = null
 
@@ -63,7 +67,7 @@ class GroupItemAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
         if (payloads.contains(PAYLOAD_HIGHLIGHT)) {
-            holder.bindHighlight(getItem(position))
+            holder.bindHighlight(getItem(position).app)
             return
         }
         super.onBindViewHolder(holder, position, payloads)
@@ -75,7 +79,7 @@ class GroupItemAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position).app)
         if (groupsHolder.isSortMode) {
             holder.setupDragOnTouch()
         } else {
@@ -143,14 +147,37 @@ class GroupItemAdapter(
             if (AppStatusHelper.isAppInstalled(item)) {
                 launchApp(item.appInfo.packageName, item.appInfo.userId)
             } else {
-                viewModel.onGroupItemClicked(
-                    binding.root.context,
-                    group.id,
-                    group.mmkv,
-                    item.appInfo.packageName,
-                    item,
-                    { updateCurrent(item) }
+                performArchiveRestore(
+                    ArchiveRestoreGesture.UNINSTALLED_GRID,
+                    clickedArchiveName = null,
+                    actions = restoreActions(item, null),
                 )
+            }
+        }
+
+        private fun restoreActions(
+            item: ArchivedApp,
+            archiveItem: ArchiveItem?,
+        ): ArchiveRestoreActions {
+            return object : ArchiveRestoreActions {
+                override fun restoreSelected(archiveName: String) {
+                    val selected = archiveItem ?: return
+                    viewModel.onArchiveRestoreClicked(
+                        binding.root.context,
+                        item,
+                        selected,
+                    ) { updateCurrent(item) }
+                }
+
+                override fun restoreLatest() {
+                    viewModel.onGroupItemClicked(
+                        binding.root.context,
+                        group.id,
+                        group.mmkv,
+                        item.appInfo.packageName,
+                        item,
+                    ) { updateCurrent(item) }
+                }
             }
         }
 
@@ -241,13 +268,11 @@ class GroupItemAdapter(
                 if (needConfirm) {
                     showRestoreConfirmDialog(item, archiveItem, archiveAdapter)
                 } else {
-                    viewModel.onGroupItemClicked(
-                        binding.root.context,
-                        group.id,
-                        group.mmkv,
-                        item.appInfo.packageName,
-                        item
-                    ) { updateCurrent(item) }
+                    performArchiveRestore(
+                        ArchiveRestoreGesture.ICON,
+                        archiveItem.name,
+                        restoreActions(item, archiveItem),
+                    )
                 }
             }
 
@@ -260,13 +285,11 @@ class GroupItemAdapter(
                     .setTitle(R.string.group_confirm_action)
                     .setMessage(binding.root.context.getString(R.string.group_restore_confirm, archiveItem.name))
                     .setPositiveButton(R.string.confirm) { _, _ ->
-                        viewModel.onGroupItemClicked(
-                            binding.root.context,
-                            group.id,
-                            group.mmkv,
-                            item.appInfo.packageName,
-                            item
-                        ) { updateCurrent(item) }
+                        performArchiveRestore(
+                            ArchiveRestoreGesture.CONFIRM,
+                            archiveItem.name,
+                            restoreActions(item, archiveItem),
+                        )
                     }
                     .setNegativeButton(R.string.cancel, null)
                     .setNeutralButton(R.string.delete) { _, _ ->
@@ -282,6 +305,7 @@ class GroupItemAdapter(
             ) {
                 viewModel.viewModelScope.launch {
                     val success = ArchiveManager.deleteArchive(item, archiveItem)
+                    val refreshGrid = archiveMutationUi(success).refreshGrid
                     if (success) {
                         // 删除成功后从列表中移除该项
                         val currentList = archiveAdapter.currentList.toMutableList()
@@ -295,6 +319,9 @@ class GroupItemAdapter(
                     } else {
                         Toast.makeText(binding.root.context, R.string.group_delete_failed, Toast.LENGTH_SHORT)
                             .show()
+                    }
+                    if (refreshGrid) {
+                        groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
                     }
                 }
             }
@@ -344,6 +371,7 @@ class GroupItemAdapter(
             viewModel.viewModelScope.launch {
                 val success = ArchiveManager.clearAllArchives(item)
                 withContext(Dispatchers.Main) {
+                    val refreshGrid = archiveMutationUi(success).refreshGrid
                     if (success) {
                         Toast.makeText(binding.root.context, R.string.group_delete_archive_success, Toast.LENGTH_SHORT)
                             .show()
@@ -351,6 +379,9 @@ class GroupItemAdapter(
                         Toast.makeText(binding.root.context, R.string.group_delete_failed, Toast.LENGTH_SHORT).show()
                     }
                     ArchiveManager.reloadArchives(item, true)
+                    if (refreshGrid) {
+                        groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
+                    }
                     onComplete()
                 }
             }
@@ -366,9 +397,13 @@ class GroupItemAdapter(
                     } else {
                         Toast.makeText(binding.root.context, R.string.group_delete_failed, Toast.LENGTH_SHORT).show()
                     }
-                    group.apps.remove(item)
-                    groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView)
-                    snapshotViewModel.loadGroups()
+                    applyDeleteAppResult(
+                        success = success,
+                        apps = group.apps,
+                        item = item,
+                        refresh = { groupsHolder.refresh(group, groupsHolder.binding.groupRecyclerView) },
+                        loadGroups = { snapshotViewModel.loadGroups() },
+                    )
                     onComplete()
                 }
             }
@@ -423,13 +458,33 @@ class GroupItemAdapter(
         private const val PAYLOAD_HIGHLIGHT = "highlight"
     }
 
-    private class ItemDiffCallback : DiffUtil.ItemCallback<ArchivedApp>() {
-        override fun areItemsTheSame(oldItem: ArchivedApp, newItem: ArchivedApp): Boolean {
-            return oldItem.packageDir == newItem.packageDir
+    private class ItemDiffCallback : DiffUtil.ItemCallback<GroupAppRow>() {
+        override fun areItemsTheSame(oldItem: GroupAppRow, newItem: GroupAppRow): Boolean {
+            return appCellItemsTheSame(oldItem.snapshot, newItem.snapshot)
         }
 
-        override fun areContentsTheSame(oldItem: ArchivedApp, newItem: ArchivedApp): Boolean {
-            return archivedAppListContentsTheSame(oldItem, newItem)
+        override fun areContentsTheSame(oldItem: GroupAppRow, newItem: GroupAppRow): Boolean {
+            return appCellContentsTheSame(oldItem.snapshot, newItem.snapshot)
         }
     }
+}
+
+/** 删档或清空成功才提交分组网格；失败不刷新角标。 */
+internal data class ArchiveMutationUi(val refreshGrid: Boolean)
+
+internal fun archiveMutationUi(success: Boolean): ArchiveMutationUi =
+    ArchiveMutationUi(refreshGrid = success)
+
+/** 彻底删除失败时不改成员、不 refresh、不 loadGroups，因此也不会重写已保存的自定义排序。 */
+internal fun applyDeleteAppResult(
+    success: Boolean,
+    apps: MutableList<ArchivedApp>,
+    item: ArchivedApp,
+    refresh: () -> Unit,
+    loadGroups: () -> Unit,
+) {
+    if (!success) return
+    apps.remove(item)
+    refresh()
+    loadGroups()
 }

@@ -8,7 +8,11 @@ import java.security.MessageDigest
 
 object InstanceCaller {
     fun fromUid(context: Context, uid: Int): CallerId? {
-        val name = context.packageManager.getPackagesForUid(uid)?.firstOrNull() ?: return null
+        val names = context.packageManager.getPackagesForUid(uid)?.distinct().orEmpty()
+        // A shared UID can host several packages. Picking one would let another
+        // package inherit that package's grant, so require an unambiguous caller.
+        if (names.size != 1) return null
+        val name = names.single()
         val cert = certSha256(context.packageManager, name)
         if (cert.isEmpty()) return null
         return CallerId(name, cert)

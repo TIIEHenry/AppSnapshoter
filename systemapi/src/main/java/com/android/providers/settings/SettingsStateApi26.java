@@ -169,6 +169,12 @@ public class SettingsStateApi26 implements SettingsState {
     @GuardedBy("mLock")
     private boolean mWriteScheduled;
 
+    /**
+     * Bumped on every schedule request. Not the on-disk {@link #mVersion}.
+     */
+    @GuardedBy("mLock")
+    private int mWriteGeneration;
+
     @GuardedBy("mLock")
     private long mNextId;
 
@@ -299,6 +305,7 @@ public class SettingsStateApi26 implements SettingsState {
     }
 
     private void scheduleWriteIfNeededLocked() {
+        mWriteGeneration++;
         // If dirty then we have a write already scheduled.
         if (!mDirty) {
             mDirty = true;
@@ -339,66 +346,80 @@ public class SettingsStateApi26 implements SettingsState {
         boolean wroteState = false;
         final int version;
         final ArrayMap<String, Setting> settings;
+        final int writeGeneration;
 
         synchronized (mLock) {
             version = mVersion;
-            settings = new ArrayMap<>(mSettings);
-            mDirty = false;
-            mWriteScheduled = false;
+            writeGeneration = mWriteGeneration;
+            final int count = mSettings.size();
+            settings = new ArrayMap<>(count);
+            for (int i = 0; i < count; i++) {
+                settings.put(mSettings.keyAt(i), new Setting(mSettings.valueAt(i)));
+            }
         }
 
-        synchronized (mWriteLock) {
-            if (DEBUG_PERSISTENCE) {
-                Log.i(LOG_TAG, "[PERSIST START]");
-            }
+        try {
+            synchronized (mWriteLock) {
+                if (DEBUG_PERSISTENCE) {
+                    Log.i(LOG_TAG, "[PERSIST START]");
+                }
 
-            AtomicFile destination = new AtomicFile(mStatePersistFile);
-            FileOutputStream out = null;
-            try {
-                out = destination.startWrite();
+                AtomicFile destination = new AtomicFile(mStatePersistFile);
+                FileOutputStream out = null;
+                try {
+                    out = destination.startWrite();
 
-                XmlSerializer serializer = Xml.newSerializer();
-                serializer.setOutput(out, StandardCharsets.UTF_8.name());
-                serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output",
-                        true);
-                serializer.startDocument(null, true);
-                serializer.startTag(null, TAG_SETTINGS);
-                serializer.attribute(null, ATTR_VERSION, String.valueOf(version));
+                    XmlSerializer serializer = Xml.newSerializer();
+                    serializer.setOutput(out, StandardCharsets.UTF_8.name());
+                    serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output",
+                            true);
+                    serializer.startDocument(null, true);
+                    serializer.startTag(null, TAG_SETTINGS);
+                    serializer.attribute(null, ATTR_VERSION, String.valueOf(version));
 
-                final int settingCount = settings.size();
-                for (int i = 0; i < settingCount; i++) {
-                    Setting setting = settings.valueAt(i);
+                    final int settingCount = settings.size();
+                    for (int i = 0; i < settingCount; i++) {
+                        Setting setting = settings.valueAt(i);
 
-                    writeSingleSetting(mVersion, serializer, setting.getId(), setting.getName(),
-                            setting.getValue(), setting.getDefaultValue(), setting.getPackageName(),
-                            setting.getTag(), setting.isDefaultFromSystem());
+                        writeSingleSetting(version, serializer, setting.getId(), setting.getName(),
+                                setting.getValue(), setting.getDefaultValue(),
+                                setting.getPackageName(), setting.getTag(),
+                                setting.isDefaultFromSystem());
+
+                        if (DEBUG_PERSISTENCE) {
+                            Log.i(LOG_TAG, "[PERSISTED]" + setting.getName() + "="
+                                    + setting.getValue());
+                        }
+                    }
+
+                    serializer.endTag(null, TAG_SETTINGS);
+                    serializer.endDocument();
+                    destination.finishWrite(out);
+
+                    wroteState = true;
 
                     if (DEBUG_PERSISTENCE) {
-                        Log.i(LOG_TAG, "[PERSISTED]" + setting.getName() + "="
-                                + setting.getValue());
+                        Log.i(LOG_TAG, "[PERSIST END]");
                     }
+                } catch (Throwable t) {
+                    Log.wtf(LOG_TAG, "Failed to write settings, restoring backup", t);
+                    destination.failWrite(out);
+                } finally {
+                    IoUtils.closeQuietly(out);
                 }
-
-                serializer.endTag(null, TAG_SETTINGS);
-                serializer.endDocument();
-                destination.finishWrite(out);
-
-                wroteState = true;
-
-                if (DEBUG_PERSISTENCE) {
-                    Log.i(LOG_TAG, "[PERSIST END]");
-                }
-            } catch (Throwable t) {
-                Log.wtf(LOG_TAG, "Failed to write settings, restoring backup", t);
-                destination.failWrite(out);
-            } finally {
-                IoUtils.closeQuietly(out);
             }
-        }
-
-        if (wroteState) {
+        } finally {
             synchronized (mLock) {
-                addHistoricalOperationLocked(HISTORICAL_OPERATION_PERSIST, null);
+                if (wroteState) {
+                    addHistoricalOperationLocked(HISTORICAL_OPERATION_PERSIST, null);
+                }
+                if (wroteState && writeGeneration == mWriteGeneration) {
+                    mDirty = false;
+                    mWriteScheduled = false;
+                } else {
+                    mDirty = true;
+                    writeStateAsyncLocked();
+                }
             }
         }
     }
@@ -408,8 +429,7 @@ public class SettingsStateApi26 implements SettingsState {
                                    String tag, boolean defaultSysSet) throws IOException {
         if (id == null || isBinary(id) || name == null || isBinary(name)
                 || packageName == null || isBinary(packageName)) {
-            // This shouldn't happen.
-            return;
+            throw new IOException("Invalid setting id, name, or packageName");
         }
         serializer.startTag(null, TAG_SETTING);
         serializer.attribute(null, ATTR_ID, id);

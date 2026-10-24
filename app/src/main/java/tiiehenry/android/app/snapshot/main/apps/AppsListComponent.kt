@@ -218,7 +218,8 @@ class AppsListComponent<VB : ViewBinding>(
 
     private fun applyUserTabs(users: List<UserInfoHide>) {
         if (users.isEmpty()) return
-        if (userList.map { it.id } == users.map { it.id }) return
+        val nextIds = users.map { it.id }
+        if (sameUserIdSequence(userList.map { it.id }, nextIds)) return
         userList = users
         setupUserTabs()
     }
@@ -238,6 +239,10 @@ class AppsListComponent<VB : ViewBinding>(
         tabLayout.clearOnTabSelectedListeners()
         tabLayout.removeAllTabs()
 
+        val userIds = userList.map { it.id }
+        val highlightedIndex = highlightedUserTab(viewModel.currentUserId, userIds)
+        val highlightedId = userIds[highlightedIndex]
+
         val tabs = userList.map { userInfo ->
             val tab = tabLayout.newTab()
             tab.text = userInfo.name ?: if (userInfo.id == 0) {
@@ -249,7 +254,7 @@ class AppsListComponent<VB : ViewBinding>(
             tab
         }
         tabs.forEach { tab ->
-            tabLayout.addTab(tab)
+            tabLayout.addTab(tab, false)
         }
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -262,7 +267,8 @@ class AppsListComponent<VB : ViewBinding>(
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-        tabs.firstOrNull()?.select()
+        tabs[highlightedIndex].select()
+        viewModel.setUserFilter(highlightedId)
         trimUserTabPadding(tabLayout)
     }
 
@@ -348,5 +354,14 @@ class AppsListComponent<VB : ViewBinding>(
         // setTags默认会清除选中状态
         callbacks.getTagsFilterLayout(binding).setTags(allTags)
     }
+}
+
+internal fun sameUserIdSequence(currentIds: List<Int>, nextIds: List<Int>): Boolean {
+    return currentIds == nextIds
+}
+
+internal fun highlightedUserTab(currentUserId: Int, userIds: List<Int>): Int {
+    val index = userIds.indexOf(currentUserId)
+    return if (index >= 0) index else 0
 }
 

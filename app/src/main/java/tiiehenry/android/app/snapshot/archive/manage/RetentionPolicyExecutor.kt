@@ -71,7 +71,8 @@ object RetentionPolicyExecutor {
             var deletedCount = 0
             for (archive in toDelete) {
                 try {
-                    if (ArchiveManager.deleteArchive(item, archive)) {
+                    // applyPolicy runs inside SnapshotCreator's package op.
+                    if (ArchiveManager.deleteArchive(item, archive, packageOpHeld = true)) {
                         deletedCount++
                         Log.d(TAG, "已删除存档: ${archive.name}")
                     } else {

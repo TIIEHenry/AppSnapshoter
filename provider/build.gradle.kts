@@ -60,6 +60,7 @@ dependencies {
     implementation(project(":io-tar"))
     implementation(project(":io-zstd"))
 
+    testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.runner)
 

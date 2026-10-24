@@ -52,14 +52,6 @@
                 <action android:name="tiiehenry.android.snapshot.instance.CONTROL" />
             </intent-filter>
         </service>
-        <service
-            android:name=".external.InstanceAppFunctionService"
-            android:exported="true"
-            android:permission="tiiehenry.android.app.snapshot.permission.CONTROL_INSTANCES">
-            <intent-filter>
-                <action android:name="android.app.appfunctions.AppFunctionService" />
-            </intent-filter>
-        </service>
         <provider
             android:name=".external.InstanceProvider"
             android:authorities="tiiehenry.android.app.snapshot.instances"
@@ -68,6 +60,7 @@
         <activity
             android:name=".external.InstanceConfirmActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppSnapshot" />
         <activity
             android:name=".main.settings.SettingsActivity"

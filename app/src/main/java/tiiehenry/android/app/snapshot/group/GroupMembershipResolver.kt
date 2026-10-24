@@ -149,7 +149,9 @@ object GroupMembershipResolver {
             for (app in members) {
                 val pkg = packageNameOf(app)
                 val key = pkg to group.userId
-                map.getOrPut(key) { mutableListOf() }.add(group)
+                val owners = map.getOrPut(key) { mutableListOf() }
+                if (owners.any { it.id == group.id }) continue
+                owners.add(group)
             }
         }
         return map

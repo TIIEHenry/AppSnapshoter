@@ -2,10 +2,13 @@ package tiiehenry.android.app.snapshot.instance
 
 import android.content.Context
 import android.text.format.Formatter
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
+import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
 import tiiehenry.android.app.snapshot.archive.make.ArchiveMaker
 import tiiehenry.android.app.snapshot.archive.make.commitSnapshot
@@ -13,6 +16,7 @@ import tiiehenry.android.app.snapshot.archive.restore.ArchiveRestorer
 import tiiehenry.android.app.snapshot.archive.restore.RestorePreflight
 import tiiehenry.android.app.snapshot.config.AppConfigManager
 import tiiehenry.android.app.snapshot.config.CompressItems
+import tiiehenry.android.app.snapshot.external.InstanceProtocol
 import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.IItemProgressDialog
 import tiiehenry.android.app.snapshot.repository.AppDataRepository
@@ -48,9 +52,12 @@ class InstanceStore(
         context.getString(R.string.instance_created, info.name)
     }
 
-    suspend fun update(id: String): String = guarded {
-        val current = catalog.read(id)
-            ?: throw InstanceException(context.getString(R.string.instance_missing))
+    /**
+     * @param expectedExternalId 非空时要求实例仍绑定在该调用方名下。检查放在
+     * packageOpGuard 内，避免校验后被另一个调用方重新绑定。
+     */
+    suspend fun update(id: String, expectedExternalId: String? = null): String = guarded {
+        val current = requireOwned(id, expectedExternalId)
         backup(
             existing = current,
             info = InstanceInfo(current.name, current.account, current.note, current.externalId),
@@ -66,7 +73,7 @@ class InstanceStore(
         externalId: String = "",
     ): String = guarded {
         val current = catalog.read(id)
-            ?: throw InstanceException(context.getString(R.string.instance_missing))
+            ?: throw InstanceException(context.getString(R.string.instance_missing), InstanceError.NOT_FOUND)
         val info = requireInfo(name, account, note, exceptId = id, externalId = externalId)
         catalog.writeCommitted(
             catalog.slotPath(id),
@@ -75,33 +82,64 @@ class InstanceStore(
                 account = info.account,
                 note = info.note,
                 externalId = info.externalId,
+                updatedAt = System.currentTimeMillis(),
             ),
         )
         context.getString(R.string.instance_edited, info.name)
     }
 
-    suspend fun restore(id: String): String = guarded {
+    suspend fun restore(id: String, expectedExternalId: String? = null): String = guarded {
         requireInstalled()
-        val current = catalog.read(id)
-            ?: throw InstanceException(context.getString(R.string.instance_missing))
+        val current = requireOwned(id, expectedExternalId)
         status(context.getString(R.string.instance_progress_restore, current.name))
-        val item = InstanceSlot.loadArchiveItem(
-            fs,
-            appManager,
-            archivedApp,
-            catalog.slotPath(id),
-            current.name,
-        )
-        ArchiveRestorer.restoreArchiveSuspend(context, archivedApp, item)
+        var item: ArchiveItem? = null
+        try {
+            item = InstanceSlot.loadArchiveItem(
+                fs,
+                appManager,
+                archivedApp,
+                catalog.slotPath(id),
+                current.name,
+            )
+            ArchiveRestorer.restoreArchiveSuspend(context, archivedApp, item, recordRestore = false)
+        } catch (e: CancellationException) {
+            // A restore may already have overwritten some app data. Finish the
+            // same restore before propagating cancellation so the app never
+            // stays in a half-restored state.
+            item?.let { loaded ->
+                runCatching {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        ArchiveRestorer.restoreArchiveSuspend(context, archivedApp, loaded, recordRestore = false)
+                    }
+                }.exceptionOrNull()?.let { e.addSuppressed(it) }
+            }
+            throw e
+        } catch (e: InstanceException) {
+            throw InstanceException(context.getString(R.string.instance_restore_failed), InstanceError.RESTORE_FAILED)
+        } catch (e: Exception) {
+            throw InstanceException(
+                context.getString(R.string.instance_restore_failed),
+                InstanceError.RESTORE_FAILED,
+            )
+        }
         context.getString(R.string.instance_restored, current.name)
     }
 
-    suspend fun delete(id: String): String = guarded {
-        if (catalog.read(id) == null) {
-            throw InstanceException(context.getString(R.string.instance_missing))
+    suspend fun delete(id: String, expectedExternalId: String? = null): String = guarded {
+        if (expectedExternalId == null) {
+            // In-app deletion must still remove a slot whose metadata is corrupt;
+            // there is no external owner to check in that path.
+            if (!catalog.hasSlot(id)) {
+                throw InstanceException(context.getString(R.string.instance_missing), InstanceError.NOT_FOUND)
+            }
+        } else {
+            requireOwned(id, expectedExternalId)
         }
         if (!catalog.deleteSlot(id)) {
-            throw InstanceException(context.getString(R.string.instance_delete_failed))
+            throw InstanceException(
+                context.getString(R.string.instance_delete_failed),
+                InstanceError.DELETE_FAILED,
+            )
         }
         context.getString(R.string.instance_deleted)
     }
@@ -128,6 +166,7 @@ class InstanceStore(
         var pendingDir: String? = null
         var ownsCommittingDir = false
         var published = false
+        var failure: Throwable? = null
         try {
             val relative = InstancePaths.ROOT_DIR + "/" + id + InstancePaths.COMMITTING_SUFFIX
             val failed = AtomicBoolean(false)
@@ -191,12 +230,22 @@ class InstanceStore(
                 },
                 afterCommit = {},
             )
+        } catch (e: Throwable) {
+            failure = e
+            throw e
         } finally {
             pendingDir?.let { pending -> runCatching { fs.delete(pending) } }
-            if (published) {
-                catalog.reconcile(id)
-            } else if (ownsCommittingDir || fs.exists(catalog.previousPath(id))) {
-                catalog.reconcile(id)
+            // Cleanup must never replace the real failure with a filesystem one.
+            // A leftover recovery directory is retried by the next guarded reconcile.
+            val reconcileResult = runCatching {
+                if (published || ownsCommittingDir || fs.exists(catalog.previousPath(id))) {
+                    catalog.reconcileDetailed(id)
+                } else {
+                    ReconcileResult.Done
+                }
+            }.getOrDefault(ReconcileResult.Failed)
+            if (failure == null && published && reconcileResult == ReconcileResult.Failed) {
+                throw InstanceException(context.getString(R.string.instance_save_failed))
             }
         }
         return instance
@@ -262,8 +311,20 @@ class InstanceStore(
 
     private fun requireInstalled() {
         if (!appManager.isInstalled(packageName, userId)) {
-            throw InstanceException(context.getString(R.string.instance_not_installed))
+            throw InstanceException(
+                context.getString(R.string.instance_not_installed),
+                InstanceError.VALIDATION,
+            )
         }
+    }
+
+    private fun requireOwned(id: String, expectedExternalId: String?): AppInstance {
+        val current = catalog.read(id)
+            ?: throw InstanceException(context.getString(R.string.instance_missing), InstanceError.NOT_FOUND)
+        if (expectedExternalId != null && !InstanceProtocol.ownsInstance(current.externalId, expectedExternalId)) {
+            throw InstanceException(context.getString(R.string.instance_missing), InstanceError.NOT_FOUND)
+        }
+        return current
     }
 
     private fun requireInfo(
@@ -276,19 +337,19 @@ class InstanceStore(
         return when (val check = InstanceNames.check(name, account, note, catalog.list(), exceptId, externalId)) {
             is InstanceInfoCheck.Ok -> check.info
             InstanceInfoCheck.NameInvalid ->
-                throw InstanceException(context.getString(R.string.instance_name_invalid))
+                throw InstanceException(context.getString(R.string.instance_name_invalid), InstanceError.VALIDATION)
             InstanceInfoCheck.AccountInvalid ->
-                throw InstanceException(context.getString(R.string.instance_account_invalid))
+                throw InstanceException(context.getString(R.string.instance_account_invalid), InstanceError.VALIDATION)
             InstanceInfoCheck.NoteInvalid ->
-                throw InstanceException(context.getString(R.string.instance_note_invalid))
+                throw InstanceException(context.getString(R.string.instance_note_invalid), InstanceError.VALIDATION)
             InstanceInfoCheck.NameTaken ->
-                throw InstanceException(context.getString(R.string.instance_name_taken))
+                throw InstanceException(context.getString(R.string.instance_name_taken), InstanceError.VALIDATION)
             InstanceInfoCheck.AccountTaken ->
-                throw InstanceException(context.getString(R.string.instance_account_taken))
+                throw InstanceException(context.getString(R.string.instance_account_taken), InstanceError.VALIDATION)
             InstanceInfoCheck.ExternalInvalid ->
-                throw InstanceException(context.getString(R.string.instance_external_invalid))
+                throw InstanceException(context.getString(R.string.instance_external_invalid), InstanceError.VALIDATION)
             InstanceInfoCheck.ExternalTaken ->
-                throw InstanceException(context.getString(R.string.instance_external_taken))
+                throw InstanceException(context.getString(R.string.instance_external_taken), InstanceError.VALIDATION)
         }
     }
 
@@ -303,10 +364,18 @@ class InstanceStore(
         val guard = AppDataRepository.getInstance().packageOpGuard
         val dir = archivedApp.packageDir
         if (guard.isGlobalBatchRunning() || !guard.tryBeginPackageOp(dir)) {
-            throw InstanceException(context.getString(R.string.batch_operation_in_progress))
+            throw InstanceException(context.getString(R.string.batch_operation_in_progress), InstanceError.BUSY)
         }
         try {
-            return withContext(Dispatchers.IO) { block() }
+            return withContext(Dispatchers.IO) {
+                catalog.reconcileAll()
+                block()
+            }
+        } catch (e: InstanceException) {
+            if (e.code == InstanceError.META_WRITE_FAILED) {
+                throw InstanceException(context.getString(R.string.instance_save_failed), e.code)
+            }
+            throw e
         } finally {
             guard.endPackageOp(dir)
             AppStatusHelper.releasePackageAfterSnapshot(packageName, userId)

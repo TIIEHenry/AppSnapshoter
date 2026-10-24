@@ -5,7 +5,7 @@
     android:id="@+id/item_content"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="4dp"
+    android:layout_marginBottom="8dp"
     android:background="@drawable/bg_timeline_entry"
     android:clickable="true"
     android:clipToOutline="true"
@@ -15,8 +15,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="8dp">
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"

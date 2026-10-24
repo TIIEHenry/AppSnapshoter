@@ -1,6 +1,7 @@
 package tiiehenry.android.app.snapshot.archive.restore
 
 import android.app.AppOpsManagerHidden
+import android.os.RemoteException
 import android.util.Log
 import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONWriter
@@ -10,7 +11,6 @@ import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
 import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.archive.MetaInfoHelper
-import tiiehenry.android.snapshot.app.AppPermission
 import tiiehenry.android.snapshot.app.IAppManager
 import tiiehenry.android.snapshot.file.IFileSystem
 import java.io.File
@@ -54,60 +54,31 @@ object PermissionRestorer {
         val metaPermissions = MetaInfoHelper.readPermissions(fs, permissionsFile)
         val newFixedPermissions = mutableListOf<String>()
         if (metaPermissions.isNotEmpty()) {
-            val appPermissions = metaPermissions.map { metaPermission ->
-                AppPermission(
-                    metaPermission.isGranted(),
-                    metaPermission.mode,
-                    metaPermission.name,
-                    metaPermission.op
-                )
-            }
-
+            Log.i(TAG, "Permissions size: ${metaPermissions.size}...")
             val uid = appManager.getPackageUid(packageName, userId)
             val user = appManager.getUserHandle(userId)
-
-            if (uid != -1 && user != null) {
-                appManager.resetAppOps(userId, packageName)
-
-                Log.i(TAG, "Permissions size: ${appPermissions.size}...")
-
-                appPermissions.forEach {
-                    Log.i(
-                        TAG,
-                        "Permission name: ${it.name}, isGranted: ${it.isGranted}, op: ${it.op}, mode: ${it.mode}"
+            newFixedPermissions += writeArchivedPermissions(
+                permissions = metaPermissions.map { metaPermission ->
+                    ArchivedPermission(
+                        metaPermission.name,
+                        metaPermission.isGranted,
+                        metaPermission.op,
+                        metaPermission.mode,
                     )
-
-                    val isFixed = fixedPermissions.contains(it.name)
-                    if (isFixed) {
-                        Log.i(TAG, "跳过不可变更的权限：${it.name}")
-                        return@forEach
-                    }
-
-                    runCatching {
-                        try {
-                            if (it.isGranted) {
-                                appManager.grantRuntimePermission(packageName, it.name, user)
-                            } else {
-                                appManager.revokeRuntimePermission(packageName, it.name, user)
-                            }
-                        } catch (e: android.os.RemoteException) {
-                            if (e.message?.contains("not a changeable permission type") == true) {
-                                Log.w(TAG, "权限 ${it.name} 是不可变更的类型，添加到固定列表")
-                                fixedPermissions.add(it.name)
-                                newFixedPermissions.add(it.name)
-                            } else {
-                                e.printStackTrace()
-                            }
-                        }
-                        if (it.op != AppOpsManagerHidden.OP_NONE) {
-                            appManager.setOpsMode(it.op, uid, packageName, it.mode)
-                        }
-                    }
-                }
-                Log.i(TAG, "已恢复 ${appPermissions.size} 个权限")
-            } else {
-                Log.i(TAG, "Failed to get uid or user handle for $packageName")
+                },
+                fixedNames = fixedPermissions,
+                uid = uid,
+                userPresent = user != null,
+                packageName = packageName,
+                resetAppOps = { appManager.resetAppOps(userId, packageName) },
+                setOpsMode = { op, mode -> appManager.setOpsMode(op, uid, packageName, mode) },
+                grant = { name -> appManager.grantRuntimePermission(packageName, name, user!!) },
+                revoke = { name -> appManager.revokeRuntimePermission(packageName, name, user!!) },
+            )
+            newFixedPermissions.forEach { name ->
+                Log.w(TAG, "权限 $name 是不可变更的类型，添加到固定列表")
             }
+            Log.i(TAG, "已恢复 ${metaPermissions.size} 个权限")
         } else {
             Log.i(TAG, "未找到权限数据或权限列表为空")
         }
@@ -126,4 +97,66 @@ object PermissionRestorer {
             }
         }
     }
+}
+
+internal data class ArchivedPermission(
+    val name: String,
+    val granted: Boolean,
+    val op: Int,
+    val mode: Int,
+)
+
+internal fun isUnchangeablePermissionType(isRemoteException: Boolean, message: String?): Boolean =
+    isRemoteException && message?.contains("not a changeable permission type") == true
+
+/**
+ * After [resetAppOps], every archived op other than [opNone] is written back.
+ * Names already in [fixedNames] skip runtime grant/revoke only.
+ * [setOpsMode] and ordinary grant/revoke failures propagate.
+ * A remote "not a changeable permission type" grant is recorded into [fixedNames].
+ */
+internal fun writeArchivedPermissions(
+    permissions: List<ArchivedPermission>,
+    fixedNames: MutableList<String>,
+    uid: Int,
+    userPresent: Boolean,
+    packageName: String,
+    resetAppOps: () -> Boolean,
+    setOpsMode: (op: Int, mode: Int) -> Boolean,
+    grant: (name: String) -> Unit,
+    revoke: (name: String) -> Unit,
+    isUnchangeable: (Throwable) -> Boolean = { error ->
+        isUnchangeablePermissionType(error is RemoteException, error.message)
+    },
+    opNone: Int = AppOpsManagerHidden.OP_NONE,
+): List<String> {
+    if (permissions.isEmpty()) return emptyList()
+    if (uid == -1 || !userPresent) {
+        throw IllegalStateException("Failed to get uid or user handle for $packageName")
+    }
+    if (!resetAppOps()) {
+        throw IllegalStateException("Failed to reset app ops for $packageName")
+    }
+    val recorded = mutableListOf<String>()
+    for (permission in permissions) {
+        if (permission.op != opNone) {
+            if (!setOpsMode(permission.op, permission.mode)) {
+                throw IllegalStateException(
+                    "Failed to set app op ${permission.op} for $packageName",
+                )
+            }
+        }
+        if (permission.name in fixedNames) continue
+        try {
+            if (permission.granted) grant(permission.name) else revoke(permission.name)
+        } catch (error: Exception) {
+            if (isUnchangeable(error)) {
+                fixedNames.add(permission.name)
+                recorded.add(permission.name)
+            } else {
+                throw error
+            }
+        }
+    }
+    return recorded
 }

@@ -219,6 +219,9 @@ public final class BinaryXmlSerializer implements TypedXmlSerializer {
     public XmlSerializer attributeBytesHex(String namespace, String name, byte[] value)
             throws IOException {
         if (namespace != null && !namespace.isEmpty()) throw illegalNamespace();
+        if (value.length > 65_535) {
+            throw new IOException("Byte array length " + value.length + " exceeds 65535");
+        }
         mOut.writeByte(ATTRIBUTE | TYPE_BYTES_HEX);
         mOut.writeInternedUTF(name);
         mOut.writeShort(value.length);
@@ -230,6 +233,9 @@ public final class BinaryXmlSerializer implements TypedXmlSerializer {
     public XmlSerializer attributeBytesBase64(String namespace, String name, byte[] value)
             throws IOException {
         if (namespace != null && !namespace.isEmpty()) throw illegalNamespace();
+        if (value.length > 65_535) {
+            throw new IOException("Byte array length " + value.length + " exceeds 65535");
+        }
         mOut.writeByte(ATTRIBUTE | TYPE_BYTES_BASE64);
         mOut.writeInternedUTF(name);
         mOut.writeShort(value.length);

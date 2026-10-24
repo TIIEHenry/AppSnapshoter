@@ -20,6 +20,40 @@ class MetadataWriteTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun `descriptor name that leaves the archive directory is not written`() {
+        val root = Files.createTempDirectory("metadata-escape").toFile()
+        try {
+            val outside = root.parentFile
+            val before = outside.list()?.toSet()
+            assertThrows(IOException::class.java) {
+                MetaInfoHelper.saveDataItem(MetaDataItem().apply { name = "../evil" }, root)
+            }
+            assertEquals(before, outside.list()?.toSet())
+            assertFalse(File(outside, "evil.json").exists())
+            assertTrue(root.list().isNullOrEmpty())
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun `nested descriptor name inside the archive directory is written`() {
+        val root = Files.createTempDirectory("metadata-nested").toFile()
+        try {
+            val fileName = MetaInfoHelper.saveDataItem(MetaDataItem().apply { name = "foo/bar" }, root)
+            val written = File(root, fileName)
+            assertTrue(written.isFile)
+            assertTrue(written.canonicalFile.toPath().startsWith(root.canonicalFile.toPath()))
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun `built-in descriptor name user is still written`() {
+        val root = Files.createTempDirectory("metadata-user").toFile()
+        try {
+            val fileName = MetaInfoHelper.saveDataItem(MetaDataItem().apply { name = "user" }, root)
+            assertEquals("user.json", fileName)
+            assertTrue(File(root, fileName).isFile)
+            assertTrue(File(root, fileName).canonicalFile.toPath().startsWith(root.canonicalFile.toPath()))
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun `pending manifest write failure propagates`() {
         val root = Files.createTempDirectory("manifest-write-test").toFile()
         try {

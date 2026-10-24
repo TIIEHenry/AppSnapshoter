@@ -1,33 +1,53 @@
 package tiiehenry.android.app.snapshot.config
 
 import com.tencent.mmkv.MMKV
-import tiiehenry.android.app.snapshot.SnapshotApp
-import tiiehenry.android.app.snapshot.group.GroupSetColors
 import java.io.File
 
 /**
  * 分组集本机配置（MMKV）+ 可同步 [groupset.json]。
  */
-class GroupSetConfig(val setId: String) {
+class GroupSetConfig internal constructor(
+    val setId: String,
+    private val prefs: ConfigPrefs,
+) {
+    constructor(setId: String) : this(
+        setId,
+        MmkvConfigPrefs(MMKV.mmkvWithID("groupset:$setId")),
+    )
+
     companion object {
         const val KEY_ROOT_PATH = "rootPath"
         const val KEY_IS_COLLAPSED = "isCollapsed"
         const val KEY_ACCENT_COLOR = "accentColor"
     }
 
-    val mmkv = MMKV.mmkvWithID("groupset:$setId")
+    val mmkv: MMKV
+        get() = (prefs as MmkvConfigPrefs).mmkv
 
+    /**
+     * 空字符串和空白按未设置，回退当前全局根。
+     * 路径变了就清掉强调色键并重载目标目录，不在这里保存。
+     */
     var rootPath: String
-        get() = mmkv.decodeString(KEY_ROOT_PATH) ?: SnapshotApp.getInstance().globalRootPath
+        get() {
+            val stored = prefs.decodeString(KEY_ROOT_PATH)
+            if (stored.isNullOrBlank()) return ConfigEnvironment.globalRootPath()
+            return stored
+        }
         set(value) {
-            mmkv.encode(KEY_ROOT_PATH, value)
+            val before = rootPath
+            prefs.encode(KEY_ROOT_PATH, value)
+            if (rootPath != before) {
+                prefs.removeValueForKey(KEY_ACCENT_COLOR)
+                load()
+            }
         }
 
     /** 新建默认折叠 */
     var isCollapsed: Boolean
-        get() = mmkv.decodeBool(KEY_IS_COLLAPSED, true)
+        get() = prefs.decodeBool(KEY_IS_COLLAPSED, true)
         set(value) {
-            mmkv.encode(KEY_IS_COLLAPSED, value)
+            prefs.encode(KEY_IS_COLLAPSED, value)
         }
 
     /**
@@ -36,59 +56,62 @@ class GroupSetConfig(val setId: String) {
      */
     var accentColor: Int
         get() {
-            if (mmkv.containsKey(KEY_ACCENT_COLOR)) {
-                return mmkv.decodeInt(KEY_ACCENT_COLOR, GroupSetColors.defaultFor(setId))
+            if (prefs.containsKey(KEY_ACCENT_COLOR)) {
+                return prefs.decodeInt(KEY_ACCENT_COLOR, ConfigEnvironment.defaultAccentColor(setId))
             }
-            GroupSetColors.parseHex(data.accentColor)?.let { return it }
-            return GroupSetColors.defaultFor(setId)
+            ConfigEnvironment.parseAccentColor(data.accentColor)?.let { return it }
+            return ConfigEnvironment.defaultAccentColor(setId)
         }
         set(value) {
-            mmkv.encode(KEY_ACCENT_COLOR, value)
-            data.accentColor = GroupSetColors.toHex(value)
+            prefs.encode(KEY_ACCENT_COLOR, value)
+            data.accentColor = ConfigEnvironment.formatAccentColor(value)
         }
 
     private val configFile get() = File(rootPath, ConfigFiles.GROUP_SET_CONFIG_FILE)
 
     var data: GroupSetConfigData = GroupSetConfigData()
 
+    private var readFailed = false
+    private var cleared = false
+    private var loadedPath: String? = null
+
     init {
         load()
     }
 
     fun load() {
-        data = loadConfigFromFile(configFile) { GroupSetConfigData.fromJson(it) }
-            ?: GroupSetConfigData()
-        if (!mmkv.containsKey(KEY_ACCENT_COLOR)) {
-            GroupSetColors.parseHex(data.accentColor)?.let {
-                mmkv.encode(KEY_ACCENT_COLOR, it)
+        cleared = false
+        val path = rootPath
+        val result = ConfigFileStore.read(configFile) { GroupSetConfigData.fromJson(it) }
+        readFailed = result.failed
+        data = result.value ?: GroupSetConfigData()
+        loadedPath = path
+        if (readFailed) return
+        if (!prefs.containsKey(KEY_ACCENT_COLOR)) {
+            ConfigEnvironment.parseAccentColor(data.accentColor)?.let { parsed ->
+                prefs.encode(KEY_ACCENT_COLOR, parsed)
             }
         }
     }
 
     fun save() {
-        saveConfigToFile(configFile, data.toJson())
+        if (cleared) {
+            throw IllegalStateException("Refusing to save cleared group set $setId before reload")
+        }
+        if (rootPath != loadedPath) {
+            load()
+        }
+        if (cleared || readFailed) {
+            throw IllegalStateException("Refusing to save group set $setId after a read failure")
+        }
+        ConfigFileStore.write(configFile, data.toJson())
     }
 
     fun clearLocal() {
-        mmkv.clearAll()
-    }
-
-    private fun <T> loadConfigFromFile(file: File, parser: (String) -> T): T? {
-        return try {
-            if (!file.exists()) return null
-            parser(file.readText())
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-    private fun saveConfigToFile(file: File, content: String) {
-        try {
-            file.parentFile?.mkdirs()
-            file.writeText(content)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        prefs.clearAll()
+        data = GroupSetConfigData()
+        cleared = true
+        readFailed = false
+        loadedPath = null
     }
 }

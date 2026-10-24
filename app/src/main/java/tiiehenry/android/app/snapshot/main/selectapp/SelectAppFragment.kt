@@ -200,6 +200,7 @@ class SelectAppFragment : BottomSheetDialogFragment(), AppsListComponent.Callbac
 
     override fun onFilteredAppsChanged(apps: List<AppInfo>) {
         selectAppAdapter.submitList(apps)
+        updateSelectedCount(selectAppAdapter.getSelectedApps().size)
     }
 
     override fun onDestroyView() {

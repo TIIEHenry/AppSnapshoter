@@ -34,6 +34,20 @@ class PackageOpGuard {
         }
     }
 
+    /**
+     * 全局批处理已经持有进程锁时，再占住某一个 packageDir。
+     * 全局批处理未开始，或该目录已被占用，则不占用并返回 false。
+     * 释放仍走 [endPackageOp]。
+     */
+    fun tryBeginPackageOpWhileBatch(packageDir: String): Boolean {
+        val key = normalize(packageDir)
+        synchronized(lock) {
+            if (!globalBatch.get() || key in packageOps) return false
+            packageOps.add(key)
+            return true
+        }
+    }
+
     fun endPackageOp(packageDir: String) {
         val key = normalize(packageDir)
         synchronized(lock) {

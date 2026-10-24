@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.databinding.DialogMultiItemLoadingBinding
+import java.util.concurrent.atomic.AtomicBoolean
 
 class GroupItemsProgressDialog(
     context: Context,
@@ -16,14 +17,14 @@ class GroupItemsProgressDialog(
     binding.singleLoadingDialog,
     binding.root
 ) {
-    private var cancelListener: (() -> Unit)? = null
+    private val cancelPolicy = GroupItemsCancelPolicy()
     private var failListener: (() -> Unit)? = null
     private var successListener: (() -> Unit)? = null
     private var successLongClickListener: (() -> Unit)? = null
 
     init {
         binding.btnCancel.setOnClickListener {
-            cancelListener?.invoke()
+            cancelPolicy.invokeStopListener()
         }
         binding.btnFail.setOnClickListener {
             failListener?.invoke()
@@ -38,7 +39,14 @@ class GroupItemsProgressDialog(
     }
 
     fun setOnCancelListener(listener: () -> Unit) {
-        cancelListener = listener
+        cancelPolicy.setStopListener(listener)
+    }
+
+    override fun cancel() {
+        when (groupItemsSystemCancelEffect(cancelPolicy.isCloseOnly())) {
+            GroupItemsSystemCancelEffect.Dismiss -> super.cancel()
+            GroupItemsSystemCancelEffect.Stop -> cancelPolicy.invokeStopListener()
+        }
     }
 
     fun setOnFailListener(listener: () -> Unit) {
@@ -54,6 +62,7 @@ class GroupItemsProgressDialog(
     }
 
     fun setFinishButtonAsClose(onClose: () -> Unit) {
+        cancelPolicy.markClosedFinish()
         binding.btnCancel.setIconResource(R.drawable.close_circle_outline)
         setCancelable(true)
         setCanceledOnTouchOutside(true)
@@ -99,3 +108,33 @@ class GroupItemsProgressDialog(
     }
 
 }
+
+internal class GroupItemsCancelPolicy {
+    private var stopListener: (() -> Unit)? = null
+    private var closeOnly: Boolean = false
+
+    fun setStopListener(listener: () -> Unit) {
+        stopListener = listener
+    }
+
+    fun invokeStopListener() {
+        stopListener?.invoke()
+    }
+
+    fun markClosedFinish() {
+        closeOnly = true
+    }
+
+    fun isCloseOnly(): Boolean = closeOnly
+}
+
+internal enum class GroupItemsSystemCancelEffect {
+    Stop,
+    Dismiss
+}
+
+internal fun groupItemsSystemCancelEffect(closeOnly: Boolean): GroupItemsSystemCancelEffect =
+    if (closeOnly) GroupItemsSystemCancelEffect.Dismiss else GroupItemsSystemCancelEffect.Stop
+
+internal fun shouldStartNextBatchSnapshot(isCanceled: AtomicBoolean): Boolean =
+    !isCanceled.get()

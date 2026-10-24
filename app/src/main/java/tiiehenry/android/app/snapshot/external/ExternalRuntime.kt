@@ -7,7 +7,10 @@ import java.security.SecureRandom
 object ExternalRuntime {
     @Volatile
     private var mcp: McpInstanceServer? = null
+    @Volatile
+    private var retryAt = 0L
 
+    @Synchronized
     fun refresh(context: Context) {
         val state = ExternalAccessStore(context).read()
         val current = mcp
@@ -16,9 +19,15 @@ object ExternalRuntime {
         ) {
             current?.stop()
             mcp = null
+            retryAt = 0L
             return
         }
-        if (current != null) return
+        if (current != null && current.isRunning()) return
+        if (current != null) {
+            current.stop()
+            mcp = null
+        }
+        if (System.currentTimeMillis() < retryAt) return
         val server = McpInstanceServer(
             port = McpInstanceServer.PORT,
             tokenHash = { ExternalAccessStore(context).read().mcpTokenHash },
@@ -33,6 +42,8 @@ object ExternalRuntime {
         } catch (e: Exception) {
             Log.w("ExternalRuntime", "mcp start failed", e)
             mcp = null
+            // Port can be held briefly by the previous server after a restart.
+            retryAt = System.currentTimeMillis() + 30_000L
         }
     }
 

@@ -13,7 +13,6 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -76,10 +75,8 @@ class MainActivity : AppCompatActivity() {
     private var checkDialog: AlertDialog? = null
     private var dialogBinding: DialogProviderCheckBinding? = null
 
-    private var navigationBarInsetBottom = 0
-
     private data class BottomNavTab(
-        val button: ImageButton,
+        val button: View,
         @IdRes val destinationId: Int,
     )
 
@@ -172,7 +169,7 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _, destination, _ ->
             updateBottomNavSelection(destination.id)
             applyToolbarStyle()
-            binding.navHostFragment.post { applyFloatingNavContentPadding() }
+            binding.navHostFragment.post { applyBottomNavContentPadding() }
         }
         updateBottomNavSelection(navController.currentDestination?.id)
     }
@@ -203,10 +200,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyToolbarStyle() {
-        val surfaceColor = ContextCompat.getColor(this, R.color.surface)
-        binding.toolbar.setBackgroundColor(surfaceColor)
+        val backgroundColor = ContextCompat.getColor(this, R.color.background)
+        binding.toolbar.setBackgroundColor(backgroundColor)
         binding.toolbar.backgroundTintList = null
-        binding.toolbarHeader.setBackgroundColor(surfaceColor)
+        binding.toolbarHeader.setBackgroundColor(backgroundColor)
     }
 
     private fun setupSystemBars() {
@@ -225,28 +222,27 @@ class MainActivity : AppCompatActivity() {
         }
         ViewCompat.setOnApplyWindowInsetsListener(binding.coordinator) { _, windowInsets ->
             val navInsets = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            navigationBarInsetBottom = navInsets.bottom
-            val baseMargin = resources.getDimensionPixelSize(R.dimen.floating_nav_bottom_margin)
             val lp = binding.bottomNavigationContainer.layoutParams as
                 androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            val baseMargin = resources.getDimensionPixelSize(R.dimen.floating_nav_bottom_margin)
             lp.bottomMargin = baseMargin + navInsets.bottom
-            lp.marginStart = 0
-            lp.marginEnd = 0
             binding.bottomNavigationContainer.layoutParams = lp
-            applyFloatingNavContentPadding()
+            applyBottomNavContentPadding()
             windowInsets
         }
         ViewCompat.requestApplyInsets(binding.coordinator)
     }
 
     fun floatingNavContentPaddingBottom(): Int {
+        val navInsets = ViewCompat.getRootWindowInsets(binding.coordinator)
+            ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
         val margin = resources.getDimensionPixelSize(R.dimen.floating_nav_bottom_margin)
         val navHeight = resources.getDimensionPixelSize(R.dimen.floating_nav_height)
         val gap = resources.getDimensionPixelSize(R.dimen.floating_nav_content_gap)
-        return navigationBarInsetBottom + margin + navHeight + gap
+        return navInsets + margin + navHeight + gap
     }
 
-    private fun applyFloatingNavContentPadding() {
+    private fun applyBottomNavContentPadding() {
         val fragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
             ?.childFragmentManager?.primaryNavigationFragment ?: return
         if (fragment is TimelineFragment) {

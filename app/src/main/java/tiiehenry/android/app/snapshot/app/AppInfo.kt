@@ -121,15 +121,22 @@ data class AppInfo(
     /**
      * 检查应用是否是Xposed模块
      */
+    internal var forceXposedModule: Boolean? = null
+
     val isXposedModule: Boolean by lazy {
-        val applicationInfo = getApplicationInfo(appManager) ?: return@lazy false
-        try {
+        forceXposedModule ?: readXposedModuleFlag()
+    }
+
+    private fun readXposedModuleFlag(): Boolean {
+        val applicationInfo = getApplicationInfo(appManager) ?: return false
+        val legacy = try {
             val metaData = applicationInfo.metaData
-            (metaData?.containsKey("xposedminversion") == true)
+            metaData?.containsKey("xposedminversion") == true
         } catch (e: Exception) {
             e.printStackTrace()
             false
-        } || isModernModules(applicationInfo)
+        }
+        return legacy || isModernModules(applicationInfo)
     }
 
     private fun isModernModules(info: ApplicationInfo): Boolean {

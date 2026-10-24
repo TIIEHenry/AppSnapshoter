@@ -67,4 +67,24 @@ class GroupConfigStateTest {
         assertTrue(state.group.lockedList.isEmpty())
         assertEquals("New", state.group.name)
     }
+
+    @Test
+    fun `unreadable existing file is a read failure and a missing file is not`() {
+        val broken = temporaryFolder.newFolder("broken")
+        File(broken, ConfigFiles.SHOT_CONFIG_FILE).writeText("{")
+        File(broken, ConfigFiles.GROUP_CONFIG_FILE).writeText(
+            """{"name":"Keep","lockedList":["com.keep.app"]}"""
+        )
+
+        val failed = GroupConfigState.load(broken.path)
+
+        assertTrue(failed.readFailed)
+        assertEquals("Keep", failed.group.name)
+        assertEquals(listOf("com.keep.app"), failed.group.lockedList)
+        val missing = temporaryFolder.newFolder("missing-files")
+        val empty = GroupConfigState.load(missing.path)
+        assertFalse(empty.readFailed)
+        assertTrue(empty.group.lockedList.isEmpty())
+        assertFalse(empty.shot.enabled)
+    }
 }

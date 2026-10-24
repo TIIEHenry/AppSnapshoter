@@ -138,7 +138,7 @@ class SnapshotViewModel : ViewModel() {
     fun deleteGroupSet(
         setId: String,
         mode: AppDataRepository.DeleteGroupSetMode = AppDataRepository.DeleteGroupSetMode.SET_ONLY,
-        onComplete: (() -> Unit)? = null,
+        onComplete: ((Boolean) -> Unit)? = null,
     ) {
         val (context, fileSystem, appManager) = appDeps()
         repository.deleteGroupSet(context, fileSystem, appManager, setId, mode, onComplete)
@@ -243,23 +243,15 @@ class SnapshotViewModel : ViewModel() {
         )
     }
 
-    /** 时间线/应用 Tab 跳转：若所属集折叠则先展开再 pending 滚到 GroupCard；可选滚到组内应用 */
+    /**
+     * 时间线/应用 Tab 跳转。锁内展开所属集和分组并生成列表后，
+     * 主线程先写 [archiveList]，再写 [navigateToGroup]。
+     */
     fun requestNavigateToGroup(groupId: String, packageName: String? = null) {
         pendingNavigatePackage = packageName
-        val group = resolveGroup(groupId) ?: run {
-            navigateToGroup.value = groupId
-            return
+        repository.expandArchiveForNavigation(groupId) { id ->
+            navigateToGroup.value = id
         }
-        val set = groupSetList.value.orEmpty().firstOrNull { set ->
-            tiiehenry.android.app.snapshot.repository.GroupSetMembership.isMemberOf(group.path, set.path)
-        }
-        if (set != null && set.isCollapsed) {
-            setGroupSetCollapsed(set.id, collapsed = false)
-        }
-        if (group.isCollapsed) {
-            group.isCollapsed = false
-        }
-        navigateToGroup.value = groupId
     }
 
     fun consumePendingNavigatePackage(): String? {

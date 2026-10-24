@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Fluent 2 corner radii: Control = 4dp, Overlay = 8dp -->
+    <!-- Corner scale: control 8 / overlay 12 / card 16 / pill -->
 
     <style name="ShapeAppearance.AppSnapshot.Corner.Control" parent="ShapeAppearance.Material3.Corner.Small">
         <item name="cornerFamily">rounded</item>
@@ -14,7 +14,12 @@
 
     <style name="ShapeAppearance.AppSnapshot.Corner.Large" parent="ShapeAppearance.Material3.Corner.Large">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">@dimen/fluent_corner_radius_overlay</item>
+        <item name="cornerSize">@dimen/corner_card</item>
+    </style>
+
+    <style name="ShapeAppearance.AppSnapshot.Corner.Pill" parent="ShapeAppearance.Material3.Corner.Full">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/corner_pill</item>
     </style>
 
     <style name="ShapeAppearance.AppSnapshot.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
@@ -29,6 +34,6 @@
 
     <style name="ShapeAppearance.AppSnapshot.LargeComponent" parent="ShapeAppearance.Material3.LargeComponent">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">@dimen/fluent_corner_radius_overlay</item>
+        <item name="cornerSize">@dimen/corner_card</item>
     </style>
 </resources>

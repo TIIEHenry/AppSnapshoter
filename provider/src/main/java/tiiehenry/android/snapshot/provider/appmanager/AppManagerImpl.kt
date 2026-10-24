@@ -21,6 +21,7 @@ import tiiehenry.android.snapshot.app.UserInfoHide
 import tiiehenry.android.snapshot.provider.appmanager.util.LogHelper
 import tiiehenry.android.snapshot.provider.appmanager.util.PathHelper
 import tiiehenry.android.snapshot.provider.service.ISnapShotRootService
+import tiiehenry.android.snapshot.provider.service.handler.APP_OP_MODE_UNREAD
 import tiiehenry.android.snapshot.provider.service.SnapShotRootServiceClient
 import java.lang.reflect.Field
 
@@ -130,24 +131,46 @@ class AppManagerImpl(
         return runBlocking { safeCall("getPermissions", emptyList()) { getPermissions(packageName, userId) } }
     }
 
-    override fun setAppPermission(packageName: String, userId: Int, permission: AppPermission?) {
-        if (permission == null) return
-        runBlocking { safeRun("setAppPermission") { setAppPermission(packageName, userId, permission) } }
+    override fun setAppPermission(packageName: String, userId: Int, permission: AppPermission?): Boolean {
+        if (permission == null) return false
+        return runBlocking {
+            safeCall("setAppPermission", false) {
+                setAppPermission(packageName, userId, permission)
+            }.also { applied ->
+                if (!applied) {
+                    LogHelper.e(TAG, "setAppPermission", "Root service rejected permission change")
+                }
+            }
+        }
     }
 
-    override fun setAppPermissions(packageName: String, userId: Int, permissions: MutableList<AppPermission>?) {
-        if (permissions == null) return
-        runBlocking { safeRun("setAppPermissions") { setAppPermissions(packageName, userId, permissions) } }
+    override fun setAppPermissions(packageName: String, userId: Int, permissions: MutableList<AppPermission>?): Boolean {
+        if (permissions == null) return false
+        return runBlocking {
+            safeCall("setAppPermissions", false) {
+                setAppPermissions(packageName, userId, permissions)
+            }.also { applied ->
+                if (!applied) {
+                    LogHelper.e(TAG, "setAppPermissions", "Root service rejected permission restore")
+                }
+            }
+        }
     }
 
     override fun grantRuntimePermission(packageName: String, permName: String, user: UserHandle?) {
-        if (user == null) return
-        runBlocking { safeRun("grantRuntimePermission") { grantRuntimePermission(packageName, permName, user) } }
+        if (user == null) throw IllegalStateException("User handle is null")
+        val result = runBlocking {
+            safeCall("grantRuntimePermission", 0) { grantRuntimePermission(packageName, permName, user) }
+        }
+        if (result == 0) throw IllegalStateException("Failed to grant $permName")
     }
 
     override fun revokeRuntimePermission(packageName: String, permName: String, user: UserHandle?) {
-        if (user == null) return
-        runBlocking { safeRun("revokeRuntimePermission") { revokeRuntimePermission(packageName, permName, user) } }
+        if (user == null) throw IllegalStateException("User handle is null")
+        val result = runBlocking {
+            safeCall("revokeRuntimePermission", 0) { revokeRuntimePermission(packageName, permName, user) }
+        }
+        if (result == 0) throw IllegalStateException("Failed to revoke $permName")
     }
 
     override fun getPermissionFlags(packageName: String, permName: String, user: UserHandle?): Int {
@@ -174,12 +197,17 @@ class AppManagerImpl(
         return runBlocking { safeCall("getUserHandle", null) { getUserHandle(userId) } }
     }
 
-    override fun setOpsMode(code: Int, uid: Int, packageName: String, mode: Int) {
-        runBlocking { safeRun("setOpsMode") { setOpsMode(code, uid, packageName, mode) } }
+    override fun setOpsMode(code: Int, uid: Int, packageName: String, mode: Int): Boolean {
+        if (mode == APP_OP_MODE_UNREAD) return true
+        return runBlocking {
+            safeCall("setOpsMode", false) { setOpsMode(code, uid, packageName, mode) }
+        }
     }
 
-    override fun resetAppOps(userId: Int, packageName: String) {
-        runBlocking { safeRun("resetAppOps") { resetAppOps(userId, packageName) } }
+    override fun resetAppOps(userId: Int, packageName: String): Boolean {
+        return runBlocking {
+            safeCall("resetAppOps", false) { resetAppOps(userId, packageName) }
+        }
     }
 
     // ==================== SSAID ====================

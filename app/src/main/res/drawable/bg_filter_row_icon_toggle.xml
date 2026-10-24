@@ -2,8 +2,8 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/primary_container" />
-            <corners android:radius="@dimen/fluent_corner_radius_control" />
+            <solid android:color="@color/selected_overlay" />
+            <corners android:radius="@dimen/corner_pill" />
         </shape>
     </item>
     <item android:drawable="@drawable/bg_filter_row_icon" />

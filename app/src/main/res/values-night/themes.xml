@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Fluent Design System theme (dark) -->
+    <!-- App theme (dark) -->
     <style name="Theme.AppSnapshot" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.AppSnapshot.SmallComponent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.AppSnapshot.MediumComponent</item>
@@ -22,8 +22,8 @@
         <item name="colorOnSurface">@color/on_surface</item>
         <item name="colorSurfaceVariant">@color/surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
-        <item name="colorSurfaceContainer">@color/fluent_layer_alt</item>
-        <item name="colorSurfaceContainerHigh">@color/fluent_layer_alt</item>
+        <item name="colorSurfaceContainer">@color/surface_variant</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_variant</item>
         <item name="colorSurfaceContainerHighest">@color/surface_variant</item>
         <item name="colorSurfaceContainerLow">@color/surface</item>
         <item name="colorSurfaceContainerLowest">@color/background</item>
@@ -35,7 +35,7 @@
         <item name="colorAccent">@color/primary</item>
         <item name="colorControlActivated">@color/primary</item>
         <item name="colorControlNormal">@color/icon_primary</item>
-        <item name="colorControlHighlight">@color/primary_container</item>
+        <item name="colorControlHighlight">@color/press_overlay</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@color/background</item>
         <item name="bottomNavigationStyle">@style/Widget.AppSnapshot.BottomNavigationView</item>

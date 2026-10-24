@@ -59,4 +59,17 @@ class InstanceInfoTest {
         val original = AppInstance("abc123", "工作", "alice", "公司", 10L, 20L)
         assertEquals(original, InstanceMeta.decode(InstanceMeta.encode(original)))
     }
+
+    @Test
+    fun meta_rejects_broken_json_without_throwing() {
+        assertEquals(null, InstanceMeta.decode("{not json"))
+        assertEquals(null, InstanceMeta.decode(""))
+        assertEquals(null, InstanceMeta.decode("[]"))
+    }
+
+    @Test
+    fun meta_rejects_invalid_slot_id_or_empty_name() {
+        assertEquals(null, InstanceMeta.decode("""{"id":"../escape","name":"x"}"""))
+        assertEquals(null, InstanceMeta.decode("""{"id":"abc123","name":""}"""))
+    }
 }

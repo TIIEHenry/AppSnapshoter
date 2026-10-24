@@ -56,6 +56,23 @@ class RestorePreflightTest {
         assertThrows(ArchiveValidationException::class.java) { plan(metadata, emptyMap()) }
     }
 
+    @Test fun `extra json name shared with a data item fails preflight`() {
+        val metadata = meta("user.json").apply { extraItems = mapOf("user.json" to "/data/custom") }
+        val descriptors = mapOf("/group/pkg/snapshot/user.json" to data("user"))
+        assertThrows(ArchiveValidationException::class.java) { plan(metadata, descriptors) }
+    }
+
+    @Test fun `extra json name that is not a data item stays in the restore plan`() {
+        val metadata = meta("media.json").apply { extraItems = mapOf("documents.json" to "/data/custom") }
+        val descriptors = mapOf(
+            "/group/pkg/snapshot/media.json" to data("media"),
+            "/group/pkg/snapshot/documents.json" to data("documents"),
+        )
+        val prepared = plan(metadata, descriptors)
+        assertEquals(listOf("media"), prepared.dataItems.map { it.name })
+        assertEquals(listOf("documents"), prepared.extraItems.keys.map { it.name })
+    }
+
     @Test fun `missing checksum and paths outside archive are rejected`() {
         val item = data("user").apply { md5 = "" }
         assertThrows(ArchiveValidationException::class.java) {

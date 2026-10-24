@@ -7,9 +7,12 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotViewModel
@@ -20,6 +23,7 @@ import tiiehenry.android.app.snapshot.group.ArchivedApp
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.main.launch.makearchive.progress.GroupItemsProgressDialog
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 class GroupBatchRestorer(
     private val context: Context,
@@ -41,11 +45,15 @@ class GroupBatchRestorer(
         val failed = mutableMapOf<ArchivedApp, Exception>()
         val isCancelled = AtomicBoolean(false)
         val isForceCancelled = AtomicBoolean(false)
+        val currentRestore = AtomicReference<Job?>(null)
         val startTime = System.currentTimeMillis()
 
         loadingDialog.setOnCancelListener {
             isCancelled.set(true)
-            loadingDialog.setFinishButtonAsForceCancel { isForceCancelled.set(true) }
+            loadingDialog.setFinishButtonAsForceCancel {
+                isForceCancelled.set(true)
+                currentRestore.get()?.cancel()
+            }
             loadingDialog.setLabel(context.getString(R.string.timeline_batch_cancelled))
         }
         loadingDialog.setOnFailListener {
@@ -59,34 +67,36 @@ class GroupBatchRestorer(
 
         coroutineScope.launch(Dispatchers.IO) {
             try {
-                var index = 0
-                while (index < tasks.size && !isCancelled.get()) {
-                    val task = GroupBatchRestorePlanner.resolveTaskAt(
-                        tasks[index],
-                        snapshotViewModel.groupList.value.orEmpty()
-                    ) ?: run {
+                runGroupRestoreLoop(
+                    taskCount = tasks.size,
+                    isCancelled = isCancelled,
+                    isForceCancelled = isForceCancelled,
+                    currentRestore = currentRestore,
+                    resolve = { index ->
+                        GroupBatchRestorePlanner.resolveTaskAt(
+                            tasks[index],
+                            snapshotViewModel.groupList.value.orEmpty()
+                        )
+                    },
+                    onItem = { index, task ->
+                        withContext(Dispatchers.Main) {
+                            loadingDialog.setProgress(index + 1)
+                            loadingDialog.setLabel(task.app.appInfo.label)
+                            loadingDialog.setPackageName(task.app.appInfo.packageName)
+                            loadingDialog.setCurrentItem(task.archive.name)
+                        }
+                    },
+                    onStale = { index ->
                         failed[tasks[index].app] = IllegalStateException(
                             context.getString(R.string.timeline_entry_stale)
                         )
-                        index++
-                        continue
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        loadingDialog.setProgress(index + 1)
-                        loadingDialog.setLabel(task.app.appInfo.label)
-                        loadingDialog.setPackageName(task.app.appInfo.packageName)
-                        loadingDialog.setCurrentItem(task.archive.name)
-                    }
-
-                    try {
+                    },
+                    restore = { task ->
                         ArchiveRestorer.restoreArchiveSuspend(context, task.app, task.archive)
-                        succeeded.add(task.app)
-                    } catch (e: Exception) {
-                        failed[task.app] = e
-                    }
-                    index++
-                }
+                    },
+                    onSucceeded = { app -> succeeded.add(app) },
+                    onFailed = { app, error -> failed[app] = error }
+                )
             } finally {
                 withContext(Dispatchers.Main) {
                     snapshotViewModel.endBatchOperation()
@@ -188,5 +198,55 @@ class GroupBatchRestorer(
             .setAdapter(adapter) { _, _ -> }
             .setPositiveButton(android.R.string.ok, null)
             .show()
+    }
+}
+
+internal suspend fun runGroupRestoreLoop(
+    taskCount: Int,
+    isCancelled: AtomicBoolean,
+    isForceCancelled: AtomicBoolean,
+    currentRestore: AtomicReference<Job?>,
+    resolve: (Int) -> GroupRestoreTask?,
+    onItem: suspend (Int, GroupRestoreTask) -> Unit,
+    onStale: (Int) -> Unit,
+    restore: suspend (GroupRestoreTask) -> Unit,
+    onSucceeded: (ArchivedApp) -> Unit,
+    onFailed: (ArchivedApp, Exception) -> Unit,
+) {
+    supervisorScope {
+        var index = 0
+        while (index < taskCount && !isCancelled.get() && !isForceCancelled.get()) {
+            val task = resolve(index)
+            if (task == null) {
+                onStale(index)
+                index++
+                continue
+            }
+            onItem(index, task)
+            if (isForceCancelled.get()) break
+            val failure = AtomicReference<Exception?>(null)
+            val job = launch {
+                try {
+                    restore(task)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    failure.set(e)
+                }
+            }
+            currentRestore.set(job)
+            try {
+                if (isForceCancelled.get()) job.cancel()
+                job.join()
+            } finally {
+                currentRestore.compareAndSet(job, null)
+            }
+            if (!job.isCancelled) {
+                val error = failure.get()
+                if (error != null) onFailed(task.app, error) else onSucceeded(task.app)
+            }
+            if (isCancelled.get() || isForceCancelled.get()) break
+            index++
+        }
     }
 }

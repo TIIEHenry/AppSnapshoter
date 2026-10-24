@@ -76,11 +76,11 @@ class PermissionManagementHandler(
                     val isGranted =
                         (requestedPermissionsFlags[i] and PackageInfo.REQUESTED_PERMISSION_GRANTED) != 0
                     val op = AppOpsManagerHidden.permissionToOpCode(name)
-                    val mode = ops?.get(op)
+                    val mode = backedUpOpMode(ops, op)
                     if ((op != AppOpsManagerHidden.OP_NONE)
                         || (protection == PermissionInfo.PROTECTION_DANGEROUS || (protectionFlags and PermissionInfo.PROTECTION_FLAG_DEVELOPMENT) != 0)
                     ) {
-                        permissions.add(AppPermission(isGranted, mode ?: 0, name, op))
+                        permissions.add(AppPermission(isGranted, mode, name, op))
                     }
                 }
             }
@@ -109,14 +109,28 @@ class PermissionManagementHandler(
             return false
         }
         return try {
-            if (permission.isGranted) {
+            val runtimeResult = if (permission.isGranted) {
                 grantRuntimePermission(packageName, permission.name, userHandle)
             } else {
                 revokeRuntimePermission(packageName, permission.name, userHandle)
             }
-            if (permission.op != AppOpsManagerHidden.OP_NONE) {
-                val uid = getPackageUid(packageName, userId)
-                setOpsMode(permission.op, uid, packageName, permission.mode)
+            val applied = applyAppPermission(
+                runtimeResult = runtimeResult,
+                op = permission.op,
+                mode = permission.mode,
+                opNone = AppOpsManagerHidden.OP_NONE,
+                setOpsMode = { mode ->
+                    val uid = getPackageUid(packageName, userId)
+                    setOpsMode(permission.op, uid, packageName, mode)
+                }
+            )
+            if (!applied) {
+                LogHelper.e(
+                    "SnapshotRootService",
+                    "setAppPermission",
+                    "Failed to set permission ${permission.name} for $packageName"
+                )
+                return false
             }
             LogHelper.i(
                 "SnapshotRootService",

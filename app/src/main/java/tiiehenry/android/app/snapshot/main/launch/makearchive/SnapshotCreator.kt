@@ -81,7 +81,8 @@ class SnapshotCreator(
         item: ArchivedApp,
         group: SnapGroup,
         isCanceled: AtomicBoolean,
-        callback: Callback? = null
+        callback: Callback? = null,
+        callerHoldsPackageOp: Boolean = false
     ) {
         val failed = AtomicBoolean(false)
         val errorMessage = AtomicReference<String?>(null)
@@ -98,13 +99,12 @@ class SnapshotCreator(
         viewModelScope.launch(Dispatchers.Default) {
             val packageDir = item.packageDir
             val guard = tiiehenry.android.app.snapshot.repository.AppDataRepository.getInstance().packageOpGuard
-            val underGlobalBatch = guard.isGlobalBatchRunning()
-            val acquiredPackage = if (underGlobalBatch) {
-                true
-            } else {
-                guard.tryBeginPackageOp(packageDir)
-            }
-            if (!acquiredPackage) {
+            val packageOp = beginSnapshotPackageOp(
+                packageDir,
+                callerHoldsPackageOp,
+                guard::tryBeginPackageOp
+            )
+            if (!snapshotPackagingAllowed(packageOp)) {
                 withContext(Dispatchers.Main) {
                     val ex = ArchiveFailedException(
                         context.getString(R.string.batch_operation_in_progress)
@@ -303,9 +303,7 @@ class SnapshotCreator(
                 unfinishedSnapshotDir?.let { pending ->
                     runCatching { SnapshotApp.getInstance().fileSystem.delete(pending) }
                 }
-                if (!underGlobalBatch) {
-                    guard.endPackageOp(packageDir)
-                }
+                endSnapshotPackageOp(packageOp) { guard.endPackageOp(it) }
                 val packageName = item.appInfo.packageName
                 val userId = group.userId
                 if (!AppStatusHelper.releasePackageAfterSnapshot(packageName, userId)) {
@@ -369,5 +367,36 @@ class SnapshotCreator(
                 }
             }
         }
+    }
+}
+
+internal sealed class SnapshotPackageOp {
+    data object HeldByCaller : SnapshotPackageOp()
+    data object Denied : SnapshotPackageOp()
+    data class Acquired(val packageDir: String) : SnapshotPackageOp()
+}
+
+internal fun beginSnapshotPackageOp(
+    packageDir: String,
+    callerHoldsPackageOp: Boolean,
+    tryBeginPackageOp: (String) -> Boolean
+): SnapshotPackageOp {
+    if (callerHoldsPackageOp) return SnapshotPackageOp.HeldByCaller
+    return if (tryBeginPackageOp(packageDir)) {
+        SnapshotPackageOp.Acquired(packageDir)
+    } else {
+        SnapshotPackageOp.Denied
+    }
+}
+
+internal fun snapshotPackagingAllowed(op: SnapshotPackageOp): Boolean =
+    op !is SnapshotPackageOp.Denied
+
+internal fun endSnapshotPackageOp(
+    op: SnapshotPackageOp,
+    endPackageOp: (String) -> Unit
+) {
+    if (op is SnapshotPackageOp.Acquired) {
+        endPackageOp(op.packageDir)
     }
 }

@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Fluent Design System theme (light) -->
+    <!-- App theme (light) -->
     <style name="Theme.AppSnapshot" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Fluent shape system -->
+        <!-- Shape system -->
         <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.AppSnapshot.SmallComponent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.AppSnapshot.MediumComponent</item>
         <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.AppSnapshot.LargeComponent</item>
@@ -28,7 +28,7 @@
         <item name="colorSurfaceVariant">@color/surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
         <item name="colorSurfaceContainer">@color/surface</item>
-        <item name="colorSurfaceContainerHigh">@color/fluent_layer</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_variant</item>
         <item name="colorSurfaceContainerHighest">@color/surface_variant</item>
         <item name="colorSurfaceContainerLow">@color/background</item>
         <item name="colorSurfaceContainerLowest">@color/surface</item>
@@ -43,7 +43,7 @@
         <item name="colorAccent">@color/primary</item>
         <item name="colorControlActivated">@color/primary</item>
         <item name="colorControlNormal">@color/icon_primary</item>
-        <item name="colorControlHighlight">@color/primary_container</item>
+        <item name="colorControlHighlight">@color/press_overlay</item>
         <!-- System bars -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@color/background</item>
@@ -70,7 +70,7 @@
     </style>
 
     <style name="Widget.AppSnapshot.Toolbar" parent="Widget.Material3.Toolbar">
-        <item name="android:background">@color/surface</item>
+        <item name="android:background">@color/background</item>
         <item name="backgroundTint">@null</item>
         <item name="titleTextAppearance">@style/TextAppearance.AppSnapshot.ToolbarTitle</item>
         <item name="titleTextColor">@color/on_surface</item>
@@ -79,9 +79,9 @@
         <item name="elevation">0dp</item>
     </style>
 
-    <style name="TextAppearance.AppSnapshot.ToolbarTitle" parent="TextAppearance.Material3.TitleMedium">
+    <style name="TextAppearance.AppSnapshot.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
         <item name="android:textColor">@color/on_surface</item>
-        <item name="android:textSize">17sp</item>
+        <item name="android:textSize">20sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
@@ -94,7 +94,7 @@
         <item name="colorSecondary">@color/secondary</item>
         <item name="colorTertiary">@color/tertiary</item>
         <item name="android:colorBackground">@color/surface</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Overlay</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Large</item>
     </style>
 
     <style name="ThemeOverlay.AppSnapshot.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
@@ -104,7 +104,7 @@
         <item name="colorOnSurface">@color/on_surface</item>
         <item name="android:colorBackground">@color/surface</item>
         <item name="materialButtonStyle">@style/Widget.AppSnapshot.Button</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Overlay</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Large</item>
     </style>
 
     <style name="Widget.AppSnapshot.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
@@ -112,24 +112,7 @@
         <item name="itemIconTint">@color/bottom_nav_item_color</item>
         <item name="itemTextColor">@color/bottom_nav_item_color</item>
         <item name="itemActiveIndicatorStyle">@style/Widget.AppSnapshot.BottomNavigationView.ActiveIndicator</item>
-        <item name="itemRippleColor">@color/primary_container</item>
-    </style>
-
-    <style name="Widget.AppSnapshot.BottomNavigationView.Floating" parent="Widget.AppSnapshot.BottomNavigationView">
-        <item name="android:background">@android:color/transparent</item>
-        <item name="android:minHeight">@dimen/floating_nav_height</item>
-        <item name="itemIconSize">26dp</item>
-        <item name="itemPaddingTop">@dimen/m3_bottom_nav_item_padding_top</item>
-        <item name="itemPaddingBottom">@dimen/m3_bottom_nav_item_padding_bottom</item>
-        <item name="itemHorizontalTranslationEnabled">false</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="itemActiveIndicatorStyle">@style/Widget.AppSnapshot.BottomNavigationView.ActiveIndicator.None</item>
-    </style>
-
-    <style name="Widget.AppSnapshot.BottomNavigationView.ActiveIndicator.None" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">@android:color/transparent</item>
-        <item name="android:width">0dp</item>
-        <item name="android:height">0dp</item>
+        <item name="itemRippleColor">@color/press_overlay</item>
     </style>
 
     <style name="Widget.AppSnapshot.BottomNavigationView.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
@@ -137,14 +120,15 @@
         <item name="android:width">@dimen/m3_bottom_nav_item_active_indicator_width</item>
         <item name="android:height">@dimen/m3_bottom_nav_item_active_indicator_height</item>
         <item name="marginHorizontal">@dimen/m3_bottom_nav_item_active_indicator_margin_horizontal</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
     </style>
 
     <style name="Widget.AppSnapshot.TabLayout" parent="Widget.Material3.TabLayout">
+        <item name="android:background">@android:color/transparent</item>
         <item name="tabIndicatorColor">@color/primary</item>
-        <item name="tabSelectedTextColor">@color/primary</item>
+        <item name="tabSelectedTextColor">@color/on_surface</item>
         <item name="tabTextColor">@color/nav_item_inactive</item>
-        <item name="tabRippleColor">@color/primary_container</item>
+        <item name="tabRippleColor">@color/press_overlay</item>
         <item name="tabIndicatorHeight">3dp</item>
         <item name="tabIndicatorFullWidth">false</item>
     </style>
@@ -161,7 +145,7 @@
     </style>
 
     <style name="Widget.AppSnapshot.TabLayout.Inline" parent="Widget.AppSnapshot.TabLayout.Compact">
-        <item name="tabIndicatorHeight">0dp</item>
+        <item name="tabIndicatorHeight">2dp</item>
         <item name="tabPaddingStart">@dimen/filter_tab_start_padding</item>
         <item name="tabPaddingEnd">@dimen/filter_tab_end_padding</item>
         <item name="tabPaddingTop">0dp</item>
@@ -171,17 +155,20 @@
         <item name="tabTextAppearance">@style/TextAppearance.AppSnapshot.Tab.Inline</item>
     </style>
 
-    <style name="Widget.AppSnapshot.SearchField" parent="Widget.Material3.TextInputLayout.OutlinedBox.Dense">
-        <item name="boxStrokeColor">@color/outline</item>
+    <style name="Widget.AppSnapshot.SearchField" parent="Widget.Material3.TextInputLayout.FilledBox.Dense">
+        <item name="boxBackgroundColor">@color/surface_variant</item>
+        <item name="boxStrokeColor">@color/primary</item>
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">1dp</item>
         <item name="hintTextColor">@color/on_surface_variant</item>
         <item name="android:textColorHint">@color/on_surface_variant</item>
-        <item name="boxCornerRadiusTopStart">@dimen/fluent_corner_radius_control</item>
-        <item name="boxCornerRadiusTopEnd">@dimen/fluent_corner_radius_control</item>
-        <item name="boxCornerRadiusBottomStart">@dimen/fluent_corner_radius_control</item>
-        <item name="boxCornerRadiusBottomEnd">@dimen/fluent_corner_radius_control</item>
+        <item name="boxCornerRadiusTopStart">@dimen/corner_control</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/corner_control</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/corner_control</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/corner_control</item>
     </style>
 
-    <style name="Widget.AppSnapshot.SearchField.EditText" parent="Widget.Material3.TextInputEditText.OutlinedBox">
+    <style name="Widget.AppSnapshot.SearchField.EditText" parent="Widget.Material3.TextInputEditText.FilledBox">
         <item name="android:textColor">@color/on_surface</item>
         <item name="android:textSize">14sp</item>
     </style>
@@ -191,8 +178,8 @@
         <item name="iconSize">@dimen/filter_icon_button_icon_size</item>
         <item name="android:minWidth">@dimen/filter_icon_button_size</item>
         <item name="android:minHeight">@dimen/filter_icon_button_size</item>
-        <item name="rippleColor">@color/primary_container</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+        <item name="rippleColor">@color/press_overlay</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
     </style>
 
     <style name="Widget.AppSnapshot.IconButton.Toggle" parent="Widget.AppSnapshot.IconButton">
@@ -242,13 +229,13 @@
     <style name="Widget.AppSnapshot.Chip.Filter" parent="Widget.Material3.Chip.Filter">
         <item name="chipBackgroundColor">@color/chip_background_color</item>
         <item name="chipSurfaceColor">@color/chip_background_color</item>
-        <item name="chipStrokeColor">@color/chip_stroke_color</item>
-        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipStrokeWidth">0dp</item>
         <item name="chipMinHeight">32dp</item>
         <item name="checkedIconVisible">false</item>
         <item name="android:textColor">@color/chip_text_color</item>
         <item name="android:textSize">13sp</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
+        <item name="rippleColor">@color/press_overlay</item>
     </style>
 
     <style name="Widget.AppSnapshot.Chip.Tag" parent="Widget.AppSnapshot.Chip.Filter">
@@ -258,6 +245,7 @@
         <item name="chipEndPadding">@dimen/tag_chip_horizontal_padding</item>
         <item name="textStartPadding">0dp</item>
         <item name="textEndPadding">@dimen/tag_chip_horizontal_padding</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
     </style>
 
     <style name="Widget.AppSnapshot.Chip.Choice" parent="Widget.AppSnapshot.Chip.Filter" />
@@ -265,12 +253,14 @@
     <style name="Widget.AppSnapshot.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
         <item name="backgroundTint">@color/primary</item>
         <item name="tint">@color/on_primary</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
     </style>
 
     <style name="Widget.AppSnapshot.Switch" parent="Widget.Material3.CompoundButton.Switch">
         <item name="thumbTint">@color/switch_thumb_color</item>
         <item name="trackTint">@color/switch_track_color</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:minWidth">44dp</item>
     </style>
 
     <style name="Widget.AppSnapshot.CheckBox" parent="Widget.Material3.CompoundButton.CheckBox">
@@ -280,19 +270,36 @@
     <style name="Widget.AppSnapshot.Button" parent="Widget.Material3.Button">
         <item name="backgroundTint">@color/primary</item>
         <item name="android:textColor">@color/on_primary</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
+        <item name="rippleColor">@color/press_overlay</item>
     </style>
 
     <style name="Widget.AppSnapshot.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="strokeColor">@color/outline</item>
-        <item name="android:textColor">@color/primary</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="backgroundTint">@color/surface_variant</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
+        <item name="rippleColor">@color/press_overlay</item>
+    </style>
+
+    <style name="Widget.AppSnapshot.Button.Segmented" parent="Widget.AppSnapshot.Button.Outlined">
+        <item name="backgroundTint">@color/button_toggle_background</item>
+        <item name="android:textColor">@color/button_toggle_text</item>
     </style>
 
     <style name="Widget.AppSnapshot.Button.Text" parent="Widget.Material3.Button.TextButton">
-        <item name="android:textColor">@color/fluent_accent_hover</item>
-        <item name="rippleColor">@color/primary_container</item>
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Control</item>
+        <item name="android:textColor">@color/primary</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="rippleColor">@color/press_overlay</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.AppSnapshot.Corner.Pill</item>
     </style>
 
     <!-- Loading Dialog Style -->

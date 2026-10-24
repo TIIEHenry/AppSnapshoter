@@ -35,17 +35,22 @@ data class SnapGroup(
             config.groupConfigData.name = value
         }
 
+    /** JVM tests set these so load and index paths do not open MMKV. */
+    internal var detachedPath: String? = null
+    internal var detachedUserId: Int? = null
+    internal var detachedExclusive: Boolean? = null
+
     var userId: Int
-        get() = config.groupConfigData.userId
+        get() = detachedUserId ?: config.groupConfigData.userId
         set(value) {
+            detachedUserId = null
             config.groupConfigData.userId = value
         }
 
     var path: String
-        get() {
-            return config.rootPath
-        }
+        get() = detachedPath ?: config.rootPath
         set(value) {
+            detachedPath = null
             config.rootPath = value
         }
 
@@ -61,7 +66,7 @@ data class SnapGroup(
         get() = config.membershipMode
 
     val isExclusive: Boolean
-        get() = config.isExclusive
+        get() = detachedExclusive ?: config.isExclusive
 
     val apps: MutableList<ArchivedApp> = mutableListOf()
 
@@ -84,19 +89,27 @@ data class SnapGroup(
     fun loadApps(
         context: Context, fs: IFileSystem, appManager: IAppManager, reload: Boolean
     ): MutableList<ArchivedApp> {
-        if (reload) {
-            synchronized(apps) {
-                apps.clear()
-            }
-        }
         synchronized(apps) {
-            if (apps.isNotEmpty() && !reload) {
+            if (!reload && apps.isNotEmpty() && apps.all { it.archivesComplete }) {
+                return apps
+            }
+            if (!reload && apps.isNotEmpty()) {
+                for (app in apps) {
+                    if (app.archivesComplete) continue
+                    try {
+                        app.loadArchives(fs, appManager, false)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        app.archivesComplete = false
+                    }
+                }
                 return apps
             }
             // 创建 .nomedia 文件，防止图库扫描图标文件
             ensureNoMedia(fs)
+            val loaded = mutableListOf<ArchivedApp>()
             val files = fs.listDir(path)
-            Log.i(TAG, "files: $files")
+            GroupLog.i(TAG, "files: $files")
             for (pkgName in files) {
                 if (pkgName.startsWith(".") || !pkgName.contains(".")) {
                     //ignore dir likes .stfolder
@@ -107,7 +120,7 @@ data class SnapGroup(
                 if (fileType == IFileType.TYPE_DIR) {
                     val iconFile = Paths.get(path, "$pkgName.png").absolutePathString()
                     val iconExists = fs.exists(iconFile)
-                    Log.d(
+                    GroupLog.d(
                         TAG,
                         "Creating SnapedApp for $pkgName, iconFile: $iconFile, exists: $iconExists"
                     )
@@ -119,11 +132,11 @@ data class SnapGroup(
                                 fs,
                                 appManager,
                                 pkgName,
-                                config.groupConfigData.userId,
+                                userId,
                                 iconFile
                             )
                         } catch (e: Exception) {
-                            Log.e(TAG, "Failed to load and save icon for $pkgName: ${e.message}", e)
+                            GroupLog.e(TAG, "Failed to load and save icon for $pkgName: ${e.message}", e)
                         }
                     }
                     val app = ArchivedApp(this, packageDir, iconFile)
@@ -131,11 +144,10 @@ data class SnapGroup(
                         app.loadArchives(fs, appManager, false)
                     } catch (e: Exception) {
                         e.printStackTrace()
+                        app.archivesComplete = false
                     }
                     try {
-                        val packageInfo = appManager.getPackageInfo(
-                            pkgName, 0, config.groupConfigData.userId
-                        )
+                        val packageInfo = appManager.getPackageInfo(pkgName, 0, userId)
                         val newAppInfo = if (packageInfo != null) {
                             app.latestArchive?.appInfo ?: AppInfo.from(packageInfo)
                         } else {
@@ -143,19 +155,21 @@ data class SnapGroup(
                                 fs = fs,
                                 appManager = appManager,
                                 packageName = pkgName,
-                                userId = config.groupConfigData.userId
+                                userId = userId
                             )
                         }
                         // 先设置存档图标文件路径，再赋值给 app.appInfo
                         newAppInfo.archiveIconFile = iconFile
-                        Log.d(TAG, "Setting archiveIconFile for $pkgName: $iconFile")
+                        GroupLog.d(TAG, "Setting archiveIconFile for $pkgName: $iconFile")
                         app.appInfo = newAppInfo
-                        apps.add(app)
+                        loaded.add(app)
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
                 }
             }
+            apps.clear()
+            apps.addAll(loaded)
             return apps
         }
     }

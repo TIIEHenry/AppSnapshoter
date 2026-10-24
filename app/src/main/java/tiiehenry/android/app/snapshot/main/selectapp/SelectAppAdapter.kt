@@ -20,53 +20,43 @@ class SelectAppAdapter(
     private val onMultiSelectedAppsChanged: (List<AppInfo>) -> Unit = {}
 ) : ListAdapter<AppInfo, SelectAppAdapter.ViewHolder>(AppDiffCallback()) {
 
-    private var isMultiSelectMode = false
-    private val selectedApps = mutableSetOf<String>()
+    private val selection = SelectAppSelection()
+    private var visibleApps: List<AppInfo> = emptyList()
     private var membershipIndex: Map<String, AppGroupMembership> = emptyMap()
 
     override fun submitList(list: List<AppInfo>?) {
         membershipIndex = membershipIndexProvider()
+        visibleApps = list.orEmpty()
         super.submitList(list)
     }
 
     fun toggleMultiSelectMode() {
-        isMultiSelectMode = !isMultiSelectMode
-        if (!isMultiSelectMode) {
-            selectedApps.clear()
-        }
+        selection.toggleMultiSelectMode()
         notifyDataSetChanged()
-        onMultiSelectModeChanged(isMultiSelectMode)
+        onMultiSelectModeChanged(selection.isMultiSelectMode)
         onMultiSelectedAppsChanged(getSelectedApps())
     }
 
-    fun getSelectedApps(): List<AppInfo> {
-        return currentList.filter { it.packageName in selectedApps }
-    }
+    fun getSelectedApps(): List<AppInfo> = selection.getSelectedApps()
 
     fun selectAll() {
-        if (isMultiSelectMode) {
-            selectedApps.addAll(currentList.map { it.packageName })
-            notifyDataSetChanged()
-            onMultiSelectedAppsChanged(getSelectedApps())
-        }
+        if (!selection.isMultiSelectMode) return
+        selection.selectAll(visibleApps)
+        notifyDataSetChanged()
+        onMultiSelectedAppsChanged(getSelectedApps())
     }
 
     fun clearSelection() {
-        selectedApps.clear()
+        selection.clear()
         notifyDataSetChanged()
         onMultiSelectedAppsChanged(getSelectedApps())
     }
 
     fun toggleAppSelection(appInfo: AppInfo, bindingAdapterPosition: Int, isSelected: Boolean) {
-        if (isMultiSelectMode) {
-            if (isSelected) {
-                selectedApps.add(appInfo.packageName)
-            } else {
-                selectedApps.remove(appInfo.packageName)
-            }
-            onMultiSelectedAppsChanged(getSelectedApps())
-            notifyItemChanged(bindingAdapterPosition)
-        }
+        if (!selection.isMultiSelectMode) return
+        selection.toggle(appInfo, isSelected)
+        onMultiSelectedAppsChanged(getSelectedApps())
+        notifyItemChanged(bindingAdapterPosition)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -80,10 +70,11 @@ class SelectAppAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val item = getItem(position)
         holder.bind(
-            getItem(position),
-            isMultiSelectMode,
-            getItem(position).packageName in selectedApps,
+            item,
+            selection.isMultiSelectMode,
+            selection.isSelected(item),
             membershipIndex,
         )
     }
@@ -154,6 +145,46 @@ class SelectAppAdapter(
 
         override fun areContentsTheSame(oldItem: AppInfo, newItem: AppInfo): Boolean {
             return oldItem == newItem
+        }
+    }
+}
+
+internal class SelectAppSelection {
+    private val selectedApps = linkedMapOf<String, AppInfo>()
+    var isMultiSelectMode: Boolean = false
+        private set
+
+    fun selectionKey(appInfo: AppInfo): String = "${appInfo.packageName}:${appInfo.userId}"
+
+    fun isSelected(appInfo: AppInfo): Boolean = selectionKey(appInfo) in selectedApps
+
+    fun getSelectedApps(): List<AppInfo> = selectedApps.values.toList()
+
+    fun toggleMultiSelectMode() {
+        isMultiSelectMode = !isMultiSelectMode
+        if (!isMultiSelectMode) {
+            selectedApps.clear()
+        }
+    }
+
+    fun selectAll(visible: List<AppInfo>) {
+        if (!isMultiSelectMode) return
+        for (app in visible) {
+            selectedApps[selectionKey(app)] = app
+        }
+    }
+
+    fun clear() {
+        selectedApps.clear()
+    }
+
+    fun toggle(appInfo: AppInfo, isSelected: Boolean) {
+        if (!isMultiSelectMode) return
+        val key = selectionKey(appInfo)
+        if (isSelected) {
+            selectedApps[key] = appInfo
+        } else {
+            selectedApps.remove(key)
         }
     }
 }

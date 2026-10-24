@@ -187,8 +187,15 @@ class TimelineBatchOperator(
                             continue
                         }
                         try {
-                            ArchiveManager.deleteArchive(archivedApp, archive)
-                            deletedAny = true
+                            // Batch delete already holds the global package op.
+                            if (ArchiveManager.deleteArchive(archivedApp, archive, packageOpHeld = true)) {
+                                deletedAny = true
+                            } else {
+                                hasError = true
+                                result.failed.add(
+                                    entry.key to IllegalStateException(context.getString(R.string.group_delete_failed)),
+                                )
+                            }
                         } catch (e: Exception) {
                             result.failed.add(entry.key to e)
                             hasError = true
@@ -314,12 +321,25 @@ class TimelineBatchOperator(
                             result.failed.add(entry.key to IllegalStateException(context.getString(R.string.timeline_entry_stale)))
                         } else {
                             val (archivedApp, matchingArchives) = resolved
-                            for (archive in matchingArchives) {
-                                if (isCancelled.get()) break
-                                val targetDir = "$destinationPath/${entry.key.packageName}/${archive.name}"
-                                fs.copyRecursively(archive.path, targetDir, false)
+                            val copies = matchingArchives.map { archive ->
+                                archive.path to timelineExportTargetPath(
+                                    destinationPath,
+                                    entry.key,
+                                    archive.name,
+                                )
                             }
-                            result.succeeded.add(entry.key to archivedApp)
+                            val allCopied = copyExportArchives(
+                                copies,
+                                isCancelled = { isCancelled.get() },
+                                copyRecursively = fs::copyRecursively,
+                            )
+                            recordExportEntry(
+                                allCopied = allCopied,
+                                success = entry.key to archivedApp,
+                                failure = entry.key to exportCopyFailure(isCancelled.get()),
+                                succeeded = result.succeeded,
+                                failed = result.failed,
+                            )
                         }
                     } catch (e: Exception) {
                         result.failed.add(entry.key to e)
@@ -348,6 +368,15 @@ class TimelineBatchOperator(
         loadingDialog.show()
     }
 
+    private fun exportCopyFailure(cancelled: Boolean): Exception {
+        val message = if (cancelled) {
+            context.getString(R.string.timeline_batch_cancelled)
+        } else {
+            context.getString(R.string.timeline_batch_no_success)
+        }
+        return IllegalStateException(message)
+    }
+
     private fun showSuccessAppsDialog(successedList: List<Pair<TimelineEntryKey, ArchivedApp>>) {
         val items = successedList.toList()
         val adapter = object : BaseAdapter() {
@@ -369,4 +398,34 @@ class TimelineBatchOperator(
             .setAdapter(adapter) { _, _ -> }
             .setPositiveButton(android.R.string.ok, null).show()
     }
+}
+
+internal fun timelineExportTargetPath(
+    destinationPath: String,
+    key: TimelineEntryKey,
+    archiveName: String,
+): String {
+    return "$destinationPath/${key.groupId}/${key.userId}/${key.packageName}/$archiveName"
+}
+
+internal fun copyExportArchives(
+    copies: List<Pair<String, String>>,
+    isCancelled: () -> Boolean,
+    copyRecursively: (source: String, target: String, overwrite: Boolean) -> Boolean,
+): Boolean {
+    for ((source, target) in copies) {
+        if (isCancelled()) return false
+        if (!copyRecursively(source, target, false)) return false
+    }
+    return true
+}
+
+internal fun <S, F> recordExportEntry(
+    allCopied: Boolean,
+    success: S,
+    failure: F,
+    succeeded: MutableList<S>,
+    failed: MutableList<F>,
+) {
+    if (allCopied) succeeded.add(success) else failed.add(failure)
 }

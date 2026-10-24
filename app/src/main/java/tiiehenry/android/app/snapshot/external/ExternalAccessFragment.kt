@@ -37,10 +37,12 @@ class ExternalAccessFragment : BottomSheetDialogFragment() {
             access.update { state ->
                 state.copy(approved = state.approved + state.pending, pending = emptySet())
             }
+            ExternalRuntime.refresh(requireContext())
             render()
         }
         binding.btnRevoke.setOnClickListener {
             access.update { it.copy(approved = emptySet(), pending = emptySet(), mcpEnabled = false, mcpTokenHash = "") }
+            binding.mcpToken.text = ""
             ExternalRuntime.refresh(requireContext())
             render()
         }

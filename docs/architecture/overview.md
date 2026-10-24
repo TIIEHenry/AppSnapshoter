@@ -40,7 +40,7 @@ graph TD
 │  MainActivity · LauncherFragment · TimelineFragment      │
 │  SnapshotViewModel · AppsViewModel · TimelineViewModel   │
 │  ViewBinding + DataBinding · Material3 · Navigation      │
-│  Fluent 2 主题 · 紧凑顶栏 · 悬浮底栏 · 87 Kotlin 文件     │
+│  中性灰主题 · 紧凑顶栏 · 悬浮毛玻璃底栏 · 87 Kotlin 文件  │
 ├─────────────────────────────────────────────────────────┤
 │                   契约层 (:api)                           │
 │  ISnapShotRootService (AIDL, 30+ 方法)                   │

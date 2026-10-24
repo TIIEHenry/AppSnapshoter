@@ -82,6 +82,24 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
+    /**
+     * 普通恢复：写回调用方点中的那一份 [archiveItem]，不查最新档。
+     */
+    fun onArchiveRestoreClicked(
+        context: Context,
+        archivedApp: ArchivedApp,
+        archiveItem: ArchiveItem,
+        updateCurrent: () -> Unit
+    ) {
+        ArchiveRestorer.restoreArchiveItem(
+            context,
+            archivedApp,
+            archiveItem,
+            updateCurrent,
+            viewModelScope
+        )
+    }
+
     fun onGroupItemClicked(
         context: Context,
         groupId: String,
@@ -202,5 +220,44 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             path = path,
             apps = apps,
         )
+    }
+}
+
+internal enum class ArchiveRestoreGesture {
+    ICON,
+    CONFIRM,
+    UNINSTALLED_GRID,
+}
+
+internal sealed class ArchiveRestoreRequest {
+    data class Selected(val archiveName: String) : ArchiveRestoreRequest()
+    data object Latest : ArchiveRestoreRequest()
+}
+
+internal interface ArchiveRestoreActions {
+    fun restoreSelected(archiveName: String)
+    fun restoreLatest()
+}
+
+/** 图标和确认都恢复被点中的档；未安装应用格才恢复最新档。 */
+internal fun restoreRequest(
+    gesture: ArchiveRestoreGesture,
+    clickedArchiveName: String?,
+): ArchiveRestoreRequest {
+    return when (gesture) {
+        ArchiveRestoreGesture.ICON, ArchiveRestoreGesture.CONFIRM ->
+            ArchiveRestoreRequest.Selected(clickedArchiveName.orEmpty())
+        ArchiveRestoreGesture.UNINSTALLED_GRID -> ArchiveRestoreRequest.Latest
+    }
+}
+
+internal fun performArchiveRestore(
+    gesture: ArchiveRestoreGesture,
+    clickedArchiveName: String?,
+    actions: ArchiveRestoreActions,
+) {
+    when (val request = restoreRequest(gesture, clickedArchiveName)) {
+        is ArchiveRestoreRequest.Selected -> actions.restoreSelected(request.archiveName)
+        ArchiveRestoreRequest.Latest -> actions.restoreLatest()
     }
 }

@@ -98,18 +98,27 @@ class GroupActionsController(
             }.show(fragmentManager, "SelectAppFragment")
         }
 
-        // 排序按钮
+        // 排序按钮。复用卡片时非自定义排序必须清掉上一组留下的长按。
         binding.btnMove.setOnClickListener { v ->
             if (groupsAdapter.isBatchRunning) return@setOnClickListener
             showSortTypePopupMenu(v, group, groupViewHolder)
         }
-        if (group.config.sortConfig.sortType == SortConfig.SORT_TYPE_CUSTOM) {
-            binding.btnMove.setOnLongClickListener {
-                if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
-                groupViewHolder.toggleSortMode(group, binding.groupRecyclerView.adapter as GroupItemAdapter)
-                true
-            }
-        }
+        val sortTarget = group
+        bindSortLongPress(
+            sortTarget.config.sortConfig.sortType,
+            sortTarget.id,
+            bind = {
+                binding.btnMove.setOnLongClickListener {
+                    if (groupsAdapter.isBatchRunning) return@setOnLongClickListener true
+                    groupViewHolder.toggleSortMode(
+                        sortTarget,
+                        binding.groupRecyclerView.adapter as GroupItemAdapter,
+                    )
+                    true
+                }
+            },
+            clear = { binding.btnMove.setOnLongClickListener(null) },
+        )
 
         // 配置按钮
         binding.btnTune.setOnClickListener {
@@ -215,4 +224,18 @@ class GroupActionsController(
         binding.root.alpha = if (running) 0.7f else 1f
     }
 
+}
+
+/** 自定义排序绑定本次分组；其它排序类型必须清空长按，避免复用卡片写到上一组。 */
+internal fun bindSortLongPress(
+    sortType: Int,
+    groupId: String,
+    bind: (groupId: String) -> Unit,
+    clear: () -> Unit,
+) {
+    if (sortType == SortConfig.SORT_TYPE_CUSTOM) {
+        bind(groupId)
+    } else {
+        clear()
+    }
 }

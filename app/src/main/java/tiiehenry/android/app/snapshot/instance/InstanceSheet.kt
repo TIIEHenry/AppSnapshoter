@@ -13,7 +13,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.R
@@ -39,6 +42,7 @@ class InstanceSheet : BottomSheetDialogFragment() {
         onClick = { instance -> showActions(instance) },
     )
     private var running = false
+    private var activeProgress: ItemProgressDialog? = null
 
     override fun getTheme(): Int = R.style.ThemeOverlay_AppSnapshot_BottomSheet
 
@@ -60,6 +64,8 @@ class InstanceSheet : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
+        activeProgress?.dismissItem()
+        activeProgress = null
         _binding = null
         super.onDestroyView()
     }
@@ -68,12 +74,21 @@ class InstanceSheet : BottomSheetDialogFragment() {
         val app = findApp() ?: return
         val packageDir = app.packageDir
         viewLifecycleOwner.lifecycleScope.launch {
-            val instances = withContext(Dispatchers.IO) {
-                InstanceCatalog(SnapshotApp.getInstance().fileSystem, packageDir).list()
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    InstanceCatalog(SnapshotApp.getInstance().fileSystem, packageDir).list()
+                }
             }
             if (_binding == null) return@launch
-            rows.submit(instances)
-            binding.tvEmpty.visibility = if (instances.isEmpty()) View.VISIBLE else View.GONE
+            result.fold(
+                onSuccess = { instances ->
+                    rows.submit(instances)
+                    binding.tvEmpty.visibility = if (instances.isEmpty()) View.VISIBLE else View.GONE
+                },
+                onFailure = {
+                    if (isAdded) toast(getString(R.string.error_unknown))
+                },
+            )
             binding.btnCreate.isEnabled = !running
         }
     }
@@ -93,7 +108,7 @@ class InstanceSheet : BottomSheetDialogFragment() {
                     0 -> confirm(
                         getString(R.string.instance_restore_title, instance.name),
                         getString(R.string.instance_restore_message),
-                    ) { runOp { restore(instance.id) } }
+                    ) { runOp(detached = true) { restore(instance.id) } }
                     1 -> confirm(
                         getString(R.string.instance_update_title, instance.name),
                         getString(R.string.instance_update_message),
@@ -142,7 +157,7 @@ class InstanceSheet : BottomSheetDialogFragment() {
             .show()
     }
 
-    private fun runOp(block: suspend InstanceStore.() -> String) {
+    private fun runOp(detached: Boolean = false, block: suspend InstanceStore.() -> String) {
         if (running) return
         val app = findApp()
         if (app == null) {
@@ -153,23 +168,37 @@ class InstanceSheet : BottomSheetDialogFragment() {
         isCancelable = false
         binding.btnCreate.isEnabled = false
         val progress = ItemProgressDialog(requireContext())
+        activeProgress = progress
         progress.setItemMessage(getString(R.string.instance_progress_save))
         progress.setItemStatus(getString(R.string.ellipsis))
         progress.showItem()
         val host = requireActivity()
-        host.lifecycleScope.launch {
+        val storeContext = if (detached) host.applicationContext else host
+        val scope = if (detached) {
+            CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        } else {
+            host.lifecycleScope
+        }
+        scope.launch {
             try {
-                val message = InstanceStore(host, app, progress).block()
-                if (isAdded) toast(message)
+                val message = InstanceStore(storeContext, app, progress).block()
+                withContext(Dispatchers.Main) {
+                    if (isAdded) toast(message)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (isAdded) toast(e.message ?: getString(R.string.error_unknown))
+                withContext(Dispatchers.Main) {
+                    if (isAdded) toast(e.message ?: getString(R.string.error_unknown))
+                }
             } finally {
-                progress.dismissItem()
-                running = false
-                if (isAdded) isCancelable = true
-                if (_binding != null) reload()
+                withContext(NonCancellable + Dispatchers.Main) {
+                    runCatching { progress.dismissItem() }
+                    if (activeProgress === progress) activeProgress = null
+                    running = false
+                    if (isAdded) isCancelable = true
+                    if (_binding != null) reload()
+                }
             }
         }
     }

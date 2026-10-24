@@ -2,7 +2,7 @@
 title: "快照系统"
 type: system
 status: active
-updated: 2026-10-23
+updated: 2026-10-24
 summary: "应用备份/恢复核心流程，包含快照创建、存档管理、APK 安装和恢复"
 ---
 
@@ -135,4 +135,4 @@ sequenceDiagram
 - [添加分组后列表不刷新](add-group-refresh.md) — Application 单例 `viewModelScope` 失效导致 `addGroup` 后 UI 不更新；已改走 `AppDataRepository.scope`
 - [添加应用后刷新不及时](add-app-refresh-stale-group.md) — SnapGroup stale 引用与 DiffUtil；已于 6f21f95 完成修复
 - [分组 body 三态可见性](group-body-visibility.md) — expand/empty/content 互斥投影；折叠×空组不再双图标
-- [固定实例](INSTANCE.md) — `{packageDir}/instances/{id}/` 一份备份；对外 SDK 需应用内同意，管控范围为全部或白名单，MCP 与 AppFunction 走同一门禁
+- [固定实例](INSTANCE.md) — `{packageDir}/instances/{id}/` 一份备份；对外 SDK 需应用内同意，管控范围为全部或白名单，本机 MCP 走同一门禁（AppFunction 未实现）

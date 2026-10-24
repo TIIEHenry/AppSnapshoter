@@ -5,12 +5,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,6 +34,7 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
     private val selectedFiles = mutableSetOf<String>()
     private var currentPath: String = ""
     private var rootPath: String = ""
+    private var loadGeneration: Int = 0
 
     private var onFilesSelectedListener: ((List<String>) -> Unit)? = null
 
@@ -167,8 +169,9 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
      * 更新选中状态UI
      */
     private fun updateSelectionUI() {
-        binding.tvSelectedCount.text = getString(R.string.file_picker_selected_count, selectedFiles.size)
-        binding.btnConfirm.isEnabled = selectedFiles.isNotEmpty()
+        val views = _binding ?: return
+        views.tvSelectedCount.text = getString(R.string.file_picker_selected_count, selectedFiles.size)
+        views.btnConfirm.isEnabled = selectedFiles.isNotEmpty()
     }
 
     /**
@@ -212,18 +215,39 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
      * 加载文件列表
      */
     private fun loadFiles() {
-        CoroutineScope(Dispatchers.IO).launch {
+        val requestedPath = currentPath
+        val generation = ++loadGeneration
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val fileSystem = SnapshotApp.getInstance().fileSystem
-                val files = loadFilesInternal(fileSystem, currentPath)
-                withContext(Dispatchers.Main) {
-                    updateUI(files)
+                val files = withContext(Dispatchers.IO) {
+                    loadFilesInternal(fileSystem, requestedPath)
                 }
+                if (!filePickerResultAccepted(
+                        generation,
+                        loadGeneration,
+                        requestedPath,
+                        currentPath,
+                        _binding != null
+                    )
+                ) {
+                    return@launch
+                }
+                updateUI(files, requestedPath)
             } catch (e: Exception) {
+                val showEmpty = filePickerShouldShowEmpty(
+                    e,
+                    filePickerResultAccepted(
+                        generation,
+                        loadGeneration,
+                        requestedPath,
+                        currentPath,
+                        _binding != null
+                    )
+                )
+                if (!showEmpty) return@launch
                 e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    showEmptyState()
-                }
+                showEmptyState()
             }
         }
     }
@@ -259,13 +283,14 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
     /**
      * 更新UI
      */
-    private fun updateUI(files: List<FileItem>) {
-        binding.tvCurrentPath.text = currentPath
+    private fun updateUI(files: List<FileItem>, requestedPath: String) {
+        val views = _binding ?: return
+        views.tvCurrentPath.text = requestedPath
         if (files.isEmpty()) {
             showEmptyState()
         } else {
-            binding.recyclerViewFiles.visibility = View.VISIBLE
-            binding.tvEmpty.visibility = View.GONE
+            views.recyclerViewFiles.visibility = View.VISIBLE
+            views.tvEmpty.visibility = View.GONE
             fileAdapter.submitList(files)
         }
         updateSelectionUI()
@@ -275,8 +300,9 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
      * 显示空状态
      */
     private fun showEmptyState() {
-        binding.recyclerViewFiles.visibility = View.GONE
-        binding.tvEmpty.visibility = View.VISIBLE
+        val views = _binding ?: return
+        views.recyclerViewFiles.visibility = View.GONE
+        views.tvEmpty.visibility = View.VISIBLE
     }
 
     /**
@@ -378,4 +404,21 @@ class FilePickerBottomSheet : BottomSheetDialogFragment() {
             notifyDataSetChanged()
         }
     }
+}
+
+internal fun filePickerResultAccepted(
+    requestGeneration: Int,
+    latestGeneration: Int,
+    requestedPath: String,
+    currentPath: String,
+    viewAlive: Boolean
+): Boolean {
+    return viewAlive &&
+        requestGeneration == latestGeneration &&
+        requestedPath == currentPath
+}
+
+internal fun filePickerShouldShowEmpty(error: Throwable, resultStillCurrent: Boolean): Boolean {
+    if (error is CancellationException) throw error
+    return resultStillCurrent
 }

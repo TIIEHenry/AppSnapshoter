@@ -270,7 +270,7 @@ class TimelineFragment : Fragment() {
             val selectedEntries = timelineViewModel.entries.value.orEmpty()
                 .filter { it.key.id in selectedIds }
             val groups = snapshotViewModel.groupList.value.orEmpty()
-            val timeRange = timelineViewModel.timeRange.value ?: TimelineRepository.defaultLast7Days()
+            val timeRange = timelineViewModel.effectiveTimeRange()
 
             val multiSnapshotCount = selectedEntries.count { it.matchingArchiveNames.size > 1 }
             if (multiSnapshotCount > 0) {
@@ -295,7 +295,7 @@ class TimelineFragment : Fragment() {
             val selectedEntries = timelineViewModel.entries.value.orEmpty()
                 .filter { it.key.id in selectedIds }
             val groups = snapshotViewModel.groupList.value.orEmpty()
-            val timeRange = timelineViewModel.timeRange.value ?: TimelineRepository.defaultLast7Days()
+            val timeRange = timelineViewModel.effectiveTimeRange()
 
             batchOperator.batchDelete(selectedEntries, groups, timeRange) {
                 timelineViewModel.clearSelection()
@@ -311,7 +311,7 @@ class TimelineFragment : Fragment() {
             pendingExportEntries = timelineViewModel.entries.value.orEmpty()
                 .filter { it.key.id in selectedIds }
             pendingExportGroups = snapshotViewModel.groupList.value.orEmpty()
-            pendingExportTimeRange = timelineViewModel.timeRange.value ?: TimelineRepository.defaultLast7Days()
+            pendingExportTimeRange = timelineViewModel.effectiveTimeRange()
             exportDirPicker.launch()
         }
     }
@@ -408,7 +408,7 @@ class TimelineFragment : Fragment() {
 
     private fun updateHeatmap() {
         val entries = timelineViewModel.entries.value.orEmpty()
-        val range = timelineViewModel.timeRange.value ?: TimelineRepository.defaultLast7Days()
+        val range = timelineViewModel.effectiveTimeRange()
         val zone = ZoneId.systemDefault()
         val startDate = Instant.ofEpochMilli(range.startTime).atZone(zone).toLocalDate()
         val endDate = Instant.ofEpochMilli(range.endTimeExclusive - 1).atZone(zone).toLocalDate()

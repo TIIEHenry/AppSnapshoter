@@ -20,11 +20,13 @@ class InstanceProvider : ContentProvider() {
         val packageName = uri.getQueryParameter("packageName").orEmpty()
         val userId = uri.getQueryParameter("userId")?.toIntOrNull() ?: 0
         val groupId = uri.getQueryParameter("groupId").orEmpty()
+        val externalId = uri.getQueryParameter("externalId").orEmpty()
         val request = JSONObject()
             .put("method", "listInstances")
             .put("packageName", packageName)
             .put("userId", userId)
             .put("groupId", groupId)
+            .put("externalId", externalId)
             .toString()
         val caller = context?.let { InstanceCaller.fromBinder(it) }
         val json = InstanceGateway(context!!).call(caller, request)

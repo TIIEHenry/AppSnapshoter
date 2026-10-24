@@ -326,3 +326,17 @@ target_link_libraries(tar-jni
         libtar
         tar
 )
+
+# tar's main, packaged beside libtar-jni.so. Android only extracts lib*.so.
+add_executable(tar-cli
+        tar-cli.c
+)
+target_link_libraries(tar-cli
+        tar
+        libtar
+        libgnu
+)
+add_dependencies(tar-cli tar-jni)
+add_custom_command(TARGET tar-cli POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:tar-cli> $<TARGET_FILE_DIR:tar-jni>/libtar-cli.so
+)

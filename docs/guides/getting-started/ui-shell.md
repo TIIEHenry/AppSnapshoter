@@ -2,7 +2,7 @@
 title: "主界面壳层"
 type: guide
 status: active
-updated: 2026-08-23
+updated: 2026-10-24
 summary: "MainActivity / SettingsActivity 顶栏、底栏、竖屏锁定、可折叠搜索与内容区布局说明"
 ---
 
@@ -14,13 +14,12 @@ summary: "MainActivity / SettingsActivity 顶栏、底栏、竖屏锁定、可�
 ## 结构
 
 ```
-ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根视图
+ConstraintLayout (@id/coordinator)
 ├── toolbar_header
-│   ├── MaterialToolbar (48dp)
-│   └── toolbar_divider (1dp)
-├── FragmentContainerView              ← NavHost，顶部约束到 toolbar_header 底部
-└── BlurView (bottom_navigation_container)   固定宽 176dp，水平居中
-    └── LinearLayout (@id/bottom_navigation)
+│   └── MaterialToolbar (48dp，无分割线)
+├── FragmentContainerView              ← NavHost，顶部约束到 toolbar_header，底部延伸到屏底
+└── BlurView (bottom_navigation_container)       固定宽 176dp，水平居中，底部 44dp + 导航栏 inset
+    └── LinearLayout (@id/bottom_navigation, 58dp)
         ├── ImageButton bottom_nav_archive
         ├── ImageButton bottom_nav_timeline
         └── ImageButton bottom_nav_apps
@@ -43,24 +42,28 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 | 菜单 | `menu_main.xml` — 右上角设置 |
 | 行为 | **固定**，列表滚动不收起、无大标题 |
 
-样式：`Widget.AppSnapshot.Toolbar` + `TextAppearance.AppSnapshot.ToolbarTitle`（17sp TitleMedium）。
+样式：`Widget.AppSnapshot.Toolbar` + `TextAppearance.AppSnapshot.ToolbarTitle`（20sp，medium）。顶栏与页面同用 `@color/background`，不画常驻分割线。
 
 ## 底栏
 
 | 项 | 说明 |
 |----|------|
-| 容器 | `eightbitlab.com.blurview.BlurView`，圆角胶囊悬浮于内容之上 |
-| 宽度 | `@dimen/floating_nav_total_width`（176dp = 3×52dp item + 2×10dp 内边距） |
-| Tab UI | 3 个等宽 `ImageButton`（`design_bottom_navigation_item_max_width` 52dp） |
-| 图标 | `@dimen/floating_nav_icon_size`（26dp），由 `floating_nav_icon_padding_*` 居中 |
+| 容器 | `eightbitlab.com.blurview.BlurView`，悬浮胶囊；固定宽 176dp、水平居中，底部 44dp 再加导航栏 inset |
+| 玻璃 | `@color/bottom_nav_glass_fill` 约 82% 不透明 surface 叠色 + 50dp 模糊 + 细描边；**不是全透窗口** |
+| 圆角 | `@dimen/floating_nav_corner_radius`（等于图标尺寸 26dp） |
+| 高度 | `@dimen/floating_nav_height`（58dp） |
+| Tab UI | 3 个等宽 `ImageButton`（52dp），内边距 13/16dp，纯图标、无文字 |
+| 图标 | `@dimen/floating_nav_icon_size`（26dp），`fitCenter` |
+| 选中态 | 图标 tint 切到 `nav_item_active`（强调色）；未选中为 `nav_item_inactive` 灰色；没有灰胶囊、没有文字字重变化 |
+| 按压 | `bottom_nav_item_color` 只压暗前景，不额外铺背景 |
 | 导航 | `MainActivity.setupBottomNavigation()` 手动绑定 `NavController`（`launchSingleTop` + `restoreState`） |
 | 跨 Tab 跳转 | `MainActivity.selectBottomNavTab(destinationId)`（如时间线 → 存档） |
 | 存档 Tab 长按 | 弹出分组集列表并跳到对应 Header（[分组集](../../systems/snapshot/GROUP_SET.md#底栏长按快跳)；实现为超时后 PopupMenu） |
-| 毛玻璃 | `FloatingBottomNav.setup(activity, container)`，采样根为 `@id/coordinator` |
 | Tab 顺序 | `存档 \| 时间线 \| 应用` |
-| 避让 | 列表调用 `MainActivity.floatingNavContentPaddingBottom()` 增加 `paddingBottom` |
+| 避让 | 内容延伸到屏底；列表调用 `MainActivity.floatingNavContentPaddingBottom()` = 导航栏 inset + 44 + 58 + 12，最后一项可完整滚到玻璃底栏上方 |
+| 模糊实现 | `ui/widget/FloatingBottomNav.kt`：API 31+ 用 `RenderEffectBlur`，更低版本用 `RenderScriptBlur`；采样根为 `@id/coordinator` |
 
-> **为何不用 `BottomNavigationView`**：Material 底栏在横屏切换 Tab 时会 re-layout 并居中 item，导致第一个图标前出现空白；自定义 `LinearLayout` 可保持等宽左对齐。
+> **为何不用 `BottomNavigationView`**：Material 底栏在横屏切换 Tab 时会 re-layout 并居中 item，导致第一个图标前出现空白；自定义 `LinearLayout` 可保持三格等宽、图标居中。信息流页面用紧凑悬浮胶囊而不是贴底通栏，是为了减少底栏对内容的遮挡；玻璃必须带底色，只让下方内容透出轮廓，不能做成全透。
 
 ## 各 Tab 内容区
 
@@ -79,7 +82,7 @@ ConstraintLayout (@id/coordinator)     ← FloatingBottomNav 毛玻璃采样根�
 |----|------|
 | 触发控件 | 筛选行右侧 `AppCompatImageButton`（`Widget.AppSnapshot.FilterRowIcon` 32dp / `FilterToolbarIcon` 44dp）；`scaleType=fitCenter` + `filter_row_icon_inset` 保证图标居中。存档 Tab 无筛选行：`menu_launcher` 最左 `menu_search` 用 `actionLayout`（`action_archive_search.xml` / `FilterToolbarIcon`），`onCreateMenu` 只 `rebindToggle` |
 | 默认 | 仅显示搜索图标 |
-| 展开 | 下方显示 `layout_search_field`（Dense Outlined，14sp），自动弹出键盘 |
+| 展开 | 下方显示 `layout_search_field`（`FilledBox.Dense`，灰底、无静止描边，14sp），自动弹出键盘 |
 | 收起 | 点击行内 ✕（存档为顶栏关闭图标）；过滤词保留，图标在有过滤时变主题色 |
 | 动画 | `CollapsibleSearchController`（`ImageView`）+ `AutoTransition`（180ms）；应用 Tab 动画容器为 `apps_filter_header`；存档为 Fragment 根 `LinearLayout` |
 | 样式 | `Widget.AppSnapshot.SearchField` |
@@ -101,7 +104,7 @@ LinearLayout (@id/apps_filter_header)     ← 左 12dp / 右 8dp padding
 | 项 | 说明 |
 |----|------|
 | 系统/用户筛选 | `AppFilterHelper.setupFilterIconToggles`；`FilterRowIcon.Toggle`；可多选，至少保留一项 |
-| 图标 | `ic_filter_system` / `ic_filter_user` / `ic_search`；选中态背景 `bg_filter_row_icon_toggle` |
+| 图标 | `ic_filter_system` / `ic_filter_user` / `ic_search`；选中态为 `selected_overlay` 灰胶囊（`bg_filter_row_icon_toggle`），不再用浅蓝方块 |
 | 用户 Tab | `Widget.AppSnapshot.TabLayout.Inline`；`filter_tab_start_padding` 8dp、`filter_tab_end_padding` 12dp |
 
 布局：`fragment_apps.xml`、`layout_apps_filter_row.xml`；逻辑：`AppsListComponent` + `AppFilterHelper`。
@@ -131,14 +134,14 @@ LinearLayout (@id/apps_filter_header)     ← 左 12dp / 右 8dp padding
 ```
 LinearLayout (@id/settings_root)
 ├── LinearLayout toolbar_header
-│   ├── MaterialToolbar (48dp) — 标题「设置」
-│   └── toolbar_divider (1dp)
-└── RecyclerView — 设置项列表（忽略应用、关于等）
+│   └── MaterialToolbar (48dp) — 标题「设置」，无分割线
+└── RecyclerView — 设置项卡片列表（左右 16dp，卡片间距 12dp）
 ```
 
 | 项 | 说明 |
 |----|------|
-| 顶栏 | 与主界面同款 `MaterialToolbar`（48dp）+ 分隔线；`setSupportActionBar` + `setDisplayHomeAsUpEnabled` 返回主界面 |
+| 顶栏 | 与主界面同款 `MaterialToolbar`（48dp），背景 `@color/background`、无分割线；`setSupportActionBar` + `setDisplayHomeAsUpEnabled` 返回主界面 |
+| 列表 | 页面底 `@color/background`；`item_setting` 为 `round_white_background` 16dp 圆角卡片，行内 16/12dp，标题 16sp medium、说明 13sp 次要色 |
 | Insets | `toolbar_header` 处理状态栏；`settings_root` 处理导航栏 bottom padding |
 | 子页 | `IgnoreAppsFragment`、`AboutFragment` 以 BottomSheet 展示 |
 
@@ -146,8 +149,8 @@ LinearLayout (@id/settings_root)
 
 | 文件 | 职责 |
 |------|------|
-| `values/themes.xml` | Fluent 2 色板与 Material3 组件样式（含 `Chip.Filter` / `Chip.Tag`） |
-| `values/dimens.xml` | `toolbar_height`、`filter_*`（含 `filter_row_*`、`filter_tab_*`、`filter_section_inset_end`）、`tag_chip_*`、`floating_nav_*` |
+| `values/themes.xml` | 中性灰 token 与 Material3 组件样式（含 `Chip.Filter` / `Chip.Tag`、胶囊按钮、底栏标签） |
+| `values/dimens.xml` | `toolbar_height`、`filter_*`（含 `filter_row_*`、`filter_tab_*`、`filter_section_inset_end`）、`tag_chip_*`、`floating_nav_*`、`corner_*` |
 | `layout/layout_apps_filter_row.xml` | 应用 Tab 用户 Tab + 图标筛选 + 搜索（单行） |
 | `layout/layout_tags_filter.xml` | 应用 Tab 标签 Chip 行 + 展开按钮 |
 | `layout/layout_search_field.xml` | 共享搜索输入布局 |
@@ -155,7 +158,7 @@ LinearLayout (@id/settings_root)
 | `layout/activity_settings.xml` | 设置页顶栏 + 列表 |
 | `main/settings/SettingsActivity.kt` | 设置页 Activity |
 | `AndroidManifest.xml` | Activity `screenOrientation="portrait"` |
-| `ui/widget/FloatingBottomNav.kt` | 底栏毛玻璃 |
 | `ui/widget/CollapsibleSearchController.kt` | 可折叠搜索 |
 | `ui/widget/TagsFilterLayout.kt` | 应用 Tab 标签多选筛选 |
 | `ui/widget/SearchFieldExt.kt` | 搜索框文本监听 |
+| `ui/widget/FloatingBottomNav.kt` | 悬浮底栏毛玻璃：模糊算法、采样根、玻璃叠色 |

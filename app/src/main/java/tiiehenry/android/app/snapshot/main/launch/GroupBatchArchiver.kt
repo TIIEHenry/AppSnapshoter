@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotViewModel
 import tiiehenry.android.app.snapshot.config.AppConfigManager
+import tiiehenry.android.app.snapshot.main.launch.exception.ArchiveFailedException
+import tiiehenry.android.app.snapshot.repository.AppDataRepository
 import tiiehenry.android.app.snapshot.databinding.ItemErrorAppBinding
 import tiiehenry.android.app.snapshot.databinding.ItemSuccessAppBinding
 import tiiehenry.android.app.snapshot.group.ArchivedApp
@@ -106,15 +108,17 @@ class GroupBatchArchiver(
         currentIndex: Int,
         totalStartTime: Long
     ) {
-        if (isCancelled.get()) return
+        if (isCancelled.get()) {
+            finishBatch(
+                loadingDialog, group, erroredList, succeedList,
+                totalStartTime, cancelled = true,
+            )
+            return
+        }
         if (currentIndex >= apps.size) {
-            onRefresh(group)
-            snapshotViewModel.loadGroups()
-            snapshotViewModel.endBatchOperation()
-            Toast.makeText(context, R.string.group_batch_archive_complete, Toast.LENGTH_SHORT).show()
-            updateDialogFinishState(
-                loadingDialog, System.currentTimeMillis() - totalStartTime,
-                succeedList.size, erroredList.size, false
+            finishBatch(
+                loadingDialog, group, erroredList, succeedList,
+                totalStartTime, cancelled = false,
             )
             return
         }
@@ -123,6 +127,18 @@ class GroupBatchArchiver(
         loadingDialog.setLabel(item.appInfo.label)
         loadingDialog.setPackageName(item.appInfo.packageName)
         val startTime = System.currentTimeMillis()
+        val packageDir = item.packageDir
+        val guard = AppDataRepository.getInstance().packageOpGuard
+        if (!guard.tryBeginPackageOpWhileBatch(packageDir)) {
+            erroredList[item] = ArchiveFailedException(
+                context.getString(R.string.batch_operation_in_progress)
+            )
+            createSnapshotsSequentially(
+                loadingDialog, apps, group, erroredList, succeedList,
+                isCancelled, isForceCancelled, currentIndex + 1, totalStartTime
+            )
+            return
+        }
         val snapshotCreator = SnapshotCreator(context, coroutineScope)
         snapshotCreator.createSnapshot(
             loadingDialog, item, group, isForceCancelled,
@@ -140,13 +156,12 @@ class GroupBatchArchiver(
                 }
 
                 override fun onFinish() {
+                    guard.endPackageOp(packageDir)
                     if (isCancelled.get() && currentIndex < apps.size) {
-                        snapshotViewModel.endBatchOperation()
-                        updateDialogFinishState(
-                            loadingDialog, System.currentTimeMillis() - startTime,
-                            succeedList.size, erroredList.size, true
+                        finishBatch(
+                            loadingDialog, group, erroredList, succeedList,
+                            totalStartTime, cancelled = true,
                         )
-                        Toast.makeText(context, R.string.group_batch_archive_cancelled, Toast.LENGTH_SHORT).show()
                     } else {
                         createSnapshotsSequentially(
                             loadingDialog, apps, group, erroredList, succeedList,
@@ -154,7 +169,31 @@ class GroupBatchArchiver(
                         )
                     }
                 }
-            })
+            },
+            callerHoldsPackageOp = true
+        )
+    }
+
+    private fun finishBatch(
+        loadingDialog: GroupItemsProgressDialog,
+        group: SnapGroup,
+        erroredList: Map<ArchivedApp, Exception>,
+        succeedList: List<SuccessSnapshotInfo>,
+        totalStartTime: Long,
+        cancelled: Boolean,
+    ) {
+        onRefresh(group)
+        snapshotViewModel.loadGroups()
+        snapshotViewModel.endBatchOperation()
+        updateDialogFinishState(
+            loadingDialog, System.currentTimeMillis() - totalStartTime,
+            succeedList.size, erroredList.size, cancelled,
+        )
+        Toast.makeText(
+            context,
+            if (cancelled) R.string.group_batch_archive_cancelled else R.string.group_batch_archive_complete,
+            Toast.LENGTH_SHORT,
+        ).show()
     }
 
     private fun calculateArchiveSize(item: ArchivedApp): Long {

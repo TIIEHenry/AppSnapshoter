@@ -14,7 +14,7 @@
         android:id="@+id/filter_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
+        android:background="@color/background"
         android:orientation="vertical">
 
         <LinearLayout
@@ -119,11 +119,6 @@
 
         </HorizontalScrollView>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/outline_variant" />
-
     </LinearLayout>
 
     <FrameLayout
@@ -193,7 +188,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
-        android:elevation="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="8dp"
@@ -223,8 +217,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/timeline_delete"
-            android:textColor="?attr/colorError"
-            app:strokeColor="?attr/colorError" />
+            android:textColor="?attr/colorError" />
 
     </LinearLayout>
 

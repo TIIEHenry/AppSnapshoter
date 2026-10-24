@@ -110,6 +110,8 @@ dependencies {
     implementation(libs.libsu.service)
 
     testImplementation(libs.junit)
+    // 单测类路径上的 android.jar 里 org.json 是桩；协议断言要用真实实现。
+    testImplementation(libs.json)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

@@ -11,7 +11,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import tiiehenry.android.app.snapshot.app.AppInfo
-import tiiehenry.android.app.snapshot.config.ConfigFiles
 import tiiehenry.android.app.snapshot.config.GlobalConfig
 import tiiehenry.android.app.snapshot.group.AddAppItemResult
 import tiiehenry.android.app.snapshot.group.AddAppsResult
@@ -25,6 +24,7 @@ import tiiehenry.android.app.snapshot.group.SetMembershipModeResult
 import tiiehenry.android.app.snapshot.group.UninstallAppResult
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.SnapGroupSet
+import tiiehenry.android.app.snapshot.instance.InstanceCatalog
 import tiiehenry.android.app.snapshot.main.launch.ArchiveListItem
 import tiiehenry.android.app.snapshot.main.launch.archiveAppsFingerprint
 import tiiehenry.android.app.snapshot.main.launch.batch.RestoreRecordStore
@@ -34,6 +34,7 @@ import tiiehenry.android.snapshot.app.UserInfoHide
 import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.IFileType
 import java.nio.file.Paths
+import java.util.concurrent.ConcurrentHashMap
 import java.util.UUID
 import kotlin.io.path.absolutePathString
 
@@ -60,6 +61,7 @@ class AppDataRepository private constructor() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val loadGroupsMutex = Mutex()
     private val loadAppsMutex = Mutex()
+    private val reconciledInstanceDirs = ConcurrentHashMap.newKeySet<String>()
 
     /**
      * [loadGroupsMutex] 内分组/集列表的唯一读源。LiveData 只 [MutableLiveData.postValue]，禁止锁内读 `*.value`。
@@ -91,14 +93,54 @@ class AppDataRepository private constructor() {
     fun loadData(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
         scope.launch {
             isAppsLoading.postValue(true)
-            loadGroups(context, fileSystem, appManager)
+            val groups = loadGroups(context, fileSystem, appManager)
+            reconcileInstances(fileSystem, groups)
             loadApps(fileSystem, appManager)
         }
     }
 
     fun scheduleLoadGroups(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
         scope.launch {
-            loadGroups(context, fileSystem, appManager)
+            val groups = loadGroups(context, fileSystem, appManager)
+            reconcileInstances(fileSystem, groups)
+        }
+    }
+
+    /**
+     * Recover instance directories left behind by a process death during a
+     * commit. This is a write path, so it must hold [packageOpGuard] for every
+     * package directory it touches; a busy directory is retried on the next
+     * group load instead of being skipped forever.
+     */
+    private suspend fun reconcileInstances(
+        fileSystem: IFileSystem,
+        groups: List<SnapGroup>,
+    ) {
+        val liveDirs = groups.flatMap { group ->
+            synchronized(group.apps) { group.apps.map { it.packageDir } }
+        }.toSet()
+        // A removed group can later be re-registered with the same path; drop
+        // stale marks so its instances are reconciled again.
+        reconciledInstanceDirs.retainAll(liveDirs)
+        val dirs = liveDirs.filter { it !in reconciledInstanceDirs }
+        if (dirs.isEmpty()) return
+        withContext(Dispatchers.IO) {
+            for (dir in dirs) {
+                if (packageOpGuard.isGlobalBatchRunning() || !packageOpGuard.tryBeginPackageOp(dir)) {
+                    continue
+                }
+                try {
+                    // Only mark a directory as reconciled when every slot is clean.
+                    // A failed metadata recovery must be retried on the next load.
+                    if (InstanceCatalog(fileSystem, dir).reconcileAll()) {
+                        reconciledInstanceDirs.add(dir)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "instance reconcile failed: $dir", e)
+                } finally {
+                    packageOpGuard.endPackageOp(dir)
+                }
+            }
         }
     }
 
@@ -165,11 +207,15 @@ class AppDataRepository private constructor() {
         }
     }
 
-    suspend fun loadGroups(context: Context, fileSystem: IFileSystem, appManager: IAppManager) {
-        loadGroupsMutex.withLock {
+    suspend fun loadGroups(context: Context, fileSystem: IFileSystem, appManager: IAppManager): List<SnapGroup> {
+        return loadGroupsMutex.withLock {
             reloadGroupsLocked(context, fileSystem, appManager)
+            loadedGroups
         }
     }
+
+    /** 已加载分组的最新快照；等待进行中的 loadGroups 完成，避免读到 postValue 的旧值。 */
+    suspend fun loadedGroupsSnapshot(): List<SnapGroup> = loadGroupsMutex.withLock { loadedGroups }
 
     private suspend fun reloadGroupsLocked(
         context: Context,
@@ -224,6 +270,11 @@ class AppDataRepository private constructor() {
      * 必须在 [loadGroupsMutex] 内调用。
      */
     private fun reprojectArchiveListLocked() {
+        archiveList.postValue(projectArchiveListLocked())
+    }
+
+    /** 必须在 [loadGroupsMutex] 内调用。只生成列表，不写 [archiveList]。 */
+    private fun projectArchiveListLocked(): List<ArchiveListItem> {
         val groups = loadedGroups
         val sets = loadedSets
         val groupsById = groups.associateBy { it.id }
@@ -243,7 +294,7 @@ class AppDataRepository private constructor() {
                 },
             )
         )
-        archiveList.postValue(materializeArchiveList(draft, setsById, groupsById, membersBySetId))
+        return materializeArchiveList(draft, setsById, groupsById, membersBySetId)
     }
 
     private fun deriveLiveMembers(
@@ -313,46 +364,47 @@ class AppDataRepository private constructor() {
             isAppsLoading.postValue(true)
             var succeeded = false
             try {
-                val appsMap = withContext(Dispatchers.IO) {
-                    val appsMap = mutableMapOf<UserInfoHide, List<AppInfo>>()
+                val catalog = withContext(Dispatchers.IO) {
                     val userInfos = appManager.users ?: listOf()
-
                     Log.i(TAG, "loadApps: userInfos $userInfos")
-                    if (userInfos.isEmpty()) {
-                        return@withContext null
-                    }
-                    for (userInfo in userInfos) {
-                        val userId = userInfo.id
-                        try {
-                            val packageNames = appManager.getInstalledPackages(0, userId) ?: emptyList()
-                            val apps = packageNames.mapNotNull { packageName ->
-                                try {
-                                    val packageInfo = appManager.getPackageInfo(packageName, 0, userId)
-                                    AppInfo(
-                                        fs = fileSystem,
-                                        appManager = appManager,
-                                        packageName = packageName,
-                                        userId = userId,
-                                        versionName = packageInfo?.versionName,
-                                        versionCode = packageInfo?.longVersionCode ?: 0
-                                    )
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    null
-                                }
-                            }
-                            appsMap[userInfo] = apps
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to load apps for user $userId", e)
+                    scanInstalledCatalog(
+                        users = userInfos,
+                        userId = { it.id },
+                        installedPackages = { user ->
+                            appManager.getInstalledPackages(0, user.id)
+                        },
+                        readPackage = { user, packageName ->
+                            val packageInfo = appManager.getPackageInfo(packageName, 0, user.id)
+                            CatalogPackage(
+                                packageName = packageName,
+                                versionName = packageInfo?.versionName,
+                                versionCode = packageInfo?.longVersionCode ?: 0L,
+                            )
+                        },
+                        onUserFailure = { userId, error ->
+                            Log.e(TAG, "Failed to load apps for user $userId", error)
+                        },
+                        onPackageFailure = { error -> error.printStackTrace() },
+                    )
+                }
+                val rows = installedCatalogToPublish(catalog)
+                if (rows != null) {
+                    val appsMap = rows.mapValues { (user, packages) ->
+                        packages.map { row ->
+                            AppInfo(
+                                fs = fileSystem,
+                                appManager = appManager,
+                                packageName = row.packageName,
+                                userId = user.id,
+                                versionName = row.versionName,
+                                versionCode = row.versionCode,
+                            )
                         }
                     }
-                    appsMap
-                }
-                if (appsMap != null) {
                     appsList.postValue(appsMap)
                     markAppsCatalogLoaded()
                     succeeded = true
-                } else {
+                } else if (catalog.noUsers) {
                     Log.e(TAG, "loadApps: no users, catalog not ready")
                 }
             } catch (e: Exception) {
@@ -474,97 +526,55 @@ class AppDataRepository private constructor() {
 
     /**
      * 扫描集目录直接子目录并登记为分组。返回新登记数量。
+     * 列目录或子项 stat 失败时不改登记、不清 MMKV、不改 groupOrder、不 save。
      */
     private fun discoverGroupsLocked(fileSystem: IFileSystem, set: SnapGroupSet): Int {
         val setPath = GroupSetMembership.normalizePath(set.path)
-        val names = try {
-            fileSystem.listDir(setPath) ?: emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "discoverGroups listDir failed", e)
-            emptyList()
+        val groupIds = GlobalConfig.groups
+        val pathsById = groupIds.associateWith { id ->
+            (loadedGroups.find { it.id == id } ?: SnapGroup(id)).path
+        }
+        val result = discoverGroupSetMembers(
+            setPath = setPath,
+            groups = groupIds,
+            pathsById = pathsById,
+            groupOrder = set.groupOrder,
+            listDir = { fileSystem.listDir(it) },
+            fileType = { fileSystem.fileType(it) },
+            groupJsonExists = { fileSystem.exists(it) },
+        )
+        if (!result.committed) {
+            Log.e(TAG, "discoverGroups aborted; registration kept: ${result.failure}")
+            return 0
         }
 
-        val pathToGroup = mutableMapOf<String, SnapGroup>()
-        for (id in GlobalConfig.groups) {
-            val g = loadedGroups.find { it.id == id } ?: SnapGroup(id)
-            pathToGroup[GroupSetMembership.normalizePath(g.path)] = g
-        }
-
-        var newCount = 0
-        val foundBasenames = mutableListOf<String>()
-        val registeredIds = GlobalConfig.groups.toMutableList()
-
-        for (name in names) {
-            if (name.startsWith(".")) continue
-            val childPath = Paths.get(setPath, name).absolutePathString()
-            val type = try {
-                fileSystem.fileType(childPath)
-            } catch (e: Exception) {
-                continue
-            }
-            if (type != IFileType.TYPE_DIR) continue
-
-            val hasGroupJson = fileSystem.exists(
-                Paths.get(childPath, ConfigFiles.GROUP_CONFIG_FILE).absolutePathString()
-            )
-            if (GroupSetMembership.looksLikePackageName(name) && !hasGroupJson) {
-                Log.i(TAG, "discoverGroups skip package-like dir without group.json: $name")
-                continue
-            }
-
-            foundBasenames += name
-            val normalizedChild = GroupSetMembership.normalizePath(childPath)
-            if (pathToGroup.containsKey(normalizedChild)) {
-                continue
-            }
-            val groupId = UUID.randomUUID().toString().substring(0, 7)
-            val group = SnapGroup(groupId)
-            group.path = childPath
-            if (hasGroupJson) {
+        for ((id, dir) in result.added) {
+            val group = SnapGroup(id)
+            group.path = dir.path
+            if (dir.hasGroupJson) {
                 group.config.load()
             } else {
-                group.name = name
+                group.name = dir.basename
                 group.config.save()
             }
-            registeredIds += groupId
-            pathToGroup[normalizedChild] = group
-            newCount++
         }
-
-        // Remove groups under this set whose directories disappeared
-        val toRemove = registeredIds.filter { id ->
-            val g = pathToGroup.values.find { it.id == id } ?: SnapGroup(id)
-            val p = GroupSetMembership.normalizePath(g.path)
-            GroupSetMembership.isMemberOf(p, setPath) &&
-                GroupSetMembership.basename(p) !in foundBasenames
-        }
-        for (id in toRemove) {
-            registeredIds.remove(id)
+        GlobalConfig.groups = result.groups
+        for (id in result.removedIds) {
             SnapGroup(id).config.mmkv.clearAll()
         }
-
-        GlobalConfig.groups = registeredIds.distinct()
-
-        val order = set.groupOrder.toMutableList()
-        for (base in foundBasenames) {
-            if (base !in order) order += base
-        }
-        order.removeAll { it !in foundBasenames }
-        set.groupOrder = order
+        set.groupOrder = result.groupOrder
         set.save()
 
-        val memberIds = registeredIds.filter { id ->
-            val g = pathToGroup.values.find { it.id == id } ?: SnapGroup(id)
-            GroupSetMembership.isMemberOf(
-                GroupSetMembership.normalizePath(g.path),
-                setPath,
-            )
+        val memberIds = result.groups.filter { id ->
+            val path = result.added.firstOrNull { it.first == id }?.second?.path
+                ?: pathsById[id]
+                ?: return@filter false
+            GroupSetMembership.isMemberOf(GroupSetMembership.normalizePath(path), setPath)
         }.toSet()
         GlobalConfig.archiveRoots = GlobalConfig.archiveRoots.filterNot {
             it is ArchiveRoot.Group && it.groupId in memberIds
         }
-
-        return newCount
+        return result.newCount
     }
 
     fun refreshGroupSet(
@@ -606,10 +616,10 @@ class AppDataRepository private constructor() {
         appManager: IAppManager,
         setId: String,
         mode: DeleteGroupSetMode = DeleteGroupSetMode.SET_ONLY,
-        onComplete: (() -> Unit)? = null,
+        onComplete: ((Boolean) -> Unit)? = null,
     ) {
         scope.launch {
-            try {
+            val success = try {
                 loadGroupsMutex.withLock {
                     val set = loadedSets.find { it.id == setId }
                         ?: SnapGroupSet(setId)
@@ -617,33 +627,62 @@ class AppDataRepository private constructor() {
                     val memberIds = GlobalConfig.groups.filter { id ->
                         GroupSetMembership.isMemberOf(SnapGroup(id).path, setPath)
                     }
-                    val roots = GlobalConfig.archiveRoots.toMutableList()
-                    val setIndex = roots.indexOfFirst { it is ArchiveRoot.Set && it.setId == setId }
-                    roots.removeAll { it is ArchiveRoot.Set && it.setId == setId }
-
-                    when (mode) {
-                        DeleteGroupSetMode.SET_ONLY -> {
-                            val insertAt = if (setIndex >= 0) setIndex else roots.size
-                            val independents = memberIds.map { ArchiveRoot.Group(it) }
-                            roots.addAll(insertAt, independents)
-                        }
-                        DeleteGroupSetMode.SET_AND_GROUPS,
-                        DeleteGroupSetMode.DELETE_FILES -> {
-                            GlobalConfig.groups = GlobalConfig.groups.filterNot { it in memberIds }
-                            memberIds.forEach { SnapGroup(it).config.mmkv.clearAll() }
-                            if (mode == DeleteGroupSetMode.DELETE_FILES) {
-                                fileSystem.delete(set.path)
-                            }
-                        }
-                    }
-                    GlobalConfig.archiveRoots = roots
+                    val plan = planGroupSetDeletion(
+                        mode = mode,
+                        setId = setId,
+                        memberIds = memberIds,
+                        groups = GlobalConfig.groups,
+                        archiveRoots = GlobalConfig.archiveRoots,
+                        deleteSetDirectory = { fileSystem.delete(set.path) },
+                    )
+                    if (!plan.success) return@withLock false
+                    GlobalConfig.groups = plan.groups
+                    plan.clearMemberIds.forEach { SnapGroup(it).config.mmkv.clearAll() }
+                    GlobalConfig.archiveRoots = plan.archiveRoots
                     set.config.clearLocal()
                     reloadGroupsLocked(context, fileSystem, appManager)
+                    true
                 }
-                withContext(Dispatchers.Main) { onComplete?.invoke() }
             } catch (e: Exception) {
                 Log.e(TAG, "deleteGroupSet failed", e)
-                withContext(Dispatchers.Main) { onComplete?.invoke() }
+                false
+            }
+            withContext(Dispatchers.Main) { onComplete?.invoke(success) }
+        }
+    }
+
+    /**
+     * 跳进分组前，在锁内展开所属集和分组并投影。
+     * 释放锁后于主线程先写 [archiveList]，再调用 [writeNavigate]。
+     * 找不到分组时不改列表，仍写出导航事件。
+     */
+    fun expandArchiveForNavigation(groupId: String, writeNavigate: (String) -> Unit) {
+        scope.launch {
+            val projected = try {
+                loadGroupsMutex.withLock {
+                    expandThenProject(
+                        groupId = groupId,
+                        groups = loadedGroups,
+                        sets = loadedSets,
+                        groupIdOf = { it.id },
+                        groupPathOf = { it.path },
+                        markGroupExpanded = { it.isCollapsed = false },
+                        setPathOf = { it.path },
+                        markSetExpanded = { it.isCollapsed = false },
+                        project = { projectArchiveListLocked() },
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "expandArchiveForNavigation failed", e)
+                null
+            }
+            withContext(Dispatchers.Main) {
+                emitNavigateAfterArchiveList(
+                    groupId = groupId,
+                    projected = projected,
+                    writeArchiveList = { archiveList.value = it },
+                    writeNavigate = writeNavigate,
+                )
             }
         }
     }
@@ -1125,40 +1164,21 @@ class AppDataRepository private constructor() {
                 return MoveAppResult.Error("source packageDir missing")
             }
 
-            if (dstExists) {
-                when {
-                    isCompletelyEmptyDir(fileSystem, targetDir!!) -> {
-                        fileSystem.delete(targetDir!!)
-                    }
-                    isIncompleteRelativeTo(fileSystem, sourceDir!!, targetDir!!) -> {
-                        fileSystem.delete(targetDir!!)
-                    }
-                    else -> return MoveAppResult.TargetNonEmpty
+            val result = transferPackageDirectory(
+                fileSystem,
+                sourceDir!!,
+                targetDir!!,
+            ) {
+                moveGroupIcon(fileSystem, source.path, target.path, packageName)
+                loadGroupsMutex.withLock {
+                    finalizeMoveMetadata(source, target, packageName)
+                    reloadGroupsLocked(context, fileSystem, appManager)
                 }
             }
-
-            val moved = fileSystem.move(sourceDir!!, targetDir!!)
-            if (!moved) {
-                val copied = fileSystem.copyRecursively(sourceDir!!, targetDir!!, false)
-                if (!copied || !isCompleteRelativeTo(fileSystem, sourceDir!!, targetDir!!)) {
-                    if (fileSystem.exists(targetDir!!)) {
-                        runCatching { fileSystem.delete(targetDir!!) }
-                    }
-                    return MoveAppResult.Error("move/copy failed")
-                }
-                if (!fileSystem.delete(sourceDir!!)) {
-                    Log.w(TAG, "copied but failed to delete source: $sourceDir")
-                    return MoveAppResult.Error("copied but source delete failed")
-                }
+            if (result is MoveAppResult.Error && result.message.contains("source delete failed")) {
+                Log.w(TAG, "failed to delete source: $sourceDir")
             }
-
-            moveGroupIcon(fileSystem, source.path, target.path, packageName)
-
-            return loadGroupsMutex.withLock {
-                finalizeMoveMetadata(source, target, packageName)
-                reloadGroupsLocked(context, fileSystem, appManager)
-                MoveAppResult.Moved
-            }
+            return result
         } catch (e: Exception) {
             Log.e(TAG, "moveAppBetweenGroups failed", e)
             return MoveAppResult.Error(e.message ?: "move failed")
@@ -1215,58 +1235,9 @@ class AppDataRepository private constructor() {
         }
     }
 
-    private fun isCompletelyEmptyDir(fileSystem: IFileSystem, path: String): Boolean {
-        if (!fileSystem.exists(path)) return true
-        if (fileSystem.fileType(path) != IFileType.TYPE_DIR) return false
-        val entries = fileSystem.listDir(path).orEmpty().filter { it != "." && it != ".." }
-        return entries.isEmpty()
-    }
-
-    private fun collectFileEntries(fileSystem: IFileSystem, root: String): Map<String, Long> {
-        val result = linkedMapOf<String, Long>()
-        fun walk(dir: String, rel: String) {
-            for (name in fileSystem.listDir(dir).orEmpty()) {
-                if (name == "." || name == "..") continue
-                val child = Paths.get(dir, name).absolutePathString()
-                val childRel = if (rel.isEmpty()) name else "$rel/$name"
-                when (fileSystem.fileType(child)) {
-                    IFileType.TYPE_DIR -> walk(child, childRel)
-                    IFileType.TYPE_FILE -> result[childRel] = fileSystem.length(child)
-                }
-            }
-        }
-        if (fileSystem.exists(root) && fileSystem.fileType(root) == IFileType.TYPE_DIR) {
-            walk(root, "")
-        }
-        return result
-    }
-
     private fun isCompletePackageDir(fileSystem: IFileSystem, path: String): Boolean {
         if (!fileSystem.exists(path) || fileSystem.fileType(path) != IFileType.TYPE_DIR) return false
         return !isCompletelyEmptyDir(fileSystem, path)
-    }
-
-    private fun isCompleteRelativeTo(
-        fileSystem: IFileSystem,
-        source: String,
-        target: String,
-    ): Boolean {
-        val src = collectFileEntries(fileSystem, source)
-        if (src.isEmpty()) return isCompletelyEmptyDir(fileSystem, target)
-        val dst = collectFileEntries(fileSystem, target)
-        for ((rel, size) in src) {
-            if (dst[rel] != size) return false
-        }
-        return true
-    }
-
-    private fun isIncompleteRelativeTo(
-        fileSystem: IFileSystem,
-        source: String,
-        target: String,
-    ): Boolean {
-        if (isCompletelyEmptyDir(fileSystem, target)) return true
-        return !isCompleteRelativeTo(fileSystem, source, target)
     }
 
     fun deleteGroup(

@@ -5,6 +5,9 @@ import tiiehenry.android.app.snapshot.archive.ArchiveItem
 import tiiehenry.android.app.snapshot.archive.ArchivedApks
 import tiiehenry.android.app.snapshot.group.SnapGroup
 import tiiehenry.android.app.snapshot.group.ArchivedApp
+import tiiehenry.android.app.snapshot.instance.InstanceCatalog
+import tiiehenry.android.app.snapshot.instance.InstancePaths
+import tiiehenry.android.app.snapshot.repository.AppDataRepository
 import java.io.File
 import kotlin.io.path.absolutePathString
 import java.nio.file.Paths
@@ -23,10 +26,13 @@ object ArchiveManager {
      * @param archiveItem 要删除的存档项
      * @return 是否删除成功
      */
-    suspend fun deleteArchive(item: ArchivedApp, archiveItem: ArchiveItem): Boolean {
+    suspend fun deleteArchive(
+        item: ArchivedApp,
+        archiveItem: ArchiveItem,
+        packageOpHeld: Boolean = false,
+    ): Boolean = withPackageOp(item.packageDir, packageOpHeld, false) {
         val fs = SnapshotApp.getInstance().fileSystem
-
-        return deleteArchiveThenCleanup(
+        deleteArchiveThenCleanup(
             delete = { fs.delete(archiveItem.path) },
             cleanup = { cleanupArchivedApks(item, archiveItem) }
         )
@@ -57,9 +63,19 @@ object ArchiveManager {
                         other.metaInfo.packageInfo.size == size
             }
         }
+        // If the instance catalog cannot be read, keep the APK: deleting a
+        // shared payload that an instance may still need is worse than leaking.
+        val isReferencedByInstance = try {
+            InstanceCatalog(
+                SnapshotApp.getInstance().fileSystem,
+                item.packageDir,
+            ).referencesApk(versionCode, size)
+        } catch (e: Exception) {
+            true
+        }
 
         // 如果没有被引用，删除archiveFiles
-        if (!isReferencedByOther && archiveFiles != null) {
+        if (!isReferencedByOther && !isReferencedByInstance && archiveFiles != null) {
             archiveFiles.forEach { file ->
                 try {
                     file.delete()
@@ -80,20 +96,27 @@ object ArchiveManager {
      * @param item 应用快照项
      * @return 是否清空成功
      */
-    suspend fun clearAllArchives(item: ArchivedApp): Boolean {
+    suspend fun clearAllArchives(item: ArchivedApp, packageOpHeld: Boolean = false): Boolean =
+        withPackageOp(item.packageDir, packageOpHeld, false) {
         val fs = SnapshotApp.getInstance().fileSystem
 
-        return try {
+        try {
             // 删除存档子目录，但保留图标文件
             val archiveNames = fs.listDir(item.packageDir)
+            // Check the directory, not decoded metadata: a corrupt instance.json
+            // must not make clear-all delete the shared APKs it still needs.
+            val hasInstances = InstanceCatalog(fs, item.packageDir).hasSlots()
+            val deleted = mutableListOf<Boolean>()
             for (archiveName in archiveNames) {
+                if (archiveName == InstancePaths.ROOT_DIR) continue
+                if (archiveName == "apks" && hasInstances) continue
                 val archivePath = Paths.get(item.packageDir, archiveName).absolutePathString()
-                // 跳过图标文件，只删除存档目录
+                // 跳过图标文件，只删除存档目录。跳过的路径不参与成败。
                 if (archivePath != item.iconFile) {
-                    fs.delete(archivePath)
+                    deleted += fs.delete(archivePath)
                 }
             }
-            true
+            clearedArchivesSucceeded(deleted)
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -106,14 +129,18 @@ object ArchiveManager {
      * @param group 所属组
      * @return 是否删除成功
      */
-    suspend fun deleteAppCompletely(item: ArchivedApp, group: SnapGroup): Boolean {
+    suspend fun deleteAppCompletely(
+        item: ArchivedApp,
+        group: SnapGroup,
+        packageOpHeld: Boolean = false,
+    ): Boolean = withPackageOp(item.packageDir, packageOpHeld, false) {
         val fs = SnapshotApp.getInstance().fileSystem
 
-        return try {
-            // 完全删除应用目录和图标文件
-            fs.delete(item.packageDir)
-            fs.delete(item.iconFile)
-            true
+        try {
+            val packageDeleted = fs.delete(item.packageDir)
+            val iconInside = iconResidesInPackageDir(item.packageDir, item.iconFile)
+            val iconDeleted = if (packageDeleted && !iconInside) fs.delete(item.iconFile) else true
+            completeAppDeletionSucceeded(packageDeleted, iconInside, iconDeleted)
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -143,6 +170,27 @@ object ArchiveManager {
     fun getSortedArchives(item: ArchivedApp): List<ArchiveItem> {
         return item.archives.values.toList().sortedByDescending { it.metaInfo.makeTime }
     }
+
+    /**
+     * Serialize archive mutations with instance backup/restore on the same
+     * packageDir. Callers already holding the guard (single snapshot, global
+     * batch) pass [alreadyHeld] so this does not try to re-enter it.
+     */
+    private suspend fun <T> withPackageOp(
+        packageDir: String,
+        alreadyHeld: Boolean,
+        busy: T,
+        block: suspend () -> T,
+    ): T {
+        if (alreadyHeld) return block()
+        val guard = AppDataRepository.getInstance().packageOpGuard
+        if (guard.isGlobalBatchRunning() || !guard.tryBeginPackageOp(packageDir)) return busy
+        return try {
+            block()
+        } finally {
+            guard.endPackageOp(packageDir)
+        }
+    }
 }
 
 /** A failed filesystem delete leaves its APK references intact. */
@@ -150,4 +198,29 @@ internal fun deleteArchiveThenCleanup(delete: () -> Boolean, cleanup: () -> Unit
     val deleted = try { delete() } catch (_: Exception) { false }
     if (deleted) cleanup()
     return deleted
+}
+
+/** Empty means nothing had to be deleted, which is success. Any false fails the batch. */
+internal fun clearedArchivesSucceeded(deleteResults: List<Boolean>): Boolean = deleteResults.all { it }
+
+/**
+ * A directory delete of false fails the removal.
+ * An icon inside that directory is already gone when the directory delete succeeds,
+ * so a later icon delete is not required.
+ * An icon outside the directory succeeds only when that delete also returns true.
+ */
+internal fun completeAppDeletionSucceeded(
+    packageDirDeleted: Boolean,
+    iconInsidePackageDir: Boolean,
+    iconDeleted: Boolean,
+): Boolean {
+    if (!packageDirDeleted) return false
+    if (iconInsidePackageDir) return true
+    return iconDeleted
+}
+
+internal fun iconResidesInPackageDir(packageDir: String, iconFile: String): Boolean {
+    val root = Paths.get(packageDir).toAbsolutePath().normalize()
+    val icon = Paths.get(iconFile).toAbsolutePath().normalize()
+    return icon.startsWith(root)
 }

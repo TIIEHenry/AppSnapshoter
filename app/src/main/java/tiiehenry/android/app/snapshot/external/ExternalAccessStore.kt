@@ -4,12 +4,17 @@ import android.content.Context
 import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONArray
 import com.alibaba.fastjson2.JSONObject
+import com.tencent.mmkv.MMKV
 
 class ExternalAccessStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val mmkv = MMKV.mmkvWithID(MMKV_ID)
+
+    init {
+        migrateLegacy(context.applicationContext)
+    }
 
     fun read(): ExternalAccessState {
-        val raw = prefs.getString(KEY, null) ?: return ExternalAccessState()
+        val raw = mmkv.decodeString(KEY, null) ?: return ExternalAccessState()
         return try {
             val parsed = JSON.parseObject(raw) ?: return ExternalAccessState()
             decode(parsed)
@@ -19,18 +24,36 @@ class ExternalAccessStore(context: Context) {
     }
 
     fun write(state: ExternalAccessState) {
-        prefs.edit().putString(KEY, encode(state).toString()).apply()
+        mmkv.encode(KEY, encode(state).toString())
     }
 
     fun update(block: (ExternalAccessState) -> ExternalAccessState): ExternalAccessState {
-        val next = block(read())
-        write(next)
-        return next
+        // MMKV instances share the same file; use the process-wide lock so
+        // concurrent read-modify-write calls cannot drop approvals.
+        synchronized(lock) {
+            val next = block(read())
+            write(next)
+            return next
+        }
     }
 
     companion object {
-        private const val PREFS = "external_instance_access"
+        private val lock = Any()
+        private const val MMKV_ID = "external_instance_access"
         private const val KEY = "state"
+        private const val LEGACY_PREFS = "external_instance_access"
+
+        /** 一次性迁移旧版 SharedPreferences；迁移后只读写 MMKV。 */
+        private fun migrateLegacy(context: Context) {
+            synchronized(lock) {
+                val mmkv = MMKV.mmkvWithID(MMKV_ID)
+                if (mmkv.containsKey(KEY)) return
+                val prefs = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+                val raw = prefs.getString(KEY, null) ?: return
+                mmkv.encode(KEY, raw)
+                prefs.edit().remove(KEY).apply()
+            }
+        }
 
         fun encode(state: ExternalAccessState): JSONObject = JSONObject()
             .fluentPut("enabled", state.enabled)

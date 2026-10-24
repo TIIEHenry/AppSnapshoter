@@ -42,7 +42,9 @@ internal object RestorePreflight {
                 }
             }
         }
+        val declaredItemNames = declaredItems.toSet()
         val extras = metaInfo.extraItems.orEmpty().map { (name, target) ->
+            if (name in declaredItemNames) throw ArchiveValidationException("$archiveDir/$name")
             val path = Paths.get(target).normalize()
             if (!path.isAbsolute || path.parent == null) throw ArchiveValidationException(target)
             read(name, archiveDir) to target

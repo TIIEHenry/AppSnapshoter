@@ -18,8 +18,9 @@ object InstanceSlot {
         val metaFile = java.nio.file.Paths.get(slotDir, MetaInfoHelper.META_INFO_FILE_NAME)
             .toString()
         val meta = MetaInfoHelper.read(fs, metaFile)
-            ?: throw InstanceException("missing meta")
-        val pkgInfo = meta.packageInfo ?: throw InstanceException("missing package info")
+            ?: throw InstanceException("missing meta", InstanceError.SLOT_INVALID)
+        val pkgInfo = meta.packageInfo
+            ?: throw InstanceException("missing package info", InstanceError.SLOT_INVALID)
         val live = archivedApp.appInfo
         val appInfo = AppInfo(
             fs,

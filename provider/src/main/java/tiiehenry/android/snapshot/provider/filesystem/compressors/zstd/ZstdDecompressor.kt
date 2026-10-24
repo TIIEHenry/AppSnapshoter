@@ -10,7 +10,11 @@ import tiiehenry.android.snapshot.file.IFileSystem
 import tiiehenry.android.snapshot.fs.CompressState
 import tiiehenry.android.snapshot.fs.IFileType
 import tiiehenry.android.snapshot.provider.filesystem.ReliablePipeTransfer
+import tiiehenry.android.snapshot.provider.filesystem.extractScratch
+import tiiehenry.android.snapshot.provider.filesystem.publishExtractedDirectory
+import tiiehenry.android.snapshot.provider.filesystem.shouldCommitExtract
 import tiiehenry.android.snapshot.task.ITaskHandler
+import java.util.UUID
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -34,8 +38,9 @@ object ZstdDecompressor {
 
             override fun start() {
                 if (!state.compareAndSet(CompressState.COMPRESS_STATE_NONE, CompressState.COMPRESS_STATE_RUNNING)) return
+                val scratch = extractScratch(targetDir, UUID.randomUUID().toString())
+                var committed = false
                 try {
-                    if (cancelled.get()) throw CancellationException("Decompression cancelled")
                     callback.onStart()
                     val sourceSize = fileSystem.length(file)
                     // Open the archive before touching the destination or starting
@@ -44,10 +49,9 @@ object ZstdDecompressor {
                         ?: throw IOException("Cannot open archive: $file")
                     ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { input ->
                         ZstdInputStream(input).use { decompressed ->
-                            check(fileSystem.mkdirs(targetDir) || fileSystem.fileType(targetDir) == IFileType.TYPE_DIR) {
-                                "Cannot create extraction directory: $targetDir"
+                            check(fileSystem.mkdirs(scratch.temp) || fileSystem.fileType(scratch.temp) == IFileType.TYPE_DIR) {
+                                "Cannot create extraction directory: ${scratch.temp}"
                             }
-                            check(fileSystem.cleanDir(targetDir)) { "Cannot clear extraction directory: $targetDir" }
                             ReliablePipeTransfer().use { pipe ->
                                 activePipe.set(pipe)
                                 if (cancelled.get()) throw CancellationException("Decompression cancelled")
@@ -72,7 +76,7 @@ object ZstdDecompressor {
                                             }
                                         },
                                         consume = { tarInput ->
-                                            if (!fileSystem.extractTarFromFd(tarInput, targetDir)) {
+                                            if (!fileSystem.extractTarFromFd(tarInput, scratch.temp)) {
                                                 throw IOException("Tar extraction failed")
                                             }
                                         }
@@ -81,7 +85,21 @@ object ZstdDecompressor {
                             }
                         }
                     }
-                    if (cancelled.get()) throw CancellationException("Decompression cancelled")
+                    if (!shouldCommitExtract(cancelled.get(), extracted = true)) {
+                        throw CancellationException("Decompression cancelled")
+                    }
+                    if (!publishExtractedDirectory(
+                            scratch.temp,
+                            targetDir,
+                            scratch.backup,
+                            fileSystem::exists,
+                            fileSystem::move,
+                            fileSystem::delete
+                        )
+                    ) {
+                        throw IOException("Failed to replace $targetDir")
+                    }
+                    committed = true
                     val targetSize = fileSystem.calculateSize(targetDir)
                     state.set(CompressState.COMPRESS_STATE_COMPLETE)
                     callback.onDone(sourceSize, targetSize, "")
@@ -91,6 +109,7 @@ object ZstdDecompressor {
                     callback.onError(error.message ?: "Decompression failed")
                 } finally {
                     activePipe.getAndSet(null)?.close()
+                    if (!committed) runCatching { fileSystem.delete(scratch.temp) }
                 }
             }
 

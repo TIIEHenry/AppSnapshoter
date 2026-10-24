@@ -3,7 +3,7 @@ title: "app 模块"
 type: module
 status: active
 updated: 2026-08-23
-summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragments、ViewModels、配置管理；Fluent 2 主界面壳层；中英双语 i18n"
+summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragments、ViewModels、配置管理；中性灰分组卡片主界面壳层；中英双语 i18n"
 ---
 
 # app 模块
@@ -59,7 +59,7 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 ### `main` — 主界面
 | 包 | 关键类 | 职责 |
 |---|--------|------|
-| `main` | `MainActivity` | 主 Activity：竖屏锁定、紧凑顶栏、悬浮底栏、权限检查、`floatingNavContentPaddingBottom()` |
+| `main` | `MainActivity` | 主 Activity：竖屏锁定、紧凑顶栏、悬浮毛玻璃底栏、权限检查、`floatingNavContentPaddingBottom()` |
 | `main.launch` | `LauncherFragment`, `LauncherViewModel`, `GroupsAdapter`, `GroupItemAdapter`, `GroupActionsController`, `GroupBatchArchiver` | 存档 Tab：分组列表、快照/恢复操作 |
 | `main.launch.addgroup` | `AddGroupBottomSheet` | 创建分组 BottomSheet |
 | `main.launch.app` | `AppConfigFragment` | 应用配置 BottomSheet |
@@ -123,26 +123,26 @@ summary: "UI 层 — 87 个 Kotlin 文件，24 个包，含 Activities、Fragmen
 | `TagsFilterLayout` | 标签筛选：单行横向滚动 + 同行展开/收起；reparent 使用 `FrameLayout.LayoutParams`；样式 `Widget.AppSnapshot.Chip.Tag`（22dp，11sp） |
 | `SearchFieldExt` | 搜索框扩展函数 |
 | `CollapsibleSearchController` | 筛选行 `ImageView` 图标 ↔ `layout_search_field` 展开/收起（时间线、应用 Tab、选应用、忽略应用） |
-| `FloatingBottomNav` | 悬浮底栏 `BlurView` 毛玻璃（采样根 `coordinator`） |
+| `FloatingBottomNav` | 悬浮底栏毛玻璃：`RenderEffectBlur` / `RenderScriptBlur`、采样根、82% 不透明玻璃叠色 |
 
 ## 主界面布局（`activity_main.xml`）
 
 ```
 ConstraintLayout (@id/coordinator)
-├── LinearLayout toolbar_header — MaterialToolbar (48dp) + 分隔线
-├── FragmentContainerView — NavHost，贴顶栏下方
-└── BlurView — 悬浮胶囊底栏（176dp 固定宽）
-    └── LinearLayout — 3× ImageButton Tab（26dp 图标）
+├── LinearLayout toolbar_header — MaterialToolbar (48dp，无分隔线)
+├── FragmentContainerView — NavHost，顶部约束到顶栏，底部延伸到屏底
+└── BlurView bottom_navigation_container — 固定宽 176dp、水平居中，底部 44dp + 导航栏 inset
+    └── LinearLayout bottom_navigation (58dp) — 3× 等宽 ImageButton（26dp 图标，无文字）
 ```
 
-顶栏固定不随列表滚动；列表通过 `floatingNavContentPaddingBottom()` 避让底栏。Tab 导航由 `MainActivity.setupBottomNavigation()` 绑定 `NavController`。
+顶栏固定不随列表滚动；内容延伸到屏底，列表通过 `floatingNavContentPaddingBottom()`（导航栏 inset + 44 + 58 + 12）留出底部空白，最后一项不被悬浮底栏遮挡。底栏玻璃是 82% 不透明 surface 叠色 + 50dp 模糊 + 细描边，不是全透。选中 Tab 只把图标 tint 切到强调色，没有灰胶囊和文字。Tab 导航由 `MainActivity.setupBottomNavigation()` 绑定 `NavController`。
 
 ## 设置页布局（`activity_settings.xml`）
 
 ```
 LinearLayout (@id/settings_root)
-├── LinearLayout toolbar_header — MaterialToolbar (48dp) + 分隔线，标题「设置」，返回主界面
-└── RecyclerView — 设置项；子页（忽略应用、关于）以 BottomSheet 打开
+├── LinearLayout toolbar_header — MaterialToolbar (48dp)，标题「设置」，返回主界面
+└── RecyclerView — 设置项卡片（16dp 圆角、12dp 间距）；子页（忽略应用、关于）以 BottomSheet 打开
 ```
 
 Insets 与主界面一致：`toolbar_header` 顶栏避让状态栏，`settings_root` 避让导航栏。详见 [`ui-shell.md`](../../guides/getting-started/ui-shell.md#设置页壳层)。

@@ -51,17 +51,21 @@ class TimelineViewModel : ViewModel() {
     private var groupListObserver: androidx.lifecycle.Observer<List<SnapGroup>>? = null
     private var timeRangeObserver: androidx.lifecycle.Observer<TimeRange>? = null
     private var isBound = false
+    private var activeQueryRange: TimeRange? = null
 
     fun bindGroupList(groupList: LiveData<List<SnapGroup>>) {
-        if (isBound && boundGroupList === groupList) return
+        if (isBound && boundGroupList === groupList) {
+            requery(groupList)
+            return
+        }
         unbindGroupList()
-        groupListObserver = androidx.lifecycle.Observer { requery(groupList, timeRange) }
-        timeRangeObserver = androidx.lifecycle.Observer { requery(groupList, timeRange) }
+        groupListObserver = androidx.lifecycle.Observer { requery(groupList) }
+        timeRangeObserver = androidx.lifecycle.Observer { requery(groupList) }
         groupList.observeForever(groupListObserver!!)
         timeRange.observeForever(timeRangeObserver!!)
         boundGroupList = groupList
         isBound = true
-        requery(groupList, timeRange)
+        requery(groupList)
     }
 
     fun unbindGroupList() {
@@ -75,9 +79,21 @@ class TimelineViewModel : ViewModel() {
         isBound = false
     }
 
-    private fun requery(groupList: LiveData<List<SnapGroup>>, timeRange: LiveData<TimeRange>) {
+    /**
+     * 列表、热力图和批量恢复、删除、导出共用最近一次查询的有效区间。
+     * 最近 7/30 天的右端在 [requery] 里重算，不写回 [timeRange]。
+     */
+    fun effectiveTimeRange(): TimeRange = activeQueryRange ?: computeEffectiveQueryRange()
+
+    private fun computeEffectiveQueryRange(): TimeRange {
+        val stored = timeRange.value ?: return TimelineRepository.defaultLast7Days()
+        return effectiveQueryRange(stored)
+    }
+
+    private fun requery(groupList: LiveData<List<SnapGroup>>) {
         val groups = groupList.value ?: emptyList()
-        val range = timeRange.value ?: TimelineRepository.defaultLast7Days()
+        val range = computeEffectiveQueryRange()
+        activeQueryRange = range
         isQuerying.value = true
         viewModelScope.launch(Dispatchers.Default) {
             val result = TimelineRepository.query(groups, range)
@@ -144,5 +160,13 @@ class TimelineViewModel : ViewModel() {
             }
             return TimelineRepository.defaultLast7Days()
         }
+    }
+}
+
+internal fun effectiveQueryRange(stored: TimeRange): TimeRange {
+    return when (stored.preset) {
+        TimePreset.LAST_7_DAYS, TimePreset.LAST_30_DAYS ->
+            TimelineRepository.resolveTimeRange(stored.preset)
+        TimePreset.TODAY, TimePreset.YESTERDAY, TimePreset.CUSTOM -> stored
     }
 }

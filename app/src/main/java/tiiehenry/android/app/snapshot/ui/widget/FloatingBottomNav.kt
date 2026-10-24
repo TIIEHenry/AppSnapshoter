@@ -12,6 +12,12 @@ import eightbitlab.com.blurview.RenderEffectBlur
 import eightbitlab.com.blurview.RenderScriptBlur
 import tiiehenry.android.app.snapshot.R
 
+/**
+ * 悬浮底栏的毛玻璃层。
+ *
+ * 玻璃不是透明窗口：底栏本身是一块 82% 不透明的 surface 叠色，模糊只用来
+ * 让下方内容透出一点轮廓，保证 12sp 标签和图标始终有足够对比度。
+ */
 object FloatingBottomNav {
 
     fun setup(activity: FragmentActivity, container: BlurView) {
@@ -40,12 +46,13 @@ object FloatingBottomNav {
         container.outlineProvider = ViewOutlineProvider.BACKGROUND
         container.clipToOutline = true
 
+        // 采样根用页面底色清屏，避免边缘出现未采样的黑边。
         val frameClear = ColorDrawable(ContextCompat.getColor(activity, R.color.background))
         container.setupWith(contentRoot, algorithm)
             .setFrameClearDrawable(frameClear)
             .setBlurRadius(blurRadius)
             .setBlurAutoUpdate(true)
-            .setOverlayColor(ContextCompat.getColor(activity, R.color.floating_nav_glass_fill))
+            .setOverlayColor(ContextCompat.getColor(activity, R.color.bottom_nav_glass_fill))
     }
 
     private fun createBlurAlgorithm(activity: FragmentActivity): BlurAlgorithm {

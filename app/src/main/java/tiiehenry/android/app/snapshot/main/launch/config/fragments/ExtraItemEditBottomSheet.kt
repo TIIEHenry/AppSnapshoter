@@ -31,6 +31,7 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
     private var userId: Int = 0
     private var rootPath: String = ""
     private var isEditMode: Boolean = false
+    private var originalEnabled: Boolean = true
 
     private var onItemConfirmedListener: ((ExtraCompressItem) -> Unit)? = null
 
@@ -42,6 +43,7 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_USER_ID = "user_id"
         private const val ARG_ROOT_PATH = "root_path"
         private const val ARG_EDIT_MODE = "edit_mode"
+        private const val ARG_ENABLED = "enabled"
 
         /**
          * 创建编辑额外项目实例
@@ -65,6 +67,7 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
                             ARG_EXCLUDES, ArrayList(it.excludePatterns)
                         )
                         putBoolean(ARG_EDIT_MODE, true)
+                        putBoolean(ARG_ENABLED, it.isEnabled)
                     }
                     putString(ARG_PACKAGE_NAME, packageName)
                     putInt(ARG_USER_ID, userId)
@@ -84,6 +87,7 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
             userId = it.getInt(ARG_USER_ID, 0)
             rootPath = it.getString(ARG_ROOT_PATH, "")
             isEditMode = it.getBoolean(ARG_EDIT_MODE, false)
+            originalEnabled = it.getBoolean(ARG_ENABLED, true)
         }
     }
 
@@ -232,7 +236,13 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
         }
         binding.tilPath.error = null
 
-        val item = ExtraCompressItem(name, path, excludePatterns, true)
+        val item = confirmedExtraCompressItem(
+            name,
+            path,
+            excludePatterns,
+            isEditMode,
+            originalEnabled
+        )
 
         onItemConfirmedListener?.invoke(item)
         dismiss()
@@ -249,4 +259,15 @@ class ExtraItemEditBottomSheet : BottomSheetDialogFragment() {
         super.onDestroyView()
         _binding = null
     }
+}
+
+internal fun confirmedExtraCompressItem(
+    name: String,
+    path: String,
+    excludePatterns: List<String>,
+    isEditMode: Boolean,
+    originalEnabled: Boolean
+): ExtraCompressItem {
+    val enabled = if (isEditMode) originalEnabled else true
+    return ExtraCompressItem(name, path, excludePatterns, enabled)
 }

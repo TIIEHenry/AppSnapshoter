@@ -96,5 +96,6 @@
         style="@style/Widget.AppSnapshot.Button.Outlined"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textColor="?attr/colorError"
         android:text="@string/group_set_delete_button" />
 </LinearLayout>

@@ -262,23 +262,8 @@ class FileSystemImpl(
         try {
             val rootService = getRootService()
 
-            // 构建tar命令参数用于打包多个文件
-            val args = mutableListOf<String>()
-            args.add("tar")
-            args.add("-cpf")
-            args.add(targetFile)
-
-            // 处理每个文件/目录
-            files.forEach { filePath ->
-                val file = File(filePath)
-                if (file.parent != null) {
-                    // 添加 -C 选项改变工作目录到父目录
-                    args.add("-C")
-                    args.add(file.parent)
-                }
-                // 添加文件名（仅相对路径部分）
-                args.add(file.name)
-            }
+            // 同名最后一段用公共父目录相对路径，名字经 --add-file= 传入，避免被当成选项。
+            val args = buildMultiTarCommand(targetFile, files)
 
             Log.i(
                 "FileSystemProvider",

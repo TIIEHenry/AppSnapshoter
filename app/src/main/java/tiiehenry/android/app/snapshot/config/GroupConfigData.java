@@ -31,7 +31,17 @@ public class GroupConfigData {
      * 从 JSON 字符串解析配置（静态工厂方法）
      */
     public static GroupConfigData fromJson(String jsonString) {
-        return JSON.parseObject(jsonString, GroupConfigData.class);
+        GroupConfigData data = JSON.parseObject(jsonString, GroupConfigData.class);
+        if (data == null) {
+            return new GroupConfigData();
+        }
+        if (data.lockedList == null) {
+            data.lockedList = new ArrayList<>();
+        }
+        if (data.sortConfig == null) {
+            data.sortConfig = new SortConfig();
+        }
+        return data;
     }
 
     /**

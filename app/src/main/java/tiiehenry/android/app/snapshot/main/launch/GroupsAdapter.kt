@@ -256,7 +256,7 @@ class GroupsAdapter(
                 val index = currentList.indexOfFirst { it.appInfo.packageName == item.appInfo.packageName }
                 if (index != -1) {
                     currentList[index] = item
-                    adapter.submitList(currentList)
+                    adapter.submitApps(currentList)
                 }
             }
             itemAdapter = created
@@ -316,7 +316,7 @@ class GroupsAdapter(
                     currentList.removeAt(fromPosition)
                     currentList.add(toPosition, item)
                     adapter.submitList(currentList)
-                    saveSortOrderToConfig(currentList, group)
+                    saveSortOrderToConfig(currentList.map { it.app }, group)
                     return true
                 }
 
@@ -338,10 +338,17 @@ class GroupsAdapter(
         }
 
         private fun saveSortOrderToConfig(sortedList: List<ArchivedApp>, group: SnapGroup) {
-            val sortConfig = group.config.sortConfig
-            sortConfig.sortOrder = sortedList.map { it.appInfo.packageName }.toMutableList()
-            sortConfig.sortType = SortConfig.SORT_TYPE_CUSTOM
-            group.config.save()
+            val currentGroupId = itemAdapter?.group?.id ?: return
+            writeCustomSortIfCurrentGroup(
+                incomingGroupId = group.id,
+                currentGroupId = currentGroupId,
+                packageNames = sortedList.map { it.appInfo.packageName },
+            ) { names ->
+                val sortConfig = group.config.sortConfig
+                sortConfig.sortOrder = names.toMutableList()
+                sortConfig.sortType = SortConfig.SORT_TYPE_CUSTOM
+                group.config.save()
+            }
         }
 
         fun refresh(group: SnapGroup, recyclerView: RecyclerView) {
@@ -354,7 +361,7 @@ class GroupsAdapter(
             val adapter = recyclerView.adapter as GroupItemAdapter
             adapter.group = group
             syncInnerGridScrolling(displayed.size)
-            adapter.submitList(displayed)
+            adapter.submitApps(displayed)
             renderBody(group)
             syncChromeVisibility()
         }
@@ -387,7 +394,7 @@ class GroupsAdapter(
             }
             val adapter = itemAdapter ?: return
             val index = adapter.currentList.indexOfFirst {
-                it.appInfo.packageName == packageName
+                it.app.appInfo.packageName == packageName
             }
             if (index < 0) return
             binding.groupRecyclerView.post {
@@ -536,5 +543,19 @@ internal fun archiveGroupCardContentsTheSame(
     if (oldItem.accentColor != newItem.accentColor) return false
     if (oldItem.visiblePackages != newItem.visiblePackages) return false
     return oldItem.appsFingerprint == newItem.appsFingerprint
+}
+
+/**
+ * 只把包名顺序写进当前卡片上的分组。传入分组与适配器当前组不同时不改 sortOrder、不 save。
+ */
+internal fun writeCustomSortIfCurrentGroup(
+    incomingGroupId: String,
+    currentGroupId: String,
+    packageNames: List<String>,
+    write: (packageNames: List<String>) -> Unit,
+): Boolean {
+    if (incomingGroupId != currentGroupId) return false
+    write(packageNames)
+    return true
 }
 

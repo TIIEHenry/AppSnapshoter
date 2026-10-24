@@ -12,9 +12,9 @@ public interface IPermissionManager {
     // ========== 权限查询与设置 ==========
     List<AppPermission> getPermissions(String packageName, int userId);
 
-    void setAppPermission(String packageName, int userId, AppPermission permission);
+    boolean setAppPermission(String packageName, int userId, AppPermission permission);
 
-    void setAppPermissions(String packageName, int userId, List<AppPermission> permissions);
+    boolean setAppPermissions(String packageName, int userId, List<AppPermission> permissions);
 
     void grantRuntimePermission(String packageName, String permName, UserHandle user);
 
@@ -29,9 +29,9 @@ public interface IPermissionManager {
 
     UserHandle getUserHandle(int userId);
 
-    void setOpsMode(int code, int uid, String packageName, int mode);
+    boolean setOpsMode(int code, int uid, String packageName, int mode);
 
-    void resetAppOps(int userId, String packageName);
+    boolean resetAppOps(int userId, String packageName);
 
     // ========== SSAID 管理 ==========
     String getPackageSsaidAsUser(String packageName, int uid, int userId);

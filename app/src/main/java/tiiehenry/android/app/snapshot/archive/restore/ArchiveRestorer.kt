@@ -5,10 +5,13 @@ import android.content.pm.PackageManager
 import android.text.format.Formatter
 import android.util.Log
 import android.widget.Toast
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import java.util.concurrent.atomic.AtomicReference
 import tiiehenry.android.app.snapshot.R
 import tiiehenry.android.app.snapshot.SnapshotApp
@@ -55,7 +58,8 @@ object ArchiveRestorer {
     suspend fun restoreArchiveSuspend(
         context: Context,
         archivedApp: ArchivedApp,
-        archiveItem: ArchiveItem
+        archiveItem: ArchiveItem,
+        recordRestore: Boolean = true,
     ) {
         val snapShotApp = SnapshotApp.getInstance()
         val fs = snapShotApp.fileSystem
@@ -63,7 +67,16 @@ object ArchiveRestorer {
         val errorRef = AtomicReference<Exception?>(null)
         val noOpDialog = NoOpItemProgressDialog(errorRef)
 
-        restoreArchive(context, fs, appManager, archivedApp, archiveItem, noOpDialog)
+        restoreArchive(
+            context,
+            fs,
+            appManager,
+            archivedApp,
+            archiveItem,
+            noOpDialog,
+            recordRestore,
+            beforeOverwrite = { coroutineContext.ensureActive() },
+        )
 
         errorRef.get()?.let { throw it }
     }
@@ -163,7 +176,7 @@ object ArchiveRestorer {
                     ).show()
                 }
             } finally {
-                updateCurrent()
+                withContext(Dispatchers.Main) { updateCurrent() }
             }
         }
     }
@@ -219,7 +232,9 @@ object ArchiveRestorer {
         appManager: IAppManager,
         archivedApp: ArchivedApp,
         archiveItem: ArchiveItem,
-        loadingDialog: IItemProgressDialog
+        loadingDialog: IItemProgressDialog,
+        recordRestore: Boolean = true,
+        beforeOverwrite: suspend () -> Unit = {},
     ) {
         validateRestoreUserId(archiveItem)
 
@@ -267,12 +282,13 @@ object ArchiveRestorer {
                 appInfo,
                 packageName,
                 userId,
-                callback
+                callback,
+                beforeOverwrite,
             )
         ) return
 
         PermissionRestorer.restorePermissions(loadingDialog, archiveItem, fs, appManager, packageName, userId)
-        RestoreRecordWriter.onRestoreSuccess(archivedApp, archiveItem)
+        if (recordRestore) RestoreRecordWriter.onRestoreSuccess(archivedApp, archiveItem)
         withContext(Dispatchers.Main) {
             loadingDialog.dismissItem()
             Toast.makeText(context, R.string.archive_restore_success, Toast.LENGTH_SHORT).show()
@@ -418,13 +434,14 @@ object ArchiveRestorer {
         appInfo: AppInfo,
         packageName: String,
         userId: Int,
-        callback: DataItemCallback
+        callback: DataItemCallback,
+        beforeOverwrite: suspend () -> Unit = {},
     ): Boolean {
         var currentIndex = 0
         val totalItems = needRestoreDataItems.size + extraItems.size
 
         try {
-            for (dataItem in needRestoreDataItems) {
+            beforeEachAppDataOverwrite(needRestoreDataItems, beforeOverwrite) { dataItem ->
                 currentIndex++
                 val progress = (currentIndex * 100) / totalItems
                 val itemName = dataItem.name
@@ -434,6 +451,7 @@ object ArchiveRestorer {
                     loadingDialog.setItemProgress(progress)
                 }
 
+                beforeOverwrite()
                 restoreDataItem(
                     fs,
                     appManager,
@@ -450,7 +468,7 @@ object ArchiveRestorer {
 
             if (extraItems.isNotEmpty()) {
                 Log.i(TAG, "开始恢复 ${extraItems.size} 个额外项目")
-                for ((extraDataItem, extraPath) in extraItems) {
+                beforeEachAppDataOverwrite(extraItems.entries.toList(), beforeOverwrite) { (extraDataItem, extraPath) ->
                     currentIndex++
                     val progress = (currentIndex * 100) / totalItems
                     val itemName = extraDataItem.name
@@ -459,6 +477,7 @@ object ArchiveRestorer {
                         loadingDialog.setCurrentItem("$itemName (额外)")
                         loadingDialog.setItemProgress(progress)
                     }
+                    beforeOverwrite()
                     DataRestorer.restoreExtraItem(
                         fs,
                         archiveItem,
@@ -586,5 +605,32 @@ object ArchiveRestorer {
                 }
             }
         }
+    }
+}
+
+internal suspend fun <T> beforeEachAppDataOverwrite(
+    entries: List<T>,
+    beforeOverwrite: suspend () -> Unit,
+    overwrite: suspend (T) -> Unit,
+) {
+    for (entry in entries) {
+        beforeOverwrite()
+        overwrite(entry)
+    }
+}
+
+/** Success and failure both refresh [updateCurrent] on [mainDispatcher], after [onFailure] when [restore] throws. */
+internal suspend fun finishAdvancedRestore(
+    restore: suspend () -> Unit,
+    onFailure: suspend (Exception) -> Unit,
+    updateCurrent: () -> Unit,
+    mainDispatcher: CoroutineDispatcher = Dispatchers.Main,
+) {
+    try {
+        restore()
+    } catch (e: Exception) {
+        onFailure(e)
+    } finally {
+        withContext(mainDispatcher) { updateCurrent() }
     }
 }

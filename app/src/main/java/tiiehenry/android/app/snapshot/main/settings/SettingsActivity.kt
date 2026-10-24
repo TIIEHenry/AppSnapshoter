@@ -47,10 +47,10 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun applyToolbarStyle() {
-        val surfaceColor = ContextCompat.getColor(this, R.color.surface)
-        binding.toolbar.setBackgroundColor(surfaceColor)
+        val backgroundColor = ContextCompat.getColor(this, R.color.background)
+        binding.toolbar.setBackgroundColor(backgroundColor)
         binding.toolbar.backgroundTintList = null
-        binding.toolbarHeader.setBackgroundColor(surfaceColor)
+        binding.toolbarHeader.setBackgroundColor(backgroundColor)
     }
 
     private fun setupSystemBars() {

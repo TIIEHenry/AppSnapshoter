@@ -183,6 +183,12 @@ public class SettingsStateApi31 implements SettingsState {
     @GuardedBy("mLock")
     private boolean mWriteScheduled;
 
+    /**
+     * Bumped on every schedule request. Not the on-disk {@link #mVersion}.
+     */
+    @GuardedBy("mLock")
+    private int mWriteGeneration;
+
     @GuardedBy("mLock")
     private long mNextId;
 
@@ -395,6 +401,7 @@ public class SettingsStateApi31 implements SettingsState {
 
     @GuardedBy("mLock")
     private void scheduleWriteIfNeededLocked() {
+        mWriteGeneration++;
         // If dirty then we have a write already scheduled.
         if (!mDirty) {
             mDirty = true;
@@ -437,94 +444,112 @@ public class SettingsStateApi31 implements SettingsState {
         final int version;
         final ArrayMap<String, Setting> settings;
         final ArrayMap<String, String> namespaceBannedHashes;
+        final int writeGeneration;
 
         synchronized (mLock) {
             version = mVersion;
-            settings = new ArrayMap<>(mSettings);
+            writeGeneration = mWriteGeneration;
+            final int count = mSettings.size();
+            settings = new ArrayMap<>(count);
+            for (int i = 0; i < count; i++) {
+                settings.put(mSettings.keyAt(i), new Setting(mSettings.valueAt(i)));
+            }
             namespaceBannedHashes = new ArrayMap<>(mNamespaceBannedHashes);
-            mDirty = false;
-            mWriteScheduled = false;
         }
 
-        synchronized (mWriteLock) {
-            if (DEBUG_PERSISTENCE) {
-                Log.i(LOG_TAG, "[PERSIST START]");
-            }
-
-            AtomicFile destination = new AtomicFile(mStatePersistFile);
-            FileOutputStream out = null;
-            try {
-                out = destination.startWrite();
-
-                TypedXmlSerializer serializer = XmlApi30.resolveSerializer(out);
-                serializer.startDocument(null, true);
-                serializer.startTag(null, TAG_SETTINGS);
-                serializer.attributeInt(null, ATTR_VERSION, version);
-
-                final int settingCount = settings.size();
-                for (int i = 0; i < settingCount; i++) {
-                    Setting setting = settings.valueAt(i);
-
-                    if (writeSingleSetting(mVersion, serializer, setting.getId(), setting.getName(),
-                            setting.getValue(), setting.getDefaultValue(), setting.getPackageName(),
-                            setting.getTag(), setting.isDefaultFromSystem(),
-                            setting.isValuePreservedInRestore())) {
-                        if (DEBUG_PERSISTENCE) {
-                            Log.i(LOG_TAG, "[PERSISTED]" + setting.getName() + "="
-                                    + setting.getValue());
-                        }
-                    }
-                }
-                serializer.endTag(null, TAG_SETTINGS);
-
-                serializer.startTag(null, TAG_NAMESPACE_HASHES);
-                for (int i = 0; i < namespaceBannedHashes.size(); i++) {
-                    String namespace = namespaceBannedHashes.keyAt(i);
-                    String bannedHash = namespaceBannedHashes.get(namespace);
-                    if (writeSingleNamespaceHash(serializer, namespace, bannedHash)) {
-                        if (DEBUG_PERSISTENCE) {
-                            Log.i(LOG_TAG, "[PERSISTED] namespace=" + namespace
-                                    + ", bannedHash=" + bannedHash);
-                        }
-                    }
-                }
-                serializer.endTag(null, TAG_NAMESPACE_HASHES);
-                serializer.endDocument();
-                destination.finishWrite(out);
-
-                wroteState = true;
-
+        try {
+            synchronized (mWriteLock) {
                 if (DEBUG_PERSISTENCE) {
-                    Log.i(LOG_TAG, "[PERSIST END]");
+                    Log.i(LOG_TAG, "[PERSIST START]");
                 }
-            } catch (Throwable t) {
-                Log.wtf(LOG_TAG, "Failed to write settings, restoring backup", t);
-                if (t instanceof IOException) {
-                    // we failed to create a directory, so log the permissions and existence
-                    // state for the settings file and directory
-                    logSettingsDirectoryInformation(destination.getBaseFile());
-                    if (t.getMessage().contains("Couldn't create directory")) {
-                        // attempt to create the directory with Files.createDirectories, which
-                        // throws more informative errors than File.mkdirs.
-                        Path parentPath = destination.getBaseFile().getParentFile().toPath();
-                        try {
-                            Files.createDirectories(parentPath);
-                            Log.i(LOG_TAG, "Successfully created " + parentPath);
-                        } catch (Throwable t2) {
-                            Log.e(LOG_TAG, "Failed to write " + parentPath
-                                    + " with Files.writeDirectories", t2);
+
+                AtomicFile destination = new AtomicFile(mStatePersistFile);
+                FileOutputStream out = null;
+                try {
+                    out = destination.startWrite();
+
+                    TypedXmlSerializer serializer = XmlApi30.resolveSerializer(out);
+                    serializer.startDocument(null, true);
+                    serializer.startTag(null, TAG_SETTINGS);
+                    serializer.attributeInt(null, ATTR_VERSION, version);
+
+                    final int settingCount = settings.size();
+                    for (int i = 0; i < settingCount; i++) {
+                        Setting setting = settings.valueAt(i);
+
+                        if (writeSingleSetting(version, serializer, setting.getId(),
+                                setting.getName(), setting.getValue(), setting.getDefaultValue(),
+                                setting.getPackageName(), setting.getTag(),
+                                setting.isDefaultFromSystem(),
+                                setting.isValuePreservedInRestore())) {
+                            if (DEBUG_PERSISTENCE) {
+                                Log.i(LOG_TAG, "[PERSISTED]" + setting.getName() + "="
+                                        + setting.getValue());
+                            }
                         }
                     }
-                }
-                destination.failWrite(out);
-            } finally {
-                IoUtils.closeQuietly(out);
-            }
-        }
+                    serializer.endTag(null, TAG_SETTINGS);
 
-        if (wroteState) {
+                    serializer.startTag(null, TAG_NAMESPACE_HASHES);
+                    for (int i = 0; i < namespaceBannedHashes.size(); i++) {
+                        String namespace = namespaceBannedHashes.keyAt(i);
+                        String bannedHash = namespaceBannedHashes.get(namespace);
+                        if (writeSingleNamespaceHash(serializer, namespace, bannedHash)) {
+                            if (DEBUG_PERSISTENCE) {
+                                Log.i(LOG_TAG, "[PERSISTED] namespace=" + namespace
+                                        + ", bannedHash=" + bannedHash);
+                            }
+                        }
+                    }
+                    serializer.endTag(null, TAG_NAMESPACE_HASHES);
+                    serializer.endDocument();
+                    destination.finishWrite(out);
+
+                    wroteState = true;
+
+                    if (DEBUG_PERSISTENCE) {
+                        Log.i(LOG_TAG, "[PERSIST END]");
+                    }
+                } catch (Throwable t) {
+                    Log.wtf(LOG_TAG, "Failed to write settings, restoring backup", t);
+                    try {
+                        if (t instanceof IOException) {
+                            // we failed to create a directory, so log the permissions and existence
+                            // state for the settings file and directory
+                            logSettingsDirectoryInformation(destination.getBaseFile());
+                            final String detail = t.getMessage();
+                            if (detail != null && detail.contains("Couldn't create directory")) {
+                                // attempt to create the directory with Files.createDirectories,
+                                // which throws more informative errors than File.mkdirs.
+                                Path parentPath = destination.getBaseFile().getParentFile().toPath();
+                                try {
+                                    Files.createDirectories(parentPath);
+                                    Log.i(LOG_TAG, "Successfully created " + parentPath);
+                                } catch (Throwable t2) {
+                                    Log.e(LOG_TAG, "Failed to write " + parentPath
+                                            + " with Files.writeDirectories", t2);
+                                }
+                            }
+                        }
+                    } finally {
+                        destination.failWrite(out);
+                    }
+                } finally {
+                    IoUtils.closeQuietly(out);
+                }
+            }
+        } finally {
             synchronized (mLock) {
-                addHistoricalOperationLocked(HISTORICAL_OPERATION_PERSIST, null);
+                if (wroteState) {
+                    addHistoricalOperationLocked(HISTORICAL_OPERATION_PERSIST, null);
+                }
+                if (wroteState && writeGeneration == mWriteGeneration) {
+                    mDirty = false;
+                    mWriteScheduled = false;
+                } else {
+                    mDirty = true;
+                    writeStateAsyncLocked();
+                }
             }
         }
     }
@@ -569,7 +594,7 @@ public class SettingsStateApi31 implements SettingsState {
                         + ", tag=" + tag + ", defaultSysSet=" + defaultSysSet
                         + ", isValuePreservedInRestore=" + isValuePreservedInRestore);
             }
-            return false;
+            throw new IOException("Invalid setting id, name, or packageName");
         }
         serializer.startTag(null, TAG_SETTING);
         serializer.attribute(null, ATTR_ID, id);
@@ -670,6 +695,9 @@ public class SettingsStateApi31 implements SettingsState {
         if (parseStateFromXmlStreamLocked(in)) {
             return;
         }
+        // Do not keep a partially parsed primary file while trying the fallback.
+        mSettings.clear();
+        mNamespaceBannedHashes.clear();
 
         // Settings file exists but is corrupted. Retry with the fallback file
         final File statePersistFallbackFile = new File(
@@ -685,12 +713,26 @@ public class SettingsStateApi31 implements SettingsState {
         }
         if (parseStateFromXmlStreamLocked(in)) {
             // Parsed state from fallback file. Restore original file with fallback file
+            AtomicFile destination = new AtomicFile(mStatePersistFile);
+            FileInputStream fallbackIn = null;
+            FileOutputStream out = null;
             try {
-                FileUtils.copy(new FileInputStream(statePersistFallbackFile), new FileOutputStream(mStatePersistFile));
-            } catch (IOException ignored) {
-                // Failed to copy, but it's okay because we already parsed states from fallback file
+                fallbackIn = new FileInputStream(statePersistFallbackFile);
+                out = destination.startWrite();
+                FileUtils.copy(fallbackIn, out);
+                destination.finishWrite(out);
+            } catch (IOException e) {
+                if (out != null) {
+                    destination.failWrite(out);
+                }
+                throw new IllegalStateException(
+                        "Failed to restore settings file: " + mStatePersistFile, e);
+            } finally {
+                IoUtils.closeQuietly(fallbackIn);
             }
         } else {
+            mSettings.clear();
+            mNamespaceBannedHashes.clear();
             final String message = "Failed parsing settings file: " + mStatePersistFile;
             Log.wtf(LOG_TAG, message);
             throw new IllegalStateException(message);
@@ -700,6 +742,8 @@ public class SettingsStateApi31 implements SettingsState {
     @RequiresApi(api = Build.VERSION_CODES.R)
     @GuardedBy("mLock")
     private boolean parseStateFromXmlStreamLocked(FileInputStream in) {
+        mSettings.clear();
+        mNamespaceBannedHashes.clear();
         try {
             TypedXmlPullParser parser = XmlApi30.resolvePullParser(in);
             parseStateLocked(parser);
@@ -714,6 +758,7 @@ public class SettingsStateApi31 implements SettingsState {
     private void parseStateLocked(TypedXmlPullParser parser)
             throws IOException, XmlPullParserException {
         final int outerDepth = parser.getDepth();
+        boolean sawSettings = false;
         int type;
         while ((type = parser.next()) != XmlPullParser.END_DOCUMENT
                 && (type != XmlPullParser.END_TAG || parser.getDepth() > outerDepth)) {
@@ -723,10 +768,14 @@ public class SettingsStateApi31 implements SettingsState {
 
             String tagName = parser.getName();
             if (tagName.equals(TAG_SETTINGS)) {
+                sawSettings = true;
                 parseSettingsLocked(parser);
             } else if (tagName.equals(TAG_NAMESPACE_HASHES)) {
                 parseNamespaceHash(parser);
             }
+        }
+        if (!sawSettings) {
+            throw new XmlPullParserException("Missing settings element");
         }
     }
 
@@ -768,6 +817,9 @@ public class SettingsStateApi31 implements SettingsState {
                 }
             }
         }
+        if (type == XmlPullParser.END_DOCUMENT) {
+            throw new XmlPullParserException("Unexpected end of settings document");
+        }
     }
 
     @GuardedBy("mLock")
@@ -787,6 +839,9 @@ public class SettingsStateApi31 implements SettingsState {
                 String bannedHashCode = parser.getAttributeValue(null, ATTR_BANNED_HASH);
                 mNamespaceBannedHashes.put(namespace, bannedHashCode);
             }
+        }
+        if (type == XmlPullParser.END_DOCUMENT) {
+            throw new XmlPullParserException("Unexpected end of settings document");
         }
     }
 

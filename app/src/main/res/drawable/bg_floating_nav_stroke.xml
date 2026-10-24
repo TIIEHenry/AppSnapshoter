@@ -4,6 +4,6 @@
     <solid android:color="@android:color/transparent" />
     <corners android:radius="@dimen/floating_nav_corner_radius" />
     <stroke
-        android:width="0.33dp"
-        android:color="@color/floating_nav_glass_stroke" />
+        android:width="0.5dp"
+        android:color="@color/bottom_nav_glass_stroke" />
 </shape>
